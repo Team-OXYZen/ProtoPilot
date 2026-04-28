@@ -143,3 +143,22 @@ def save_generated_code(project_id: str, files_json: dict[str, str]) -> dict[str
         },
     )
     return {"ok": True, "project_id": project_id, "stage": proj.stage.value, "files_count": len(files_json or {})}
+
+def load_generated_code(project_id: str) -> dict[str, Any]:
+    """
+    Load generated code files for QA review.
+    """
+    proj = get_or_create_project(project_id, req_session_id=project_id)
+    _log_tool_event(
+        "load_generated_code",
+        {
+            "project_id": project_id,
+            "stage": proj.stage.value,
+            "has_generated_code": proj.generated_code_files is not None,
+            "generated_files": list(proj.generated_code_files.keys()) if proj.generated_code_files else [],
+        },
+    )
+    return {
+        "project_id": project_id,
+        "generated_code_files": proj.generated_code_files or {},
+    }

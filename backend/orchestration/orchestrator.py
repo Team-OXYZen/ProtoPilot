@@ -4,6 +4,7 @@ from core.auth import get_oauth_token
 from core.runner import run_turn
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
+    load_generated_code,
     load_spec,
     save_nontech_artifacts,
     save_technical_artifacts,
@@ -35,6 +36,9 @@ class Orchestrator:
 
     def _code_generation_tools(self) -> list:
         return [load_spec, load_artifacts, save_generated_code, set_project_stage]
+    
+    def _qa_tools(self) -> list:
+        return [load_spec, load_artifacts, save_generated_code, load_generated_code]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
@@ -95,6 +99,8 @@ class Orchestrator:
             return await self._run_artifacts_technical(token, project_id, req_session_id)            
         if proj.stage == Stage.CODEGEN:
             return await self._run_code_generation(token, project_id, req_session_id)
+        if proj.stage == Stage.QA:
+            return await self._run_qa(token, project_id, req_session_id, user_message)
 
         return self._build_response(
             proj=proj,
@@ -111,11 +117,13 @@ class Orchestrator:
         )
         raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = '{"message": ' + (
-            '"Non-technical artifacts saved."'
-            if proj.stage == Stage.WAIT_APPROVAL
-            else '"Artifacts generation did not complete tool save."'
-        ) + '}'
+
+        if proj.stage == Stage.WAIT_APPROVAL:
+            reply = '{"message": "Non-technical artifacts generated successfully and awaiting approval."}'
+        else:
+            reply = '{"message": "Non-technical artifacts generation failed. Please try again.", "error": ' + raw_reply + '}'
+            # proj.stage = Stage.REQ  # Revert stage if save was not successful
+
         return self._build_response(
             proj=proj,
             reply=reply,
@@ -128,7 +136,7 @@ class Orchestrator:
             f"project_id={project_id}\n"
             "phase=technical\n"
             "Generate technical artifacts now. "
-            "Use load_spec first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
+            "Use load_spec(project_id) first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
@@ -148,8 +156,8 @@ class Orchestrator:
             code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._code_generation_tools())
             code_prompt = (
                 f"project_id={project_id}\n"
-                "Generate production-ready Angular frontend code now.\n"
-                "Use load_spec to get requirements, load_artifacts to get all artifacts, "
+                "Generate a POC-level Angular frontend code now.\n"
+                "Use tools to get requirements and artifacts, "
                 "generate modular Angular components and services with mocked API calls, "
                 "then save all code files via save_generated_code(project_id, files_json)."
             )
@@ -180,3 +188,18 @@ class Orchestrator:
                 proj=proj,
                 reply=reply,
             )
+
+    async def _run_qa(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict:
+        qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
+        qa_prompt = (
+            f"project_id={project_id}\n"
+            "Refine the generated code based on the following user feedback and your review. "
+            f"User feedback: {user_message}"
+        )
+        _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
+        proj = get_or_create_project(project_id, req_session_id)
+        reply = '{"message": "QA review completed."}'
+        return self._build_response(
+            proj=proj,
+            reply=reply,
+        )

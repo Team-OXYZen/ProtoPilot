@@ -43,10 +43,10 @@ export class WizardService {
     if (!this.session) return of(null);
     
     return this.http.post<Response>(CONSTANTS.REQUIREMENTS_AGENT_URL, {
-        session_id: this.session?.id,
-        project_id: this.project?.id,
-        // session_id: "todo",
-        // project_id: "todo",
+        // session_id: this.session?.id,
+        // project_id: this.project?.id,
+        session_id: "todo",
+        project_id: "todo",
         message: message
       });
   }
