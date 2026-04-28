@@ -1,5 +1,5 @@
 import os
-from backend.core.llm import create_litellm
+from core.llm import create_litellm
 from google.genai import types
 from google.adk.agents import LlmAgent
 from .instructions import QA_AGENT_INSTRUCTIONS
