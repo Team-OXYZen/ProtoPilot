@@ -5,7 +5,7 @@ from google.adk.agents import LlmAgent
 from .instructions import QA_AGENT_INSTRUCTIONS
 
 def create_agent(token: str, tools=None) -> LlmAgent:
-    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_CODEGEN"))
+    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_QA"))
     return LlmAgent(
         model=llm,
         name="qa_agent",
