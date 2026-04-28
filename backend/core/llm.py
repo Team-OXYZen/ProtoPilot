@@ -1,16 +1,20 @@
 import os
+import logging
 from google.adk.models.lite_llm import LiteLlm
 
-def create_litellm(oauth_token: str) -> LiteLlm:
+logger = logging.getLogger(__name__)
+
+def create_litellm(oauth_token: str, model: str | None = None) -> LiteLlm:
     litellm_api_key = os.getenv("LITELLM_API_KEY", "")
-    model = os.getenv("LITELLM_MODEL", "")
+    resolved_model = model or os.getenv("LITELLM_MODEL", "")
     api_base = os.getenv("LITELLM_API_BASE", "")
 
-    if not (litellm_api_key and model and api_base):
+    if not (litellm_api_key and resolved_model and api_base):
         raise RuntimeError("Missing LITELLM_API_KEY / LITELLM_MODEL / LITELLM_API_BASE in .env")
 
+    logger.info("[LiteLLM] Using model: %s", resolved_model)
     return LiteLlm(
-        model=model,
+        model=resolved_model,
         api_base=api_base,
         api_key=litellm_api_key,
         extra_headers={

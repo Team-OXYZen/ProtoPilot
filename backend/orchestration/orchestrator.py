@@ -1,7 +1,6 @@
 from typing import Any
 
 from core.auth import get_oauth_token
-from core.llm import create_litellm
 from core.runner import run_turn
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
@@ -56,9 +55,9 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_requirements(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict[str, Any]:
+    async def _run_requirements(self, token, project_id: str, req_session_id: str, user_message: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
-        req_agent = AGENT_FACTORIES["requirements"](llm, tools=self._requirements_tools())
+        req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
         req_prompt = (
             f"project_id={project_id}\n"
@@ -70,7 +69,7 @@ class Orchestrator:
         proj = get_or_create_project(project_id, req_session_id)
 
         if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
-            return await self._run_artifacts_non_tech(llm, project_id, req_session_id)
+            return await self._run_artifacts_non_tech(token, project_id, req_session_id)
 
         return self._build_response(proj=proj, reply=reply)
 
@@ -87,24 +86,23 @@ class Orchestrator:
 
         # Remaining stages are model-backed.
         token = await get_oauth_token()
-        llm = create_litellm(token)
 
         if proj.stage == Stage.REQ:
-            return await self._run_requirements(llm, project_id, req_session_id, user_message)
+            return await self._run_requirements(token, project_id, req_session_id, user_message)
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
-            return await self._run_artifacts_non_tech(llm, project_id, req_session_id)
+            return await self._run_artifacts_non_tech(token, project_id, req_session_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(llm, project_id, req_session_id)
+            return await self._run_artifacts_technical(token, project_id, req_session_id)            
         if proj.stage == Stage.CODEGEN:
-            return await self._run_code_generation(llm, project_id, req_session_id)
+            return await self._run_code_generation(token, project_id, req_session_id)
 
         return self._build_response(
             proj=proj,
             reply='{"message": "Project complete. Ready for QA."}',
         )
 
-    async def _run_artifacts_non_tech(self, llm, project_id: str, req_session_id: str) -> dict:
-        art_agent = AGENT_FACTORIES["artifacts"](llm, tools=self._artifacts_tools(), phase="non_tech")
+    async def _run_artifacts_non_tech(self, token, project_id: str, req_session_id: str) -> dict:
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
         art_prompt = (
             f"project_id={project_id}\n"
             "phase=non_tech\n"
@@ -124,8 +122,8 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_artifacts_technical(self, llm, project_id: str, req_session_id: str) -> dict:
-        art_agent = AGENT_FACTORIES["artifacts"](llm, tools=self._artifacts_tools(), phase="technical")
+    async def _run_artifacts_technical(self, token, project_id: str, req_session_id: str) -> dict:
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical")
         art_prompt = (
             f"project_id={project_id}\n"
             "phase=technical\n"
@@ -145,9 +143,9 @@ class Orchestrator:
             artifacts_md=proj.technical_artifacts_md,
         )
 
-    async def _run_code_generation(self, llm, project_id: str, req_session_id: str) -> dict:
+    async def _run_code_generation(self, token, project_id: str, req_session_id: str) -> dict:
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](llm, tools=self._code_generation_tools())
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._code_generation_tools())
             code_prompt = (
                 f"project_id={project_id}\n"
                 "Generate production-ready Angular frontend code now.\n"

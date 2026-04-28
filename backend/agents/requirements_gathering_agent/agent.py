@@ -1,8 +1,11 @@
+import os
 from google.adk.agents import LlmAgent
 from google.genai import types
+from core.llm import create_litellm
 from .instructions import REQUIREMENTS_GATHERING_AGENT_INSTRUCTIONS
 
-def create_agent(llm, tools=None) -> LlmAgent:
+def create_agent(token: str, tools=None) -> LlmAgent:
+    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_REQUIREMENTS"))
     return LlmAgent(
         model=llm,
         name="reqs_gathering_agent",
