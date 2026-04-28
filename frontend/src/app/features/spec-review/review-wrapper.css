@@ -28,7 +28,7 @@
   gap: 10px;
 }
 
-.preview-btn {
+.preview-btn, .generate-btn, .view-prototype-btn {
   background: #4f46e5;
   border: none;
   padding: 10px 20px;
@@ -38,7 +38,7 @@
   font-size: 16px;
 }
 
-.preview-btn:hover {
+.preview-btn:hover, .generate-btn:hover, .view-prototype-btn:hover {
   background: #3730a3;
 }
 

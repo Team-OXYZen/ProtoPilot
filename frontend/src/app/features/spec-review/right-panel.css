@@ -105,6 +105,7 @@ textarea {
   border: 1px solid #334155;
   overflow: auto;
   max-height: calc(100vh - 180px);
+  max-width: 750px;
 }
 
 .mermaid-container {

@@ -1,5 +1,5 @@
 <div class="header">
-  <h1>Specification Review</h1>
+  <h1>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specification Review' }}</h1>
   <div>
     @if (hasNonTechArtifacts() && !hasTechnicalArtifacts()) {
       <button class="approve-btn" (click)="approveSpec()">Approve Specs</button>
@@ -9,7 +9,9 @@
       <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</button>
     } @else if (hasGeneratedCode()) {
       <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</button>
-      <button class="view-prototype-btn" (click)="viewPrototype()">View Prototype</button>
+      @if (!isStackblitzActive()) {
+        <button class="view-prototype-btn" (click)="viewPrototype()">View Prototype</button>
+      }
     }
   </div>
 </div>
@@ -28,5 +30,5 @@
   <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
   </app-right-panel>
   }
-  <app-chatbox> </app-chatbox>
+  <app-chatbox [isStackblitzActive]="isStackblitzActive()"> </app-chatbox>
 </div>
