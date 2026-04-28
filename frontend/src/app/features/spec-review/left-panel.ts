@@ -21,7 +21,7 @@ export class LeftPanelComponent {
   }
 
   get sections(): string[] {
-    return Object.keys(this.spec);
+    return Object.keys(this.spec).sort();
   }
 
   selectSection(section: string) {

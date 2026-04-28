@@ -92,7 +92,7 @@ class Orchestrator:
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
             return await self._run_artifacts_non_tech(token, project_id, req_session_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(token, project_id, req_session_id)
+            return await self._run_artifacts_technical(token, project_id, req_session_id)            
         if proj.stage == Stage.CODEGEN:
             return await self._run_code_generation(token, project_id, req_session_id)
 

@@ -1,44 +1,34 @@
 <div class="header">
-  <h1>Specification Review</h1>
+  <h1>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specification Review' }}</h1>
   <div>
-    @if (!isPreviewMode()) {
-      <button class="approve-btn" (click)="approveSpec()">Approve Specification</button>
-    } @else {
-      <button class="approve-btn" (click)="generateCode()">Generate Code</button>
+    @if (hasNonTechArtifacts() && !hasTechnicalArtifacts()) {
+      <button class="approve-btn" (click)="approveSpec()">Approve Specs</button>
+      <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</button>
+    } @else if (hasTechnicalArtifacts() && !hasGeneratedCode()) {
+      <button class="generate-btn" (click)="generateCode()">Generate Code</button>
+      <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</button>
+    } @else if (hasGeneratedCode()) {
+      <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</button>
+      @if (!isStackblitzActive()) {
+        <button class="view-prototype-btn" (click)="viewPrototype()">View Prototype</button>
+      }
     }
-    <button class="preview-btn" (click)="togglePreview()">{{ isPreviewMode() ? 'Edit' : 'Preview' }}</button>
   </div>
 </div>
 
-@if (!isPreviewMode()) {
-    <div class="container">
-
-    <app-left-panel
-      [selectedSection]="selectedSection"
-      (sectionSelected)="onSectionSelect($event)">
-    </app-left-panel>
-
-    <app-right-panel
-      [selectedSection]="selectedSection">
-    </app-right-panel>
-    <app-chatbox>    </app-chatbox>
-  </div>
-} @else {
-  <div class="container">
-
-    <app-left-panel
-      [files]="files()"
-      [selectedFile]="selectedFile"
-      (fileSelected)="onFileSelect($event)">
-    </app-left-panel>
-    <app-right-panel
-      [selectedFile]="selectedFile"
-      [mdText]="getMdText(selectedFile)"
-      [isPreviewMode]="true">
-    </app-right-panel>
-
-  </div>
-  <!-- <div class="preview-container">
-    <app-live-preview></app-live-preview>
-  </div> -->
-}
+<div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
+  @if (!isPreviewMode()) {
+  <app-left-panel [selectedSection]="selectedSection" (sectionSelected)="onSectionSelect($event)">
+  </app-left-panel>
+  <app-right-panel [selectedSection]="selectedSection">
+  </app-right-panel>
+  } @else {
+  @if (!isStackblitzActive()) {
+  <app-left-panel [files]="files()" [selectedFile]="selectedFile" (fileSelected)="onFileSelect($event)">
+  </app-left-panel>
+  }
+  <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
+  </app-right-panel>
+  }
+  <app-chatbox [isStackblitzActive]="isStackblitzActive()"> </app-chatbox>
+</div>

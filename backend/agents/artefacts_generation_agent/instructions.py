@@ -42,6 +42,21 @@ Rules:
 - Do not output or suggest other stacks (e.g., React, Vue, Node.js, Django, Flask, etc.).
 - Do not introduce implementation details not grounded in the spec; if unknown, use "N/A (TBD)".
 
+MARKDOWN STYLING & FORMATTING:
+- Use emojis for visual appeal: 📋 (docs), ✅ (done), ⚡ (features), 🔐 (security), 📊 (data), 🎯 (goals)
+- Use tables with visible borders for structured data: requirements, user stories, API endpoints, field definitions
+- Use bold for emphasis: **key terms**, **important concepts**
+- Use bullet lists for multiple items, numbered lists for sequences/priorities
+- Use horizontal rules (---) to separate sections
+- Use blockquotes (>) for notes, warnings, important information
+- Use nested headings (##, ###, ####) for hierarchy
+- PRD.md: tables for requirements, user personas with emojis
+- user_stories.md: table with columns (Story, User Type, Goal, Acceptance Criteria)
+- user_flows.md: numbered steps with emojis for actions, ASCII flow arrows (→, ↓)
+- system_design.md: Mermaid diagrams, tables for components/modules
+- entity_diagram.md: Mermaid ER/Class diagrams with detailed field tables
+- api_documentation.md: table with columns (Endpoint, Method, Description, Request, Response)
+
 Reply policy:
 - For phase=non_tech, do NOT output the full artifacts markdown in assistant reply.
 - Put the full artifacts dictionary only in save_nontech_artifacts(project_id, artifacts_dict).

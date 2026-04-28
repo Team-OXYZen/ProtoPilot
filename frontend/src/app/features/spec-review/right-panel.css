@@ -13,6 +13,10 @@
   margin-bottom: 20px;
 }
 
+.spec-content section {
+  max-height: 60vh;
+}
+
 section {
   margin-bottom: 24px;
 }
@@ -100,7 +104,8 @@ textarea {
   border-radius: 8px;
   border: 1px solid #334155;
   overflow: auto;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
+  max-width: 750px;
 }
 
 .mermaid-container {
@@ -112,7 +117,7 @@ textarea {
   border-radius: 8px;
   border: 1px solid #334155;
   overflow: auto;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
   width: 100%;
 }
 

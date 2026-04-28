@@ -13,7 +13,7 @@ import { LoaderService } from '../../shared/services/loader.service';
 @Component({
   selector: 'app-review-wrapper',
   standalone: true,
-  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, LivePreviewComponent],
+  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent],
   templateUrl: './review-wrapper.html',
   styleUrl: './review-wrapper.css'
 })
@@ -33,20 +33,32 @@ export class ReviewWrapperComponent implements OnInit {
     return this.specService.spec();
   }
 
+  hasNonTechArtifacts() {
+    return this.specService.nontech_artifacts_md() && Object.keys(this.specService.nontech_artifacts_md() as any).length > 0;
+  }
+
+  hasTechnicalArtifacts() {
+    return this.specService.technical_artifacts_md() && Object.keys(this.specService.technical_artifacts_md() as any).length > 0;
+  }
+
+  hasGeneratedCode() {
+    return this.specService.generated_code_files() && Object.keys(this.specService.generated_code_files() as any).length > 0;
+  }
+
   ngOnInit() {
     if (Object.keys(this.spec).length === 0) {
       this.http.get('/assets/temp_reqs.json').subscribe({
         next: (data) => {
           this.specService.setSpec(data);
-          this.selectedSection = Object.keys(this.specService.spec())[0];
+          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
         },
         error: () => {
           this.specService.setSpec(this.tempReqs);
-          this.selectedSection = Object.keys(this.specService.spec())[0];
+          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
         }
       });
     } else {
-      this.selectedSection = Object.keys(this.spec)[0];
+      this.selectedSection = Object.keys(this.spec).sort()[0];
     }
   }
 
@@ -105,6 +117,10 @@ export class ReviewWrapperComponent implements OnInit {
     this.selectedSection = section;
   }
 
+  isStackblitzActive() {
+    return this.selectedFile === 'code-preview';
+  }
+
   approveSpec() {
     this.loaderService.start();
     let message = "Here are the final edited specs: " + JSON.stringify(this.spec);
@@ -143,7 +159,7 @@ export class ReviewWrapperComponent implements OnInit {
 
             // Collect all filenames from both artifacts and update files
             const allFiles: string[] = [];
-            const nontechArtifacts = this.specService.nontech_artifacts_md();
+            const nontechArtifacts = this.specService.nontech_artifacts_md() as any;
             if (nontechArtifacts) {
               allFiles.push(...Object.keys(nontechArtifacts));
             }
@@ -152,7 +168,7 @@ export class ReviewWrapperComponent implements OnInit {
               allFiles.push(...Object.keys(technicalArtifacts));
             }
             
-            this.files.set(allFiles);
+            this.files.set(allFiles.sort());
             this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
 
             console.log(reply);
@@ -171,7 +187,7 @@ export class ReviewWrapperComponent implements OnInit {
       return of(null);
     })).subscribe((reply) => {
       if ((reply as any).generated_code_files) {
-        this.specService.setGeneratedCode((reply as any).generated_code_files);
+        this.specService.setGeneratedCode((reply as any).generated_code_files.files);
         
         // Clear files and reset selectedFile to trigger code preview
         this.files.set([]);
@@ -184,6 +200,11 @@ export class ReviewWrapperComponent implements OnInit {
         console.error('Code generation failed');
       }
     });
+  }
+
+  viewPrototype() {
+    this.isPreviewMode.set(true);
+    this.selectedFile = 'code-preview';
   }
 
   togglePreview() {
@@ -202,7 +223,7 @@ export class ReviewWrapperComponent implements OnInit {
         allFiles.push(...Object.keys(technicalArtifacts));
       }
       
-      this.files.set(allFiles);
+      this.files.set(allFiles.sort());
       this.selectedFile = allFiles.length > 0 ? allFiles[0] : 'requirements.md';
     } else {
       this.files.set([]);

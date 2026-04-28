@@ -6,7 +6,6 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #334155;
-  font-family: 'Inter', sans-serif;
 }
 
 .header h1 {
@@ -29,7 +28,7 @@
   gap: 10px;
 }
 
-.preview-btn {
+.preview-btn, .generate-btn, .view-prototype-btn {
   background: #4f46e5;
   border: none;
   padding: 10px 20px;
@@ -39,7 +38,7 @@
   font-size: 16px;
 }
 
-.preview-btn:hover {
+.preview-btn:hover, .generate-btn:hover, .view-prototype-btn:hover {
   background: #3730a3;
 }
 
@@ -48,9 +47,11 @@
   grid-template-columns: 260px 1fr 360px;
   background: #0f172a;
   color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
-  height: calc(100vh - 70px);
-  overflow: scroll;
+  height: calc(100vh - 80px);
+}
+
+.container.stackblitz-mode {
+  grid-template-columns: 1fr 360px;
 }
 
 .preview-container {
