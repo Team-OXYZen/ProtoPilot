@@ -28,13 +28,19 @@ export class WizardService {
     return this.projectSubject.value;
   }
 
-  startSession = ():void => {
-    let session: Session = {
-      id : crypto.randomUUID(),
+  startSession = (): void => {
+    if (this.session && this.project) {
+      return;
     }
+
+    let session: Session = {
+      id: crypto.randomUUID(),
+    };
+
     let project: Project = {
       id: crypto.randomUUID(),
-    }
+    };
+
     this.sessionSubject.next(session);
     this.projectSubject.next(project);
   }
@@ -49,6 +55,26 @@ export class WizardService {
         // project_id: "todo",
         message: message
       });
+  }
+
+  getProjects(): Observable<any> {
+  return this.http.get<any>('http://127.0.0.1:8000/projects');
+  }
+
+  getProject(projectId: string): Observable<any> {
+    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+  }
+
+  loadExistingProject(project: any): void {
+    this.sessionSubject.next({
+      id: project.session_id || project.req_session_id || crypto.randomUUID(),
+    });
+
+    this.projectSubject.next({
+      id: project.project_id,
+    });
+
+    console.log('Loaded existing project:', project.project_id);
   }
   
 }

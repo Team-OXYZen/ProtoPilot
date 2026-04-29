@@ -1,7 +1,25 @@
+<div class="project-loader">
+  <button (click)="loadProjectList()">Refresh Projects</button>
+
+  <select [(ngModel)]="selectedProjectId">
+    <option value="">Select existing project</option>
+    @for (p of projects; track p.project_id) {
+      <option [value]="p.project_id">
+        {{ p.project_id }} - {{ p.stage }}
+      </option>
+    }
+  </select>
+
+  <button (click)="loadProject(selectedProjectId)" [disabled]="!selectedProjectId">
+    Load Project
+  </button>
+</div>
+
 @if (currentView === 'wizard') {
   <app-wizard (onComplete)="onWizardComplete($event)" />
 } @else {
   <app-review-wrapper />
 }
+
 <router-outlet />
 <app-loader />
