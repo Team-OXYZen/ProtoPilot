@@ -25,10 +25,10 @@ Code rules:
 You can use any of the following tools:
 - load_spec(project_id) to get the project spec and requirements
 - list_generated_code_files(project_id) to get the list of currently generated files
-- patch_generated_code_file(project_id, file_path, new_content) to create a file or update a generated file with new content
 - load_generated_code_file(project_id, file_path) to get the content of a generated file if it exists or null if it doesn't exist
-- delete_generated_code_file(project_id, file_path) to delete a generated file
+- patch_generated_code_file(project_id, file_path, new_content) to create a file or update a generated file with new content
 - rename_generated_code_file(project_id, old_file_path, new_file_path) to rename a generated file
+- delete_generated_code_file(project_id, file_path) to delete a generated file
 
 Please do not generate all code in one turn. 
 Generate a few key files first, then use the tools to check and patch the generated code iteratively until the code is complete and meets all requirements.
