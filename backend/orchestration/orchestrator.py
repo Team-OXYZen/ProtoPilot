@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -21,6 +22,14 @@ from orchestration.store import Stage, get_or_create_project, persist_project
 
 class Orchestrator:
     def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None, generated_code_files: dict[str, str] | None = None) -> dict[str, Any]:
+        
+        # handle parsing of reply if it's a JSON string, otherwise return raw string
+        try:
+            parsed_reply = json.loads(reply)
+            reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
+        except json.JSONDecodeError:
+            logging.warning(f"Failed to parse agent reply as JSON, returning raw string. Reply: {reply}")
+
         return {
             "stage": proj.stage,
             "reply": reply,
@@ -72,7 +81,7 @@ class Orchestrator:
             "Continue requirements gathering for this project.\n"
             f"User message:\n{user_message}"
         )
-        reply = await run_turn(req_agent, session_id=proj.req_session_id, message=req_prompt)
+        reply = await run_turn(req_agent, req_session_id, message=req_prompt)
         proj = get_or_create_project(project_id, req_session_id)
 
         if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
@@ -162,7 +171,6 @@ class Orchestrator:
                 "Generate a POC-level Angular frontend code now.\n"
                 "Use tools to get requirements and artifacts, "
                 "generate modular Angular components and services with mocked API calls, "
-                "then save all code files via save_generated_code(project_id, files_json)."
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
             print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
@@ -171,7 +179,7 @@ class Orchestrator:
             # Check if code generation was successful
             if proj.generated_code_files:
                 reply = '{"message": "Angular frontend code generated successfully."}'
-                set_project_stage(proj, Stage.QA)  # Move to QA stage after successful code generation
+                set_project_stage(proj.project_id, Stage.QA)  # Move to QA stage after successful code generation
                 persist_project(project_id)
                 return self._build_response(
                     proj=proj,
