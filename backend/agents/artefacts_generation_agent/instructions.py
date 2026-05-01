@@ -41,7 +41,7 @@ Rules:
   Backend: Java Spring Boot
 - Do not output or suggest other stacks (e.g., React, Vue, Node.js, Django, Flask, etc.).
 - Do not introduce implementation details not grounded in the spec; if unknown, use "N/A (TBD)".
-- Double check the syntax for mermaid diagrams. Avoid using paranthesis in entity names to prevent syntax errors. If necessary, use underscores instead of spaces or parentheses.
+- [STRICT RULE] Wrap any text containing parentheses or special characters in double quotes to avoid syntax errors.
 
 MARKDOWN STYLING & FORMATTING:
 - Use emojis for visual appeal: 📋 (docs), ✅ (done), ⚡ (features), 🔐 (security), 📊 (data), 🎯 (goals)
