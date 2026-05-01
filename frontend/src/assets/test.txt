@@ -1,3 +1,35 @@
 App idea 1
 An IT ticketing system that can generate incidents, change requests, work orders and assign tickets to support agents. The tickets should have fields like title, description, priority, severity, assignee, status, activity notes, etc. The app should be a simple web-app with basic authentication using JWT.
 
+App idea 2
+A move rating app for personal use that fetches movies from TMDB external API, uses local storage to save favourites and ratings out of 5 stars. We can search movie name or filter by genre, that's it. You can assume other info as per best of your understanding.
+
+App idea 3
+A simple calculator with basic add, subtract, mul, divide operations only. Should look like a real calculator. Should apply BODMAS correctly, divide by zero gives error. No backend calls.
+
+
+
+payload example for testing tools:
+{
+    "tool": "load_spec",
+    "payload": {
+        "project_id": "0c0a1730-75f9-4768-aba7-518e3af16438"
+    }
+}
+
+{
+    "tool": "load_generated_code_file",
+    "payload": {
+        "project_id": "0c0a1730-75f9-4768-aba7-518e3af16438",
+        "filename": "somefile.py"
+    }
+}
+
+{
+    "tool": "patch_generated_code_file",
+    "payload": {
+        "project_id": "0c0a1730-75f9-4768-aba7-518e3af16438",
+        "file_name": "some-file.py",
+        "new_content": "print('Hello, world!')"
+    }
+}
