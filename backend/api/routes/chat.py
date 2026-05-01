@@ -18,11 +18,12 @@ async def chat(req: ChatRequest):
     try:
         result = await orch.handle(req.project_id, req.session_id, req.message)
 
-        if result.get("stage") == "REQ" and result.get("reply"):
+        if result.get("stage") == "REQ" and result["reply"]:
             try:
                 result["reply"] = json.loads(result["reply"])
-            except Exception:
-                pass
+            except json.JSONDecodeError:
+                print("[CHAT_WARNING] Failed to parse agent reply as JSON, returning raw string.")
+                
 
         return {
             "project_id": req.project_id,

@@ -187,7 +187,7 @@ export class ReviewWrapperComponent implements OnInit {
       return of(null);
     })).subscribe((reply) => {
       if ((reply as any).generated_code_files) {
-        this.specService.setGeneratedCode((reply as any).generated_code_files.files);
+        this.specService.setGeneratedCode((reply as any).generated_code_files);
         
         // Clear files and reset selectedFile to trigger code preview
         this.files.set([]);

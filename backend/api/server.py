@@ -1,3 +1,4 @@
+from orchestration.tools import delete_generated_code_file, list_generated_code_files, load_generated_code_file, patch_generated_code_file, rename_generated_code_file
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 from api.routes.chat import router as chat_router
@@ -51,3 +52,53 @@ def project_detail(project_id: str):
         "technical_artifacts_md": proj.technical_artifacts_md,
         "generated_code_files": proj.generated_code_files,
     }
+
+# update project stage
+@app.post("/projects/{project_id}/stage")
+def update_project_stage(project_id: str, stage: str):
+    from orchestration.store import get_project
+    from orchestration.persistent_store import Stage, set_project_stage
+
+    proj = get_project(project_id)
+
+    if proj is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        proj.stage = Stage(stage)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid stage value")
+
+    set_project_stage(project_id, proj.stage)
+
+    return {"message": "Project stage updated successfully"}
+
+
+# write a test route to test the individual tools (toolname in body, payload in body)
+@app.post("/test_tool")
+def test_tool(payload: dict):
+    from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
+
+    tool_mapping = {
+        "load_spec": load_spec,
+        "save_nontech_artifacts": save_nontech_artifacts,
+        "save_technical_artifacts": save_technical_artifacts,
+        "set_project_stage": set_project_stage,
+        "list_generated_code_files": list_generated_code_files,
+        "load_generated_code_file": load_generated_code_file,
+        "patch_generated_code_file": patch_generated_code_file,
+        "delete_generated_code_file": delete_generated_code_file,
+        "rename_generated_code_file": rename_generated_code_file,
+    }
+
+    tool_name = payload.get("tool")
+    tool_payload = payload.get("payload", {})
+
+    if tool_name not in tool_mapping:
+        raise HTTPException(status_code=400, detail="Invalid tool name")
+
+    tool_func = tool_mapping[tool_name]
+    result = tool_func(**tool_payload)
+
+    return {"result": result}    
+

@@ -66,6 +66,7 @@ LITELLM_API_KEY=your-litellm-api-key
 # LITELLM_MODEL_REQUIREMENTS=openai/gemini-2.5-flash-litellm-usw1
 # LITELLM_MODEL_ARTIFACTS=openai/gemini-2.5-flash-litellm-usw1
 # LITELLM_MODEL_CODEGEN=openai/gemini-2.5-pro-litellm-usw1
+# LITELLM_MODEL_QA=openai/claude-sonnet-4@20250514-litellm-use5
 
 # Session Configuration
 USER_ID=your-user-id

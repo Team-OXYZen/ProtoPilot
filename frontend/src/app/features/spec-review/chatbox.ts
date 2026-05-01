@@ -44,8 +44,8 @@ export class ChatboxComponent implements OnInit {
           return of(null); // fallback value
         })).subscribe(response => {
           if (response) {
-            if((response as any).generated_code_files.files){
-              this.specService.setGeneratedCode((response as any).generated_code_files.files);
+            if((response as any).generated_code_files){
+              this.specService.setGeneratedCode((response as any).generated_code_files);
             }
 
             let systemResponse = "";

@@ -142,3 +142,17 @@ def list_projects() -> list[dict[str, Any]]:
         }
         for row in rows
     ]
+
+def set_project_stage(project_id: str, stage: Stage) -> None:
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE projects
+            SET stage = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE project_id = ?
+            """,
+            (stage.value, project_id),
+        )
+        conn.commit()

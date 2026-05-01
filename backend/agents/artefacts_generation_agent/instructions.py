@@ -23,8 +23,8 @@ non_tech output must include (as dictionary with filename keys):
 - "user_flows.md": User Flow & Interface Description (pages, flow, behaviors)
 
 technical output must include (as dictionary with filename keys):
-- "system_design.md": Low-level system design (Mermaid mmd)
-- "entity_diagram.md": Class/ER diagram (Mermaid)
+- "system_design.mmd": Low-level system design (Mermaid mmd)
+- "entity_diagram.mmd": Class/ER diagram (Mermaid)
 - "api_documentation.md": API documentation (URL, method, request params, response schema)
 - "project_structure.md": Project structure (frontend + backend modules)
 
@@ -41,6 +41,7 @@ Rules:
   Backend: Java Spring Boot
 - Do not output or suggest other stacks (e.g., React, Vue, Node.js, Django, Flask, etc.).
 - Do not introduce implementation details not grounded in the spec; if unknown, use "N/A (TBD)".
+- [STRICT RULE] Wrap any text containing parentheses or special characters in double quotes to avoid syntax errors.
 
 MARKDOWN STYLING & FORMATTING:
 - Use emojis for visual appeal: 📋 (docs), ✅ (done), ⚡ (features), 🔐 (security), 📊 (data), 🎯 (goals)
