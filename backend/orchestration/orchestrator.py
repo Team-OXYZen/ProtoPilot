@@ -1,19 +1,22 @@
+import logging
 from typing import Any
 
 from core.auth import get_oauth_token
 from core.runner import run_turn
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
-    load_generated_code,
+    delete_generated_code_file,
+    list_generated_code_files,
+    load_generated_code_file,
     load_spec,
+    patch_generated_code_file,
+    rename_generated_code_file,
     save_nontech_artifacts,
     save_technical_artifacts,
     set_project_stage,
     submit_spec,
-    load_artifacts,
-    save_generated_code,
 )
-from orchestration.store import Stage, get_or_create_project
+from orchestration.store import Stage, get_or_create_project, persist_project
 
 
 class Orchestrator:
@@ -29,24 +32,24 @@ class Orchestrator:
         }
 
     def _requirements_tools(self) -> list:
-        return [submit_spec, set_project_stage]
+        return [submit_spec]
 
     def _artifacts_tools(self) -> list:
-        return [load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage]
+        return [load_spec, save_nontech_artifacts, save_technical_artifacts]
 
     def _code_generation_tools(self) -> list:
-        return [load_spec, load_artifacts, save_generated_code, set_project_stage]
+        return [load_spec, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
     
     def _qa_tools(self) -> list:
-        return [load_spec, load_artifacts, save_generated_code, load_generated_code]
+        return [load_spec, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
         if normalized == "approve":
-            set_project_stage(project_id, Stage.TECH_ARTIFACTS.value)
+            set_project_stage(project_id, Stage.TECH_ARTIFACTS)
             return {}
         if normalized == "change":
-            set_project_stage(project_id, Stage.REQ.value)
+            set_project_stage(project_id, Stage.REQ)
             proj = get_or_create_project(project_id, req_session_id)
             return self._build_response(
                 proj=proj,
@@ -162,11 +165,14 @@ class Orchestrator:
                 "then save all code files via save_generated_code(project_id, files_json)."
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
+            print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
             proj = get_or_create_project(project_id, req_session_id)
             
             # Check if code generation was successful
-            if proj.stage == Stage.QA and proj.generated_code_files:
+            if proj.generated_code_files:
                 reply = '{"message": "Angular frontend code generated successfully."}'
+                set_project_stage(proj, Stage.QA)  # Move to QA stage after successful code generation
+                persist_project(project_id)
                 return self._build_response(
                     proj=proj,
                     reply=reply,
@@ -193,10 +199,13 @@ class Orchestrator:
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
         qa_prompt = (
             f"project_id={project_id}\n"
-            "Refine the generated code based on the following user feedback and your review. "
             f"User feedback: {user_message}"
         )
+        
+        print(f"[QA] Starting QA with prompt: {qa_prompt}")
         _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
+        print(f"[QA] Raw agent reply: {_raw_reply}")
+        
         proj = get_or_create_project(project_id, req_session_id)
         reply = '{"message": "QA review completed."}'
         return self._build_response(
