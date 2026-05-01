@@ -40,9 +40,3 @@ async def run_turn(agent, session_id: str, message: str) -> str:
                     chunks.append(part.text)
 
     return "".join(chunks).strip()
-
-
-
-async def run_once(agent, message: str) -> str:
-    temp_session_id = f"job-{uuid.uuid4().hex[:12]}"
-    return await run_turn(agent, session_id=temp_session_id, message=message)
