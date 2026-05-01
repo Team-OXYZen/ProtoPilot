@@ -1,4 +1,3 @@
-import logging
 from orchestration.tools import delete_generated_code_file, list_generated_code_files, load_generated_code_file, patch_generated_code_file, rename_generated_code_file
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
@@ -6,8 +5,6 @@ from api.routes.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 
 app = FastAPI(title="ProtoPilot API")
 app.include_router(chat_router)
@@ -19,9 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def root():
     return {"message": "ProtoPilot API is running"}
+
 
 @app.get("/health")
 def health():

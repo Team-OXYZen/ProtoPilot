@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from orchestration.store import Stage, get_or_create_project
+from orchestration.store import Stage, get_or_create_project, persist_project
 
 logger = logging.getLogger(__name__)
 
