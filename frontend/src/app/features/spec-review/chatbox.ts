@@ -57,8 +57,14 @@ export class ChatboxComponent implements OnInit {
               systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
             } else if (response.reply.message) {
               systemResponse = response.reply.message;
-            } else if (response.reply) {
-              systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
+            } else if (response.reply && response.reply.summary) {
+              systemResponse = response.reply.summary;
+              if (response.reply.question) {
+                systemResponse += " " + response.reply.question;
+              }
+              if (response.reply.suggestions) {
+                systemResponse += " " + response.reply.suggestions;
+              }
             }
             this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
           }
@@ -96,8 +102,14 @@ export class ChatboxComponent implements OnInit {
                   systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
                 } else if (response.reply.message) {
                   systemResponse = response.reply.message;
-                } else if (response.reply) {
-                  systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
+                } else if (response.reply && response.reply.summary) {
+                  systemResponse = response.reply.summary;
+                  if (response.reply.question) {
+                    systemResponse += " " + response.reply.question;
+                  }
+                  if (response.reply.suggestions) {
+                    systemResponse += " " + response.reply.suggestions;
+                  }
                 }
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
