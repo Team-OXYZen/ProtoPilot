@@ -1,5 +1,7 @@
-import { Component, inject, Input, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms'; import { MarkdownModule } from 'ngx-markdown';
+import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MarkdownModule } from 'ngx-markdown';
 import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
@@ -7,9 +9,10 @@ import { catchError, of } from 'rxjs';
 @Component({
   selector: 'app-chatbox',
   standalone: true,
-  imports: [FormsModule, MarkdownModule],
+  imports: [CommonModule, FormsModule, MarkdownModule],
   templateUrl: './chatbox.html',
-  styleUrl: './chatbox.css'
+  styleUrl: './chatbox.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatboxComponent implements OnInit {
 
@@ -52,8 +55,16 @@ export class ChatboxComponent implements OnInit {
 
             if (typeof response.reply == "string") {
               systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-            } else if (response.reply) {
-              systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
+            } else if (response.reply.message) {
+              systemResponse = response.reply.message;
+            } else if (response.reply && response.reply.summary) {
+              systemResponse = response.reply.summary;
+              if (response.reply.question) {
+                systemResponse += " " + response.reply.question;
+              }
+              if (response.reply.suggestions) {
+                systemResponse += " " + response.reply.suggestions;
+              }
             }
             this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
           }
@@ -89,8 +100,16 @@ export class ChatboxComponent implements OnInit {
 
                 if (typeof response.reply == "string") {
                   systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-                } else if (response.reply) {
-                  systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
+                } else if (response.reply.message) {
+                  systemResponse = response.reply.message;
+                } else if (response.reply && response.reply.summary) {
+                  systemResponse = response.reply.summary;
+                  if (response.reply.question) {
+                    systemResponse += " " + response.reply.question;
+                  }
+                  if (response.reply.suggestions) {
+                    systemResponse += " " + response.reply.suggestions;
+                  }
                 }
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
