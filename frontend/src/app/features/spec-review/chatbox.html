@@ -3,7 +3,9 @@
     <div class="chat-history">
       @for(msg of chatHistory(); track msg.id){
         @if(msg.type != "user"){
-          <div class="system-msg">{{msg.text}}</div>
+          <div class="system-msg">
+            <markdown [data]="msg.text"></markdown>
+          </div>
         }@else{
           <div class="user-msg">
             <div class="user-msg-content">{{msg.text}} </div>

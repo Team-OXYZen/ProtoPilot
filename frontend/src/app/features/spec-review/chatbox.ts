@@ -1,5 +1,7 @@
-import { Component, inject, Input, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms'; import { MarkdownModule } from 'ngx-markdown';
+import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MarkdownModule } from 'ngx-markdown';
 import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
@@ -7,9 +9,10 @@ import { catchError, of } from 'rxjs';
 @Component({
   selector: 'app-chatbox',
   standalone: true,
-  imports: [FormsModule, MarkdownModule],
+  imports: [CommonModule, FormsModule, MarkdownModule],
   templateUrl: './chatbox.html',
-  styleUrl: './chatbox.css'
+  styleUrl: './chatbox.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatboxComponent implements OnInit {
 
