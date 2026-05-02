@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { WizardComponent } from './features/requirements/components/wizard/wizard';
 import { ReviewWrapperComponent } from './features/spec-review/review-wrapper';
@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
-  currentView: 'wizard' | 'review' = 'wizard';
+  currentView = signal<'wizard' | 'review'>('wizard');
 
   projects: any[] = [];
   selectedProjectId = '';
@@ -51,7 +51,7 @@ export class App implements OnInit {
         this.specService.setTechnicalArtifacts(project.technical_artifacts_md || {});
         this.specService.setGeneratedCode(project.generated_code_files || {});
 
-        this.currentView = 'review';
+        this.currentView.set('review');
 
         console.log('Project loaded:', project);
       },
@@ -73,6 +73,6 @@ export class App implements OnInit {
     }
 
     this.loadProjectList();
-    this.currentView = 'review';
+    this.currentView.set('review');
   }
 }

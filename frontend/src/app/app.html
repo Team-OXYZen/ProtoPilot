@@ -10,12 +10,11 @@
     }
   </select>
 
-  <button (click)="loadProject(selectedProjectId)" [disabled]="!selectedProjectId">
+  <button style="cursor: pointer;" (click)="loadProject(selectedProjectId)" [disabled]="!selectedProjectId">
     Load Project
   </button>
 </div>
-
-@if (currentView === 'wizard') {
+@if (currentView() === 'wizard') {
   <app-wizard (onComplete)="onWizardComplete($event)" />
 } @else {
   <app-review-wrapper />
