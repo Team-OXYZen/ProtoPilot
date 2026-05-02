@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any
 
 from core.auth import get_oauth_token
@@ -25,8 +26,17 @@ class Orchestrator:
         
         # handle parsing of reply if it's a JSON string, otherwise return raw string
         try:
-            parsed_reply = json.loads(reply)
-            reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
+            # use regex to extract JSON from md code block if it exists, otherwise use raw reply
+            # consider case sensitive in regex to allow for ```json or ```JSON
+            md_code_block_match = re.search(r'```json\s*(\{.*?\})\s*```', reply, re.DOTALL | re.IGNORECASE)
+            if md_code_block_match:
+                parsed_reply = json.loads(md_code_block_match.group(1))
+                reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
+            else:
+                json_match = re.search(r'\{.*\}', reply, re.DOTALL)
+                if json_match:
+                    parsed_reply = json.loads(json_match.group())
+                    reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
         except json.JSONDecodeError:
             logging.warning(f"Failed to parse agent reply as JSON, returning raw string. Reply: {reply}")
 
