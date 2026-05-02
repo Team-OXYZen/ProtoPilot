@@ -9,6 +9,7 @@ export interface Question {
   summary: string;
   question: string;
   suggestions?: any[];
+  message?: string;
 }
 
 export interface Spec {

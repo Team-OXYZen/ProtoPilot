@@ -52,6 +52,8 @@ export class ChatboxComponent implements OnInit {
 
             if (typeof response.reply == "string") {
               systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
+            } else if (response.reply.message) {
+              systemResponse = response.reply.message;
             } else if (response.reply) {
               systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
             }
@@ -89,6 +91,8 @@ export class ChatboxComponent implements OnInit {
 
                 if (typeof response.reply == "string") {
                   systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
+                } else if (response.reply.message) {
+                  systemResponse = response.reply.message;
                 } else if (response.reply) {
                   systemResponse = response.reply.summary + " " + response.reply.question + " " + response.reply.suggestions;
                 }
