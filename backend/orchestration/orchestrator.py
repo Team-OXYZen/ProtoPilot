@@ -24,21 +24,14 @@ from orchestration.store import Stage, get_or_create_project, persist_project
 class Orchestrator:
     def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None, generated_code_files: dict[str, str] | None = None) -> dict[str, Any]:
         
-        # handle parsing of reply if it's a JSON string, otherwise return raw string
-        try:
-            # use regex to extract JSON from md code block if it exists, otherwise use raw reply
-            # consider case sensitive in regex to allow for ```json or ```JSON
-            md_code_block_match = re.search(r'```json\s*(\{.*?\})\s*```', reply, re.DOTALL | re.IGNORECASE)
-            if md_code_block_match:
-                parsed_reply = json.loads(md_code_block_match.group(1))
-                reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
-            else:
+        # handle parsing of reply if it's a JSON string, otherwise return as is
+        if reply and isinstance(reply, str):
+            try:
                 json_match = re.search(r'\{.*\}', reply, re.DOTALL)
                 if json_match:
-                    parsed_reply = json.loads(json_match.group())
-                    reply = json.dumps(parsed_reply)  # Ensure reply is a JSON string
-        except json.JSONDecodeError:
-            logging.warning(f"Failed to parse agent reply as JSON, returning raw string. Reply: {reply}")
+                    reply = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                logging.warning(f"Failed to parse agent reply as JSON, returning raw string. Reply: {reply}")
 
         return {
             "stage": proj.stage,
@@ -72,12 +65,12 @@ class Orchestrator:
             proj = get_or_create_project(project_id, req_session_id)
             return self._build_response(
                 proj=proj,
-                reply='{"message": "You have entered revision mode. Please enter the points to be modified."}',
+                reply={"message": "You have entered revision mode. Please describe the changes needed."},
                 artifacts_md=proj.nontech_artifacts_md,
             )
         return self._build_response(
             proj=proj,
-            reply='{"message": "approve or change"}',
+            reply={"message": "Please reply with either 'approve' or 'change'."},
             artifacts_md=proj.nontech_artifacts_md,
         )
 
@@ -126,7 +119,7 @@ class Orchestrator:
 
         return self._build_response(
             proj=proj,
-            reply='{"message": "Project complete. Ready for QA."}',
+            reply={"message": "Project complete. Ready for QA."},
         )
 
     async def _run_artifacts_non_tech(self, token, project_id: str, req_session_id: str) -> dict:
@@ -137,14 +130,13 @@ class Orchestrator:
             "Generate PM-facing non-technical artifacts now.\n"
             "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
-        raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
+        _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
 
         if proj.stage == Stage.WAIT_APPROVAL:
-            reply = '{"message": "Non-technical artifacts generated successfully and awaiting approval."}'
+            reply = {"message": "Non-technical artifacts generated successfully and awaiting approval."}
         else:
-            reply = '{"message": "Non-technical artifacts generation failed. Please try again.", "error": ' + raw_reply + '}'
-            # proj.stage = Stage.REQ  # Revert stage if save was not successful
+            reply = {"message": "Non-technical artifacts generation failed. Please try again.", "error": f"{_raw_reply}"}
 
         return self._build_response(
             proj=proj,
@@ -162,11 +154,7 @@ class Orchestrator:
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
         proj = get_or_create_project(project_id, req_session_id)
-        reply = '{"message": ' + (
-            '"Technical artifacts saved."'
-            if proj.stage in {Stage.CODEGEN, Stage.QA}
-            else '"Technical artifacts generation did not complete tool save."'
-        ) + '}'
+        reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
             reply=reply,
@@ -188,7 +176,7 @@ class Orchestrator:
             
             # Check if code generation was successful
             if proj.generated_code_files:
-                reply = '{"message": "Angular frontend code generated successfully."}'
+                reply = {"message": "Code generated successfully."}
                 set_project_stage(proj.project_id, Stage.QA)  # Move to QA stage after successful code generation
                 persist_project(project_id)
                 return self._build_response(
@@ -197,17 +185,16 @@ class Orchestrator:
                     generated_code_files=proj.generated_code_files,
                 )
             else:
-                reply = '{"message": "Code generation did not complete tool save."}'
+                reply = {"message": "Code generation failed. Please try again."}
                 return self._build_response(
                     proj=proj,
                     reply=reply,
                 )
         except Exception as e:
             proj = get_or_create_project(project_id, req_session_id)
-            error_message = f"Code generation failed: {str(e)}"
-            reply = '{"message": "' + error_message + '"}'
+            error_message = f"Code generation failed with error: {str(e)}"
+            reply = {"message": error_message}
             print(f"[ERROR] Code generation: {error_message}")
-            # Do not change stage on error - return current project state
             return self._build_response(
                 proj=proj,
                 reply=reply,
@@ -225,7 +212,7 @@ class Orchestrator:
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
         proj = get_or_create_project(project_id, req_session_id)
-        reply = '{"message": "QA review completed."}'
+        reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
             reply=reply,

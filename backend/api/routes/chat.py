@@ -16,14 +16,7 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(req: ChatRequest):
     try:
-        result = await orch.handle(req.project_id, req.session_id, req.message)
-
-        if result.get("stage") == "REQ" and result["reply"]:
-            try:
-                result["reply"] = json.loads(result["reply"])
-            except json.JSONDecodeError:
-                print("[CHAT_WARNING] Failed to parse agent reply as JSON, returning raw string.")
-                
+        result = await orch.handle(req.project_id, req.session_id, req.message)              
 
         return {
             "project_id": req.project_id,
