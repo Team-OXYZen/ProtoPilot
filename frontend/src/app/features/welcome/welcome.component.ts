@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthModalComponent } from '../../shared/components/auth-modal/auth-modal.component';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-welcome',
   standalone: true,
-  imports: [CommonModule, AuthModalComponent],
+  imports: [CommonModule, AuthModalComponent, ThemeToggleComponent],
   templateUrl: './welcome.component.html',
   styleUrl: './welcome.component.scss',
 })
