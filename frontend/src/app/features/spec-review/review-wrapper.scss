@@ -1,0 +1,131 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+.header {
+  background-color: var(--color-header-bg);
+  color: #f1f5f9;
+  padding: $space-lg;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+  gap: $space-lg;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  @include breakpoint('md') {
+    padding: $space-md;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    @include heading($text-2xl);
+    margin: 0;
+    color: #f1f5f9;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: $space-md;
+    flex-wrap: wrap;
+    align-items: center;
+
+    @include breakpoint('sm') {
+      width: 100%;
+
+      button {
+        flex: 1;
+        min-width: 100px;
+      }
+    }
+  }
+}
+
+.approve-btn {
+  @include button-primary;
+  font-size: $text-base;
+  padding: $space-md $space-lg;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  span {
+    white-space: nowrap;
+  }
+}
+
+.preview-btn,
+.generate-btn,
+.view-prototype-btn {
+  @include button-secondary;
+  font-size: $text-base;
+  padding: $space-md $space-lg;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  span {
+    white-space: nowrap;
+  }
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 260px 1fr 360px;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  height: calc(100vh - 95px);
+
+  @include breakpoint('lg') {
+    grid-template-columns: 200px 1fr 300px;
+  }
+
+  @include breakpoint('md') {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  &.stackblitz-mode {
+    grid-template-columns: 1fr 360px;
+
+    @include breakpoint('lg') {
+      grid-template-columns: 1fr 300px;
+    }
+
+    @include breakpoint('md') {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.preview-container {
+  height: calc(100vh - 44px);
+  padding: 0;
+  background-color: var(--color-bg-primary);
+  overflow: hidden;
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+
+  @include breakpoint('md') {
+    height: auto;
+    min-height: 500px;
+    padding: $space-md;
+    border-left: none;
+    border-right: none;
+  }
+}

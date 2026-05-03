@@ -5,7 +5,7 @@ import { SpecService } from './services/spec.service';
   selector: 'app-left-panel',
   standalone: true,
   templateUrl: './left-panel.html',
-  styleUrl: './left-panel.css'
+  styleUrl: './left-panel.scss'
 })
 export class LeftPanelComponent {
 

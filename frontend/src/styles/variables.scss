@@ -1,0 +1,264 @@
+// ===================================================================
+// DESIGN SYSTEM: CENTRALIZED THEME VARIABLES
+// ===================================================================
+// All colors, spacing, typography, shadows, and transitions defined here.
+// Customize brand palette by changing PRIMARY and SECONDARY color definitions below.
+// ===================================================================
+
+@use 'sass:color';
+
+// -------------------------------------------------------------------
+// COLOR PALETTE - CUSTOMIZABLE BRAND COLORS
+// -------------------------------------------------------------------
+// Change these to update your entire brand palette globally
+// Currently: Navy Blue + Yellow (Professional, Modern, High-contrast)
+
+// IMPORTANT: Customize your brand palette here
+$color-primary-navy: #0b1b47;      // Deep navy - primary brand color
+$color-secondary-yellow: #fbbf24;  // Warm yellow - accent/highlight color
+$color-tertiary-amber: #f59e0b;    // Amber - additional accent
+
+// Dark Mode Palette
+$color-dark-bg-primary: #0a1120;   // Darkest background
+$color-dark-bg-secondary: hsl(222, 47%, 11%);   // Darkest background
+$color-dark-bg-tertiary: #1e293b; // Secondary background (panels, cards)
+$color-dark-text-primary: #f1f5f9; // Main text
+$color-dark-text-secondary: #cbd5e1; // Secondary text (muted)
+$color-dark-text-tertiary: #94a3b8; // Tertiary text (very muted)
+$color-dark-border: #475569;        // Border color (dark mode)
+
+// Light Mode Palette
+$color-light-bg-primary: #0f2d54;  // Very light blue background (main content)
+$color-light-bg-secondary: #cce4ff; // Light blue (panels, cards in content)
+$color-light-bg-tertiary: #254883; // Light blue (inputs, borders)
+$color-light-text-primary: #152434; // Dark text
+$color-light-text-secondary: #f1f5f9; // Muted text (darker for better contrast)
+$color-light-text-tertiary: #475569; // Very muted text
+$color-light-border: #bfdbfe;       // Border color - light blue (light mode)
+
+// Light Mode - Navy Sidebar/Header (override for UI chrome)
+$color-light-sidebar-bg: #1e293b;   // Dark slate for sidebars
+$color-light-sidebar-text: #f1f5f9; // Light text on dark sidebar
+$color-light-header-bg: #1e293b;    // Dark slate for headers
+
+// Semantic Colors (consistent across themes)
+$color-success: #10b981;
+$color-warning: #f59e0b;
+$color-error: #ef4444;
+$color-info: #3b82f6;
+
+// -------------------------------------------------------------------
+// CSS CUSTOM PROPERTIES (Theme Variables)
+// -------------------------------------------------------------------
+// These are set dynamically based on [data-theme="dark|light"] attribute
+// Do NOT modify these directly—modify the color values above instead
+
+:root {
+  transition: background-color 0.5s ease, color 0.3s ease;
+}
+
+:root[data-theme="dark"] {
+  --color-bg-primary: #{$color-dark-bg-primary};
+  --color-bg-secondary: #{$color-dark-bg-secondary};
+  --color-bg-tertiary: #{$color-dark-bg-tertiary};
+  --color-text-primary: #{$color-dark-text-primary};
+  --color-text-secondary: #{$color-dark-text-secondary};
+  --color-text-tertiary: #{$color-dark-text-tertiary};
+  --color-border: #{$color-dark-border};
+  --color-input-border: #{$color-dark-bg-tertiary};
+  --color-shadow: rgba(255, 255, 255, 0.852);
+
+  --color-wizard-bg: #{$color-dark-bg-primary};
+  --color-wizard-card-bg: #{$color-dark-bg-secondary};
+  --color-wizard-card-text: #{$color-dark-text-primary};
+
+  // Sidebar, header, footer
+  --color-sidebar-bg: #{$color-dark-bg-secondary};
+  --color-sidebar-text: #{$color-dark-text-primary};
+  --color-header-bg: #{$color-dark-bg-secondary};
+  --color-footer-bg: #{$color-dark-bg-secondary};
+  --color-chat-bg: #{$color-dark-bg-secondary};
+  
+  // Darker panels for dark mode
+  --color-panel-bg: #{$color-dark-bg-primary};
+  --color-input-bg: #{$color-dark-bg-primary};
+}
+
+:root[data-theme="light"] {
+  --color-bg-primary: #{$color-light-bg-primary};
+  --color-bg-secondary: #{$color-light-bg-secondary};
+  --color-bg-tertiary: #{$color-light-bg-tertiary};
+  --color-text-primary: #{$color-light-text-primary};
+  --color-text-secondary: #{$color-light-text-secondary};
+  --color-text-tertiary: #{$color-light-text-tertiary};
+  --color-border: #{$color-light-border};
+  --color-input-border: #{$color-light-bg-tertiary};
+  --color-shadow: rgba(0, 0, 0, 0.1);
+
+  --color-wizard-bg: #{$color-light-bg-secondary};
+  --color-wizard-card-bg: #{$color-light-bg-primary};
+  --color-wizard-card-text: #{$color-light-text-secondary};
+
+  // Sidebar, header, footer
+  --color-sidebar-bg: #{$color-light-bg-primary};
+  --color-sidebar-text: #{$color-light-text-secondary};
+
+  --color-header-bg: #{$color-light-bg-primary};
+  --color-footer-bg: #{$color-light-bg-primary};
+  --color-chat-bg: #{$color-light-bg-primary};
+  
+  // Darker panels for dark mode
+  --color-panel-bg: #{$color-light-bg-secondary};
+  --color-input-bg: #{$color-light-bg-secondary};
+}
+
+// Fallback to dark theme if no data-theme attribute
+:root {
+  --color-bg-primary: #{$color-dark-bg-primary};
+  --color-bg-secondary: #{$color-dark-bg-secondary};
+  --color-bg-tertiary: #{$color-dark-bg-tertiary};
+  --color-text-primary: #{$color-dark-text-primary};
+  --color-text-secondary: #{$color-dark-text-secondary};
+  --color-text-tertiary: #{$color-dark-text-tertiary};
+  --color-border: #{$color-dark-border};
+  --color-input-bg: #{$color-dark-bg-primary};
+  --color-input-border: #{$color-dark-bg-tertiary};
+  --color-shadow: rgba(0, 0, 0, 0.3);
+  
+  // Sidebar, header, footer
+  // --color-sidebar-bg: #1e3a8a;
+  // --color-sidebar-text: #f1f5f9;
+  // --color-header-bg: #1e3a8a;
+  // --color-footer-bg: #1e3a8a;
+  
+  
+  // Brand colors (same across themes)
+  --color-primary: #{$color-primary-navy};
+  --color-secondary: #{$color-secondary-yellow};
+  --color-tertiary: #{$color-tertiary-amber};
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-error: #{$color-error};
+  --color-info: #{$color-info};
+}
+
+// -------------------------------------------------------------------
+// SPACING SYSTEM (4px base unit - compact modern design)
+// -------------------------------------------------------------------
+// All spacing is a multiple of 4px for fine-grained control
+
+$space-xs: 2px;    // 0.5x (occasional use)
+$space-sm: 4px;    // 1x (default)
+$space-md: 8px;    // 2x
+$space-lg: 12px;   // 3x
+$space-xl: 16px;   // 4x
+$space-2xl: 20px;  // 5x
+$space-3xl: 24px;  // 6x
+$space-4xl: 28px;  // 7x
+$space-5xl: 32px;  // 8x
+
+// -------------------------------------------------------------------
+// TYPOGRAPHY SYSTEM
+// -------------------------------------------------------------------
+
+// Font Family
+$font-family-base: 'Poppins', sans-serif;
+
+// Font Sizes
+$text-xs: 11px;
+$text-sm: 12px;
+$text-base: 14px;
+$text-lg: 16px;
+$text-xl: 18px;
+$text-2xl: 20px;
+$text-3xl: 24px;
+$text-4xl: 28px;
+$text-5xl: 32px;
+
+// Font Weights
+$font-light: 300;
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+
+// Line Heights
+$line-height-tight: 1.2;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+// -------------------------------------------------------------------
+// SHADOWS
+// -------------------------------------------------------------------
+
+$shadow-sm: 0 1px 2px 0 var(--color-shadow);
+$shadow-md: -1 3px 6px 0px var(--color-shadow);
+$shadow-lg: 0 4px 1px -1px var(--color-shadow);
+$shadow-xl: 0 20px 25px -5px var(--color-shadow);
+$shadow-2xl: 0 25px 50px -12px var(--color-shadow);
+
+// -------------------------------------------------------------------
+// BORDER RADIUS
+// -------------------------------------------------------------------
+
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-2xl: 24px;
+$radius-full: 9999px;
+
+// -------------------------------------------------------------------
+// TRANSITIONS & ANIMATIONS
+// -------------------------------------------------------------------
+
+$transition-fast: 150ms ease;
+$transition-base: 200ms ease;
+$transition-slow: 300ms ease;
+$transition-slower: 400ms ease;
+
+// -------------------------------------------------------------------
+// Z-INDEX SCALE
+// -------------------------------------------------------------------
+
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-tooltip: 600;
+$z-notification: 700;
+$z-loader: 9999;
+
+// -------------------------------------------------------------------
+// BREAKPOINTS (Desktop-First)
+// -------------------------------------------------------------------
+
+$bp-sm: 768px;   // Tablets
+$bp-md: 1024px;  // Small laptops
+$bp-lg: 1280px;  // Laptops
+$bp-xl: 1440px;  // Desktop
+$bp-2xl: 1920px; // Wide desktop
+
+// -------------------------------------------------------------------
+// LAYERED COLOR VARIABLES (Semantic use)
+// -------------------------------------------------------------------
+
+$button-primary-bg: var(--color-primary);
+$button-primary-bg-hover: color.adjust(#1e3a8a, $lightness: -10%);
+$button-primary-text: #ffffff;
+
+$button-secondary-bg: var(--color-secondary);
+$button-secondary-bg-hover: color.adjust(#fbbf24, $lightness: -10%);
+$button-secondary-text: var(--color-text-primary);
+
+$card-bg: var(--color-bg-secondary);
+$card-border: var(--color-border);
+
+$input-bg: var(--color-input-bg);
+$input-border: var(--color-input-border);
+$input-text: var(--color-text-primary);
+
+$text-primary: var(--color-text-primary);
+$text-secondary: var(--color-text-secondary);
+$text-tertiary: var(--color-text-tertiary);

@@ -1,15 +1,94 @@
+// ===================================================================
+// GLOBAL STYLES
+// ===================================================================
+// Import design system components in order
+
+// 1. Design system foundation (must be first)
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+@use 'normalize' as *;
+
+// 2. External fonts
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-/* You can add global styles to this file, and also import other style files */
-html, body {
-    margin: 0;
-    padding: 0;
-}
 
+// ===================================================================
+// GLOBAL UTILITIES & OVERRIDES
+// ===================================================================
+
+// Override Poppins for all elements
 * {
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif !important;
+  font-family: $font-family-base !important;
 }
 
+// Remove default textarea outline
 textarea {
+  outline: none;
+  
+  &:focus {
     outline: none;
+  }
+}
+
+// ===================================================================
+// SHARED ANIMATIONS
+// ===================================================================
+
+// Gradient pulse animation for loaders
+@keyframes gradientPulse {
+  0%, 100% {
+    height: 30%;
+    opacity: 0.6;
+  }
+  50% {
+    height: 100%;
+    opacity: 1;
+  }
+}
+
+// Star twinkling animation
+@keyframes twinkleStar {
+  0%, 100% {
+    opacity: 0.3;
+    box-shadow: 0 0 2px var(--color-secondary);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px var(--color-secondary);
+  }
+}
+
+// Fade in and out for message text
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// Animated gradient border
+@keyframes gradientBorder {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+// Ensure smooth theme transitions
+html {
+  transition: background-color $transition-base, color $transition-base;
+}
+
+body {
+  transition: background-color $transition-base, color $transition-base;
+}
+
+#dgraphDiv {
+  display: none;
 }

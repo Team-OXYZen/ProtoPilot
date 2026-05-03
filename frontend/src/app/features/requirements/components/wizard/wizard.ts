@@ -38,7 +38,7 @@ export class WizardComponent implements OnInit {
   handleSendMessage() {
     if (!this.answer) return;
     this.isLoading.set(true);
-    this.currentQuestion.summary = CONSTANTS.THINKING_TEXT;
+    this.currentQuestion.summary = "";
     this.currentQuestion.suggestions = [];
     this.currentQuestion.question = "";
     let tempAnswer = this.answer;

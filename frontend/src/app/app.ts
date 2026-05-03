@@ -7,6 +7,7 @@ import { LoaderComponent } from './shared/components/loader/loader.component';
 import { WizardService } from './features/requirements/services/wizard-service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ThemeService } from './core/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -23,6 +24,7 @@ export class App implements OnInit {
 
   private specService = inject(SpecService);
   private wizardService = inject(WizardService);
+  private themeService = inject(ThemeService); // Initialize theme on app load
 
   ngOnInit(): void {
     this.loadProjectList();

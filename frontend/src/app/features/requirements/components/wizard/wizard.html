@@ -1,6 +1,6 @@
 <div class="wizard-container">
 
-  <div class="wizard-card">
+  <div class="wizard-card" [class.thinking]="isLoading()">
 
     <!-- <div class="progress">
       Step {{stepNumber}} of {{totalSteps}}
@@ -15,33 +15,52 @@
       {{currentQuestion.summary}}
     </h2>
 
+    @if(isLoading()) {
+      <p class="thinking-text">AI is thinking...</p>
+    }
+
     <h3 class="question-subtitle">
       {{currentQuestion.question}}
     </h3>
 
-    <div class="suggestions">
-        @for(s of currentQuestion.suggestions; track s){
-            <button (click)="selectSuggestion(s)"
-                    class="chip" [class.selected]="s.selected"
-                    >
-                {{s.label}}
-            </button>
-        }
-    </div>
+    @if(!isLoading()) {
+      <div class="suggestions">
+          @for(s of currentQuestion.suggestions; track s){
+              <button (click)="selectSuggestion(s)"
+                      class="chip" [class.selected]="s.selected"
+                      >
+                  {{s.label}}
+              </button>
+          }
+      </div>
+    } @else {
+      <div class="thinking-animation">
+        <div class="thinking-stars">
+          <div class="star star-1"></div>
+          <div class="star star-2"></div>
+          <div class="star star-3"></div>
+          <div class="star star-4"></div>
+          <div class="star star-5"></div>
+        </div>
+      </div>
+    }
 
-    <textarea [(ngModel)]="answer"
-        id="answer"
-        #textAreaRef
-        placeholder="Type your answer..."
-        class="input-area"></textarea>
-
-    <div class="actions">
-      <!-- <button class="back-btn" (click)="back()">Back</button> -->
-      <button class="next-btn" (click)="handleSendMessage()"
-              [disabled]="isLoading() || !answer">
-        {{ isLoading() ? 'Thinking...' : 'Next' }}
+    <div class="input-wrapper">
+      <textarea [(ngModel)]="answer"
+          id="answer"
+          #textAreaRef
+          placeholder="Type your answer..."
+          class="input-area"
+          [disabled]="isLoading()"></textarea>
+      
+      <button class="send-btn" (click)="handleSendMessage()"
+              [disabled]="isLoading() || !answer"
+              [title]="isLoading() ? 'Thinking...' : 'Send'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
       </button>
-      <!-- <button class="next-btn" (click)="complete()">Complete</button> -->
     </div>
 
   </div>

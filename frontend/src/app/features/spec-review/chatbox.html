@@ -12,11 +12,37 @@
           </div>
         }
       }
+      @if(isThinking()) {
+        <div class="ai-thinking">
+          <div class="thinking-stars">
+            <div class="star star-1"></div>
+            <div class="star star-2"></div>
+            <div class="star star-3"></div>
+            <div class="star star-4"></div>
+          </div>
+          <p class="thinking-text">AI is thinking...</p>
+        </div>
+      }
     </div>
     <div class="bottom-section">
-      <textarea [(ngModel)]="chatMessage" placeholder="Describe the changes in natural language..."
-      rows="5"></textarea>
-      <button (click)="sendChatMessage()" [disabled]="sendBtnDisabled()">{{sendBtnText()}}</button>
+      <div class="input-wrapper">
+        <textarea 
+          [(ngModel)]="chatMessage" 
+          placeholder="Describe the changes in natural language..."
+          rows="3"
+          [disabled]="isThinking()">
+        </textarea>
+        <button 
+          class="send-btn"
+          (click)="sendChatMessage()" 
+          [disabled]="sendBtnDisabled() || isThinking()"
+          [title]="sendBtnText()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </div>

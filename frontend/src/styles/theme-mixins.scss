@@ -1,0 +1,406 @@
+// ===================================================================
+// THEME MIXINS & RESPONSIVE UTILITIES
+// ===================================================================
+
+@use 'sass:color';
+@use 'variables' as *;
+
+// -------------------------------------------------------------------
+// RESPONSIVE BREAKPOINT MIXIN
+// -------------------------------------------------------------------
+// Usage: @include breakpoint(md) { ... }
+
+@mixin breakpoint($point) {
+  @if $point == 'sm' {
+    @media (max-width: #{$bp-sm - 1}) {
+      @content;
+    }
+  } @else if $point == 'md' {
+    @media (max-width: #{$bp-md - 1}) {
+      @content;
+    }
+  } @else if $point == 'lg' {
+    @media (max-width: #{$bp-lg - 1}) {
+      @content;
+    }
+  } @else if $point == 'xl' {
+    @media (max-width: #{$bp-xl - 1}) {
+      @content;
+    }
+  } @else if $point == '2xl' {
+    @media (max-width: #{$bp-2xl - 1}) {
+      @content;
+    }
+  }
+}
+
+// Desktop-first media query helper
+@mixin desktop-first($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+// -------------------------------------------------------------------
+// FLEXBOX UTILITIES
+// -------------------------------------------------------------------
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@mixin flex-start {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+// -------------------------------------------------------------------
+// GRID UTILITIES
+// -------------------------------------------------------------------
+
+@mixin grid-center {
+  display: grid;
+  place-items: center;
+}
+
+@mixin grid-auto {
+  display: grid;
+  grid-auto-flow: dense;
+}
+
+// -------------------------------------------------------------------
+// TEXT & TYPOGRAPHY UTILITIES
+// -------------------------------------------------------------------
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin heading($size: $text-2xl, $weight: $font-bold) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height-tight;
+  color: var(--color-text-primary);
+}
+
+@mixin subheading($size: $text-lg, $weight: $font-semibold) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height-normal;
+  color: var(--color-text-secondary);
+}
+
+@mixin body-text($size: $text-base, $weight: $font-normal) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height-normal;
+  color: var(--color-text-primary);
+}
+
+@mixin small-text($size: $text-sm, $weight: $font-normal) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height-normal;
+  color: var(--color-text-secondary);
+}
+
+// -------------------------------------------------------------------
+// BUTTON STYLES
+// -------------------------------------------------------------------
+
+@mixin button-base {
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-family: $font-family-base;
+  font-weight: $font-medium;
+  padding: $space-md $space-lg;
+  transition: all $transition-base;
+  outline: none;
+  user-select: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background-color: var(--color-primary);
+  color: white;
+
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#1e3a8a, $lightness: -10%);
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    background-color: color.adjust(#1e3a8a, $lightness: -15%);
+    box-shadow: $shadow-sm;
+    transform: translateY(0);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background-color: var(--color-secondary);
+  color: #0f172a; // Dark text for optimal contrast on yellow in both themes
+
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#fbbf24, $lightness: -10%);
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    background-color: color.adjust(#fbbf24, $lightness: -15%);
+    box-shadow: $shadow-sm;
+    transform: translateY(0);
+  }
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-bg-tertiary);
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
+
+  &:active:not(:disabled) {
+    background-color: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+// -------------------------------------------------------------------
+// INPUT STYLES
+// -------------------------------------------------------------------
+
+@mixin input-base {
+  width: 100%;
+  padding: $space-md;
+  border: 1px solid var(--color-input-border);
+  border-radius: $radius-md;
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: $font-family-base;
+  font-size: $text-base;
+  transition: all $transition-base;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+  }
+
+  &::placeholder {
+    color: var(--color-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin textarea-base {
+  @include input-base;
+  resize: vertical;
+  min-height: 100px;
+  font-family: $font-family-base;
+}
+
+// -------------------------------------------------------------------
+// CARD STYLES
+// -------------------------------------------------------------------
+
+@mixin card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-lg;
+  box-shadow: $shadow-sm;
+  transition: all $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: var(--color-primary);
+  }
+}
+
+@mixin card-elevated {
+  @include card;
+  box-shadow: $shadow-lg;
+
+  &:hover {
+    box-shadow: $shadow-xl;
+  }
+}
+
+// -------------------------------------------------------------------
+// OVERLAY & MODAL STYLES
+// -------------------------------------------------------------------
+
+@mixin overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: $z-modal-backdrop;
+}
+
+@mixin modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: $z-loader;
+}
+
+// -------------------------------------------------------------------
+// FOCUS STATES
+// -------------------------------------------------------------------
+
+@mixin focus-outline($color: var(--color-primary), $width: 2px) {
+  outline: $width solid $color;
+  outline-offset: $width;
+}
+
+@mixin focus-ring {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+// -------------------------------------------------------------------
+// ANIMATIONS & TRANSITIONS
+// -------------------------------------------------------------------
+
+@mixin smooth-transition($properties: all, $duration: $transition-base) {
+  transition: $properties $duration;
+}
+
+@mixin hover-lift {
+  transition: transform $transition-base, box-shadow $transition-base;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
+  }
+}
+
+// -------------------------------------------------------------------
+// ACCESSIBILITY
+// -------------------------------------------------------------------
+
+
+@mixin high-contrast {
+  @media (prefers-contrast: more) {
+    @content;
+  }
+}
+
+// -------------------------------------------------------------------
+// UTILITY CLASSES
+// -------------------------------------------------------------------
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary);
+  color: white;
+  padding: $space-md $space-lg;
+  text-decoration: none;
+  z-index: $z-tooltip;
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// -------------------------------------------------------------------
+// LAYOUT HELPERS
+// -------------------------------------------------------------------
+
+@mixin container($max-width: 1200px) {
+  width: 100%;
+  max-width: $max-width;
+  margin: 0 auto;
+  padding: 0 $space-lg;
+}
+
+@mixin full-height {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin page-height {
+  height: calc(100vh - 44px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

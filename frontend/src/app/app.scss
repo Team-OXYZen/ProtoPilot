@@ -1,16 +1,96 @@
-.project-loader {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 9999;
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+:host {
   display: flex;
-  gap: 8px;
-  background: #1e293b;
-  padding: 10px;
-  border-radius: 8px;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.project-loader select,
-.project-loader button {
-  padding: 6px 10px;
+.app-footer {
+  height: 40px;
+  padding: $space-sm $space-md;
+  background-color: var(--color-footer-bg);
+  border-top: 1px solid rgba(251, 191, 36, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $text-xs;
+  color: #f1f5f9;
+  margin-top: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  p {
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+
+  .heart {
+    color: #ef4444;
+    font-size: 12px;
+    margin: 0 2px;
+    animation: heartbeat 1s ease-in-out infinite;
+  }
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.project-loader {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  z-index: $z-sticky;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  background-color: var(--color-bg-secondary);
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  select,
+  button {
+    padding: $space-sm $space-md;
+    border-radius: $radius-sm;
+    border: none;
+    cursor: pointer;
+    font-size: $text-xs;
+    font-weight: $font-medium;
+    transition: all $transition-base;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: $shadow-sm;
+    }
+  }
+
+  select {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    padding: $space-sm $space-md;
+    max-width: 350px;
+
+    &:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 0;
+    }
+  }
+
+  button {
+    @include button-primary;
+  }
 }
