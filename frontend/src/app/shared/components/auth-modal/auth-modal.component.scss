@@ -1,0 +1,217 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-modal {
+  background-color: var(--color-bg-primary);
+  border-radius: $radius-lg;
+  padding: $space-2xl;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: $shadow-lg;
+  color: var(--color-text-secondary);
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+
+  @include breakpoint('sm') {
+    max-width: 100%;
+    padding: $space-xl;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.close-btn {
+  position: absolute;
+  top: $space-md;
+  right: $space-md;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: $space-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-md;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--color-text-primary);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.modal-title {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  margin: 0 0 $space-xl 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.error-message {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  padding: $space-md;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  margin-bottom: $space-lg;
+  border-left: 4px solid var(--color-error);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  margin-bottom: $space-lg;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.form-group label {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: var(--color-text-secondary);
+}
+
+.form-group input {
+  padding: $space-md $space-lg;
+  border: 2px solid var(--color-border);
+  border-radius: $radius-md;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: $text-base;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.submit-btn {
+  @include button-primary;
+  padding: $space-md $space-lg;
+  height: 44px;
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.toggle-mode {
+  text-align: center;
+  font-size: $text-sm;
+  color: var(--color-text-secondary);
+  margin-bottom: $space-lg;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-secondary);
+  font-weight: $font-semibold;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+  transition: color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.demo-hint {
+  text-align: center;
+  font-size: $text-xs;
+  color: var(--color-text-tertiary);
+  padding: $space-md;
+  background-color: rgba(251, 191, 36, 0.05);
+  border-radius: $radius-md;
+  border-left: 3px solid var(--color-secondary);
+
+  strong {
+    color: var(--color-secondary);
+    font-weight: $font-semibold;
+  }
+}

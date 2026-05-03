@@ -65,6 +65,7 @@ $color-info: #3b82f6;
   --color-text-secondary: #{$color-dark-text-secondary};
   --color-text-tertiary: #{$color-dark-text-tertiary};
   --color-border: #{$color-dark-border};
+  --color-input-bg: #{$color-dark-bg-primary};
   --color-input-border: #{$color-dark-bg-tertiary};
   --color-shadow: rgba(255, 255, 255, 0.852);
 
@@ -92,6 +93,7 @@ $color-info: #3b82f6;
   --color-text-secondary: #{$color-light-text-secondary};
   --color-text-tertiary: #{$color-light-text-tertiary};
   --color-border: #{$color-light-border};
+  --color-input-bg: #{$color-light-bg-primary};
   --color-input-border: #{$color-light-bg-tertiary};
   --color-shadow: rgba(0, 0, 0, 0.1);
 
