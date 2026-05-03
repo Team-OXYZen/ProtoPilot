@@ -1,0 +1,181 @@
+@use 'sass:color';
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+
+.sidebar {
+  padding: $space-2xl $space-lg;
+  background-color: var(--color-chat-bg, var(--color-sidebar-bg));
+  border-left: 1px solid rgba(251, 191, 36, 0.2);
+  border-right: 1px solid rgba(251, 191, 36, 0.2);
+  color: var(--color-sidebar-text);
+  height: 100%;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  .chat-section {
+    height: 100%;
+    max-height: calc(100vh - 145px);
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    .chat-history {
+      height: 100%;
+      overflow-y: auto;
+      padding-right: $space-md;
+      margin-bottom: $space-md;
+
+      .system-msg {
+        padding: $space-xs;
+        font-size: $text-sm;
+        overflow-wrap: break-word;
+        color: var(--color-text-secondary);
+      }
+
+      .user-msg {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        overflow-wrap: break-word;
+      }
+
+      .user-msg-content {
+        background-color: var(--color-bg-tertiary);
+        display: flex;
+        align-items: flex-end;
+        max-width: 80%;
+        margin: $space-lg 0;
+        padding: $space-md;
+        border-radius: $radius-lg;
+        font-size: $text-sm;
+        word-break: break-all;
+        color: var(--color-text-primary);
+      }
+
+      .ai-thinking {
+        display: flex;
+        flex-direction: column;
+        gap: $space-sm;
+        margin: $space-lg 0;
+        padding: $space-md;
+      }
+
+      .thinking-stars {
+        display: flex;
+        gap: $space-sm;
+        align-items: center;
+        justify-content: flex-start;
+        height: 30px;
+      }
+
+      .star {
+        width: 6px;
+        height: 6px;
+        background: radial-gradient(circle, var(--color-secondary));
+        border-radius: 50%;
+        box-shadow: 0 0 4px var(--color-secondary);
+        animation: twinkleStar 1.5s ease-in-out infinite;
+
+        &:nth-child(1) {
+          animation-delay: 0s;
+        }
+        &:nth-child(2) {
+          animation-delay: 0.3s;
+        }
+        &:nth-child(3) {
+          animation-delay: 0.6s;
+        }
+        &:nth-child(4) {
+          animation-delay: 0.9s;
+        }
+      }
+
+      .thinking-text {
+        font-size: $text-xs;
+        color: var(--color-text-secondary);
+        margin: 0;
+        font-style: italic;
+      }
+    }
+
+    .bottom-section {
+      display: flex;
+      gap: $space-md;
+      align-items: flex-end;
+      margin-top: $space-md;
+      flex: 0 0 auto;
+    }
+
+    .input-wrapper {
+      position: relative;
+      border: 1px solid var(--color-border);
+      border-radius: $radius-md;
+      background-color: var(--color-input-bg);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      transition: border-color $transition-base;
+
+      &:focus-within {
+        border-color: var(--color-primary);
+      }
+
+      textarea {
+        border: none;
+        padding: $space-md;
+        resize: vertical;
+        max-height: 120px;
+        min-height: 36px;
+        background: transparent;
+        color: var(--color-text-primary);
+        font-family: $font-family-base;
+
+        &::placeholder {
+          color: var(--color-text-primary);
+        }
+
+        &:focus {
+          outline: none;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .send-btn {
+      @include button-secondary;
+      border: none;
+      border-top: 1px solid var(--color-border);
+      border-radius: 0 0 $radius-md $radius-md;
+      margin: 0;
+      padding: $space-md;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: auto;
+      min-height: 44px;
+      cursor: pointer;
+      transition: all $transition-base;
+
+      &:hover:not(:disabled) {
+        background-color: color.adjust(#fbbf24, $lightness: -10%);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    }
+  }
+}

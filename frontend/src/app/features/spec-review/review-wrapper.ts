@@ -8,14 +8,15 @@ import { catchError, of } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 import { LoaderService } from '../../shared/services/loader.service';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
 
 
 @Component({
   selector: 'app-review-wrapper',
   standalone: true,
-  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent],
+  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, ThemeToggleComponent],
   templateUrl: './review-wrapper.html',
-  styleUrl: './review-wrapper.css'
+  styleUrl: './review-wrapper.scss'
 })
 export class ReviewWrapperComponent implements OnInit {
 
@@ -46,20 +47,7 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (Object.keys(this.spec).length === 0) {
-      this.http.get('/assets/temp_reqs.json').subscribe({
-        next: (data) => {
-          this.specService.setSpec(data);
-          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
-        },
-        error: () => {
-          this.specService.setSpec(this.tempReqs);
-          this.selectedSection = Object.keys(this.specService.spec()).sort()[0];
-        }
-      });
-    } else {
-      this.selectedSection = Object.keys(this.spec).sort()[0];
-    }
+    this.selectedSection = Object.keys(this.spec).sort()[0];
   }
 
   tempReqs = {

@@ -1,44 +1,53 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
 .preview-container {
-  display: flex;
-  flex-direction: column;
+  @include flex-column;
   height: 100%;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  background-color: var(--color-bg-secondary);
+  overflow: hidden;
+  box-shadow: $shadow-md;
+
+  @include breakpoint('md') {
+    height: auto;
+    min-height: 500px;
+  }
 }
 
 .preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  border-bottom: 1px solid #ddd;
-  background: #fff;
+  @include flex-between;
+  padding: $space-lg;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  gap: $space-lg;
+
+  @include breakpoint('md') {
+    padding: $space-md;
+    flex-wrap: wrap;
+  }
 
   h2 {
+    @include heading($text-lg);
     margin: 0;
-    font-size: 16px;
-    font-weight: 600;
+    flex: 1;
   }
 }
 
 .refresh-btn {
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #0056b3;
-  }
+  @include button-secondary;
+  min-width: 120px;
+  padding: $space-md $space-lg;
+  font-size: $text-sm;
 
   &:disabled {
-    background-color: #ccc;
+    opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  @include breakpoint('sm') {
+    width: 100%;
   }
 }
 
@@ -46,6 +55,11 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  background-color: white;
+
+  @include breakpoint('md') {
+    overflow-y: auto;
+  }
 }
 
 .preview-iframe {
@@ -57,28 +71,29 @@
 
 .loading,
 .error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center;
   width: 100%;
   height: 100%;
-  font-size: 16px;
+  font-size: $text-lg;
+  background-color: var(--color-bg-primary);
 
   p {
     margin: 0;
+    padding: $space-lg;
+    text-align: center;
   }
 }
 
 .loading {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .error {
-  color: #d32f2f;
-  background: #ffebee;
+  color: $color-error;
+  background-color: rgba(239, 68, 68, 0.1);
 
   p {
-    padding: 20px;
-    border-left: 4px solid #d32f2f;
+    border-left: 4px solid $color-error;
+    padding-left: $space-lg;
   }
 }

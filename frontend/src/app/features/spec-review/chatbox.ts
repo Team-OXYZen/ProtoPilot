@@ -11,7 +11,7 @@ import { catchError, of } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule, MarkdownModule],
   templateUrl: './chatbox.html',
-  styleUrl: './chatbox.css',
+  styleUrl: './chatbox.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatboxComponent implements OnInit {
@@ -22,6 +22,7 @@ export class ChatboxComponent implements OnInit {
   chatMessage: string = '';
   sendBtnDisabled = signal<boolean>(false);
   sendBtnText = signal<string>("Send");
+  isThinking = signal<boolean>(false);
   @Input() isPreviewMode: boolean = false;
   @Input() isStackblitzActive: boolean = false;
 
@@ -33,6 +34,7 @@ export class ChatboxComponent implements OnInit {
   sendChatMessage() {
     if (this.chatMessage) {
       this.sendBtnDisabled.set(true);
+      this.isThinking.set(true);
       this.sendBtnText.set("Thinking...");
       this.chatHistory.update((prev) => [...prev, { type: "user", text: this.chatMessage, id: prev.length + 1 }]);
       let tempMessage = this.chatMessage;
@@ -69,6 +71,7 @@ export class ChatboxComponent implements OnInit {
             this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
           }
           this.sendBtnDisabled.set(false);
+          this.isThinking.set(false);
           this.sendBtnText.set("Send");
           console.log('Response received: ', response);
         });
@@ -76,11 +79,19 @@ export class ChatboxComponent implements OnInit {
         //spec review flow
         this.wizardService.sendMessage("change").pipe(catchError(err => {
           console.log('Error caught:', err);
+          this.isThinking.set(false);
+          this.sendBtnDisabled.set(false);
+          this.isThinking.set(false);
+          this.sendBtnText.set("Send");
           return of(null); // fallback value
         })).subscribe(response => {
           if (response) {
             this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
               console.log('Error caught:', err);
+              this.isThinking.set(false);
+              this.sendBtnDisabled.set(false);
+              this.isThinking.set(false);
+              this.sendBtnText.set("Send");
               return of(null); // fallback value
             })).subscribe(response => {
               if (response) {
@@ -116,6 +127,7 @@ export class ChatboxComponent implements OnInit {
             });
           }
           this.sendBtnDisabled.set(false);
+          this.isThinking.set(false);
           this.sendBtnText.set("Send");
           console.log('Response received: ', response);
         });

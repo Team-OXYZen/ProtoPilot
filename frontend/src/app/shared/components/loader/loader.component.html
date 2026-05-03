@@ -1,7 +1,13 @@
 <ng-container *ngIf="loaderState$ | async as state">
   <div class="loader-overlay" *ngIf="state.isLoading">
     <div class="loader-container">
-      <div class="spinner"></div>
+      <div class="stars-container">
+        <div class="star star-1"></div>
+        <div class="star star-2"></div>
+        <div class="star star-3"></div>
+        <div class="star star-4"></div>
+        <div class="star star-5"></div>
+      </div>
       <p class="loader-message">{{ state.message }}</p>
     </div>
   </div>

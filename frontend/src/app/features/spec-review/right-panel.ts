@@ -13,7 +13,7 @@ import { LivePreviewComponent } from './components/live-preview/live-preview.com
   standalone: true,
   imports: [FormsModule, JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
   templateUrl: './right-panel.html',
-  styleUrl: './right-panel.css'
+  styleUrl: './right-panel.scss'
 })
 export class RightPanelComponent implements OnChanges, AfterViewInit {
 

@@ -63,7 +63,7 @@ export class LivePreviewComponent implements AfterViewInit, OnChanges {
       }, {
         openFile: 'src/app/app.component.ts',
         view: 'preview',
-        height: 630,
+        height: '100%',
       });     
       console.log('[LivePreview] StackBlitz initialized successfully');
     } catch (error) {

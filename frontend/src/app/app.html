@@ -1,19 +1,21 @@
-<div class="project-loader">
-  <button (click)="loadProjectList()">Refresh Projects</button>
+@if (currentView() === 'wizard') {
+  <div class="project-loader">
+    <button (click)="loadProjectList()">Refresh Projects</button>
 
-  <select [(ngModel)]="selectedProjectId">
-    <option value="">Select existing project</option>
-    @for (p of projects; track p.project_id) {
-      <option [value]="p.project_id">
-        {{ p.project_id }} - {{ p.stage }}
-      </option>
-    }
-  </select>
+    <select [(ngModel)]="selectedProjectId">
+      <option value="">Select existing project</option>
+      @for (p of projects; track p.project_id) {
+        <option [value]="p.project_id">
+          {{ p.project_id }} - {{ p.stage }}
+        </option>
+      }
+    </select>
 
-  <button style="cursor: pointer;" (click)="loadProject(selectedProjectId)" [disabled]="!selectedProjectId">
-    Load Project
-  </button>
-</div>
+    <button style="cursor: pointer;" (click)="loadProject(selectedProjectId)" [disabled]="!selectedProjectId">
+      Load Project
+    </button>
+  </div>
+}
 @if (currentView() === 'wizard') {
   <app-wizard (onComplete)="onWizardComplete($event)" />
 } @else {
@@ -22,3 +24,6 @@
 
 <router-outlet />
 <app-loader />
+<footer class="app-footer">
+  <p>Created with <span class="heart">♥</span> by Team OXYZen</p>
+</footer>

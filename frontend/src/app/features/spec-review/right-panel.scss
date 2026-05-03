@@ -1,0 +1,154 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+.content {
+  padding: $space-2xl;
+  background-color: var(--color-panel-bg, var(--color-bg-secondary));
+  color: var(--color-text-primary);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--color-border);
+  overflow: auto;
+
+  @include breakpoint('lg') {
+    padding: $space-lg;
+  }
+
+  @include breakpoint('md') {
+    padding: $space-md;
+    border-left: none;
+  }
+}
+
+.spec-content {
+  flex: 1;
+  margin-bottom: $space-lg;
+
+  section {
+    max-height: 60vh;
+  }
+}
+
+section {
+  margin-bottom: $space-2xl;
+}
+
+h2 {
+  @include heading($text-2xl);
+  margin-bottom: $space-lg;
+}
+
+input {
+  @include input-base;
+  margin-bottom: $space-xs;
+}
+
+button {
+  @include button-primary;
+  margin: $space-xs $space-md $space-xs 0;
+
+  &:last-child {
+    margin-right: 0;
+  }
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  padding: $space-md 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.card {
+  @include card;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: $space-lg;
+  border-radius: $radius-lg;
+  min-width: 300px;
+}
+
+label {
+  display: block;
+  margin-top: $space-md;
+  font-weight: $font-semibold;
+  color: var(--color-text-secondary);
+}
+
+textarea {
+  @include textarea-base;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  margin-top: $space-md;
+}
+
+.chat-section {
+  flex-shrink: 0;
+  margin-top: $space-lg;
+  padding: $space-lg;
+  background-color: var(--color-bg-primary);
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border);
+  border-top: 2px solid var(--color-border);
+}
+
+.markdown-container {
+  padding: $space-lg;
+  background-color: var(--color-bg-primary);
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border);
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+  max-width: 750px;
+  color: var(--color-text-secondary);
+}
+
+.mermaid-container {
+  @include flex-center;
+  padding: $space-xl;
+  background-color: var(--color-bg-primary);
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border);
+  overflow: auto;
+  max-height: calc(100vh - 180px);
+  width: 100%;
+
+  svg {
+    max-width: 100%;
+    height: auto;
+    min-width: fit-content;
+  }
+}
+
+.code-preview-container {
+  width: 1000px;
+  height: 100%;
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+}
+
+.code-preview-header {
+  text-align: center;
+  max-width: 600px;
+
+  h2 {
+    margin: 0 0 $space-lg 0;
+    font-size: $text-4xl;
+    color: var(--color-text-primary);
+    font-weight: $font-bold;
+  }
+}

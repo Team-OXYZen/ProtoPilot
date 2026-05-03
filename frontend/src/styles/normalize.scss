@@ -1,0 +1,406 @@
+// ===================================================================
+// NORMALIZE & RESET STYLESHEET
+// ===================================================================
+// Establish consistent baseline styling for all HTML elements
+
+@use 'sass:color';
+@use 'variables' as *;
+
+// -------------------------------------------------------------------
+// RESET & BASE ELEMENTS
+// -------------------------------------------------------------------
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: $font-family-base;
+  font-size: $text-base;
+  line-height: $line-height-normal;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  transition: background-color $transition-base, color $transition-base;
+}
+
+// -------------------------------------------------------------------
+// TYPOGRAPHY
+// -------------------------------------------------------------------
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: $font-bold;
+  line-height: $line-height-tight;
+  color: var(--color-text-secondary);
+}
+
+h1 {
+  font-size: $text-4xl;
+  margin-bottom: $space-md;
+}
+
+h2 {
+  font-size: $text-3xl;
+  margin-bottom: $space-md;
+}
+
+h3 {
+  font-size: $text-2xl;
+  margin-bottom: $space-sm;
+}
+
+h4 {
+  font-size: $text-xl;
+  margin-bottom: $space-sm;
+}
+
+h5 {
+  font-size: $text-lg;
+  margin-bottom: $space-xs;
+}
+
+h6 {
+  font-size: $text-base;
+  margin-bottom: $space-xs;
+}
+
+p {
+  margin: 0 0 $space-md 0;
+  line-height: $line-height-normal;
+}
+
+small, .small {
+  font-size: $text-sm;
+}
+
+strong, .strong {
+  font-weight: $font-semibold;
+}
+
+em, .em {
+  font-style: italic;
+}
+
+code, pre {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  background-color: var(--color-bg-tertiary);
+  border-radius: $radius-sm;
+}
+
+code {
+  padding: 2px 6px;
+  font-size: $text-sm;
+}
+
+pre {
+  padding: $space-md;
+  overflow-x: auto;
+  margin-bottom: $space-md;
+}
+
+// -------------------------------------------------------------------
+// LINKS
+// -------------------------------------------------------------------
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color $transition-base;
+
+  &:hover {
+    color: color.adjust(#1e3a8a, $lightness: -10%);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// -------------------------------------------------------------------
+// LISTS
+// -------------------------------------------------------------------
+
+ul, ol {
+  margin: 0 0 $space-md 0;
+  padding-left: $space-lg;
+}
+
+li {
+  margin-bottom: $space-xs;
+}
+
+dl {
+  margin-bottom: $space-md;
+}
+
+dt {
+  font-weight: $font-semibold;
+}
+
+dd {
+  margin-left: $space-lg;
+  margin-bottom: $space-sm;
+}
+
+// -------------------------------------------------------------------
+// FORM ELEMENTS
+// -------------------------------------------------------------------
+
+form {
+  margin-bottom: $space-md;
+}
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  padding: $space-md;
+  margin-bottom: $space-md;
+}
+
+legend {
+  padding: 0 $space-sm;
+  font-weight: $font-semibold;
+}
+
+label {
+  display: block;
+  margin-bottom: $space-xs;
+  font-weight: $font-medium;
+  color: var(--color-text-primary);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="color"],
+textarea,
+select {
+  width: 100%;
+  padding: $space-md;
+  margin-bottom: $space-md;
+  border: 1px solid var(--color-input-border);
+  border-radius: $radius-md;
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: $font-family-base;
+  font-size: $text-base;
+  transition: all $transition-base;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &::placeholder {
+    color: var(--color-text-priary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--color-bg-tertiary);
+  }
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: $font-family-base;
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  padding-right: $space-xl;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right $space-md center;
+  background-size: 20px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  margin-right: $space-xs;
+  cursor: pointer;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  padding: $space-md $space-lg;
+  border: none;
+  border-radius: $radius-md;
+  background-color: var(--color-primary);
+  color: white;
+  font-family: $font-family-base;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all $transition-base;
+
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#1e3a8a, $lightness: -10%);
+    box-shadow: $shadow-md;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: $shadow-sm;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// -------------------------------------------------------------------
+// TABLE ELEMENTS
+// -------------------------------------------------------------------
+
+table {
+  width: 100%;
+  margin-bottom: $space-md;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-weight: $font-semibold;
+  padding: $space-md;
+  border-bottom: 2px solid var(--color-border);
+  background-color: var(--color-bg-tertiary);
+}
+
+td {
+  padding: $space-md;
+  border-bottom: 1px solid var(--color-border);
+}
+
+tr:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+// -------------------------------------------------------------------
+// BLOCKQUOTE & MEDIA
+// -------------------------------------------------------------------
+
+blockquote {
+  margin: 0 0 $space-md $space-md;
+  padding: $space-md $space-lg;
+  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+figure {
+  margin: 0 0 $space-md 0;
+}
+
+figcaption {
+  margin-top: $space-xs;
+  font-size: $text-sm;
+  color: var(--color-text-secondary);
+}
+
+// -------------------------------------------------------------------
+// HR & DIVIDERS
+// -------------------------------------------------------------------
+
+hr {
+  margin: $space-lg 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+// -------------------------------------------------------------------
+// ARTICLE & SEMANTIC
+// -------------------------------------------------------------------
+
+article, section, aside, nav {
+  display: block;
+}
+
+header, footer, main {
+  display: block;
+}
+
+// -------------------------------------------------------------------
+// SCROLLBAR STYLING (Webkit browsers)
+// -------------------------------------------------------------------
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: $radius-md;
+
+  &:hover {
+    background: var(--color-text-tertiary);
+  }
+}
+
+// -------------------------------------------------------------------
+// SELECTION
+// -------------------------------------------------------------------
+
+::selection {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+::-moz-selection {
+  background-color: var(--color-primary);
+  color: white;
+}

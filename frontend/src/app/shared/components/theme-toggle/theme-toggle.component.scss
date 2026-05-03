@@ -1,0 +1,53 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+
+.theme-toggle {
+  @include button-base;
+  @include flex-center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-base;
+
+  &:hover {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    animation: fadeInOut $transition-slow ease-in-out;
+  }
+
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
