@@ -399,7 +399,7 @@
 }
 
 @mixin page-height {
-  height: calc(100vh - 44px);
+  height: calc(100vh - 35px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
