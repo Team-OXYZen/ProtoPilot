@@ -5,6 +5,7 @@ import { WizardService } from '../../features/requirements/services/wizard-servi
 import { AuthService } from '../../core/auth.service';
 import { ProjectCard } from '../../shared/models/project-card.model';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
+import { SpecService } from '../spec-review/services/spec.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -21,6 +22,7 @@ export class DashboardComponent implements OnInit {
   private wizardService = inject(WizardService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private specService = inject(SpecService);
 
   ngOnInit(): void {
     this.currentUser.set(this.authService.getCurrentUser()()?.username || '');
@@ -63,6 +65,21 @@ export class DashboardComponent implements OnInit {
     this.wizardService.getProject(project.project_id).subscribe({
       next: (proj) => {
         this.wizardService.loadExistingProject(proj);
+        
+        // Set spec and artifacts data
+        if (proj.spec) {
+          this.specService.setSpec(proj.spec);
+        }
+        if (proj.nontech_artifacts_md) {
+          this.specService.setNontechArtifacts(proj.nontech_artifacts_md);
+        }
+        if (proj.technical_artifacts_md) {
+          this.specService.setTechnicalArtifacts(proj.technical_artifacts_md);
+        }
+        if (proj.generated_code_files) {
+          this.specService.setGeneratedCode(proj.generated_code_files);
+        }
+        
         this.router.navigate([route]);
       },
       error: (err) => {
