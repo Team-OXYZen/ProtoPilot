@@ -4,13 +4,13 @@ import { Router } from '@angular/router';
 import { WizardService } from '../../features/requirements/services/wizard-service';
 import { AuthService } from '../../core/auth.service';
 import { ProjectCard } from '../../shared/models/project-card.model';
-import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
+import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SpecService } from '../spec-review/services/spec.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ThemeToggleComponent],
+  imports: [CommonModule, HeaderComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

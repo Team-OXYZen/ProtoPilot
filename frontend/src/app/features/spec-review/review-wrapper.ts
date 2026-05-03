@@ -8,13 +8,13 @@ import { catchError, of } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 import { LoaderService } from '../../shared/services/loader.service';
-import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
+import { HeaderComponent } from '../../shared/components/header/header.component';
 
 
 @Component({
   selector: 'app-review-wrapper',
   standalone: true,
-  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, ThemeToggleComponent],
+  imports: [LeftPanelComponent, RightPanelComponent, ChatboxComponent, HeaderComponent],
   templateUrl: './review-wrapper.html',
   styleUrl: './review-wrapper.scss'
 })

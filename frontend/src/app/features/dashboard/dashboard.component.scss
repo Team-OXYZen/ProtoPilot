@@ -85,10 +85,10 @@
 
 .user-greeting {
   font-size: $text-base;
-  color: var(--color-text-secondary);
+  color: #fbbf24;
 
   strong {
-    color: var(--color-secondary);
+    color: #fbbf24;
     font-weight: $font-semibold;
   }
 
@@ -99,9 +99,9 @@
 
 .btn-logout {
   padding: $space-md $space-lg;
-  background-color: rgba(0, 0, 0, 0.1);
-  color: var(--color-sidebar-text);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: $radius-md;
   font-size: $text-base;
   font-weight: $font-semibold;
@@ -109,13 +109,13 @@
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-color: var(--color-sidebar-text);
+    background-color: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
     transform: translateY(-2px);
   }
 
   @include breakpoint('sm') {
-    width: 100%;
+    width: auto;
   }
 }
 
