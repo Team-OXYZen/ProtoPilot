@@ -27,6 +27,9 @@ export class LoaderService {
    * Start the loader with cycling messages
    */
   start(): void {
+    if (this.messageInterval) {
+      clearInterval(this.messageInterval);
+    }
     this.messageIndex = 0;
     this.loaderStateSubject.next({
       isLoading: true,
@@ -52,6 +55,9 @@ export class LoaderService {
       return;
     }
 
+    if (this.messageInterval) {
+      clearInterval(this.messageInterval);
+    }
     this.messageSequence = messages;
     this.messageIndex = 0;
     this.loaderStateSubject.next({
