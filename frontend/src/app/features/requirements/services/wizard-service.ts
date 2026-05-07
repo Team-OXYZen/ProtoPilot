@@ -32,17 +32,13 @@ export class WizardService {
     if (this.session && this.project) {
       return;
     }
+    this.sessionSubject.next({ id: crypto.randomUUID() });
+    this.projectSubject.next({ id: crypto.randomUUID() });
+  }
 
-    let session: Session = {
-      id: crypto.randomUUID(),
-    };
-
-    let project: Project = {
-      id: crypto.randomUUID(),
-    };
-
-    this.sessionSubject.next(session);
-    this.projectSubject.next(project);
+  resetSession = (): void => {
+    this.sessionSubject.next({ id: crypto.randomUUID() });
+    this.projectSubject.next({ id: crypto.randomUUID() });
   }
 
   sendMessage = (message: string):Observable<Response|null> => {

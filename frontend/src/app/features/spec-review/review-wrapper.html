@@ -2,6 +2,21 @@
   <h2 class="page-title" header-center>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specifications Review' }}</h2>
   <div class="header-actions" header-right>
     @if (hasNonTechArtifacts() && !hasTechnicalArtifacts()) {
+      <button class="preview-btn" title="Toggle spec / artifacts view" (click)="toggleSpecView()">
+        @if (showSpecView()) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span>View Artifacts</span>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>View Spec</span>
+        }
+      </button>
       <button class="change-btn" title="Change Requirements" (click)="changeSpec()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="1 4 1 10 7 10"></polyline>
@@ -43,10 +58,20 @@
 
 <div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
   @if (!isStackblitzActive()) {
-    <app-left-panel [files]="files()" [selectedFile]="selectedFile" (fileSelected)="onFileSelect($event)">
-    </app-left-panel>
+    @if (showSpecView() && !hasGeneratedCode()) {
+      <app-left-panel [selectedSection]="selectedSection" (sectionSelected)="onSectionSelect($event)">
+      </app-left-panel>
+      <app-right-panel [selectedSection]="selectedSection">
+      </app-right-panel>
+    } @else {
+      <app-left-panel [files]="files()" [selectedFile]="selectedFile" (fileSelected)="onFileSelect($event)">
+      </app-left-panel>
+      <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
+      </app-right-panel>
+    }
+  } @else {
+    <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
+    </app-right-panel>
   }
-  <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
-  </app-right-panel>
   <app-chatbox [isStackblitzActive]="isStackblitzActive()"> </app-chatbox>
 </div>

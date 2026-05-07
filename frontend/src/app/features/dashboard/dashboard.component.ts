@@ -44,6 +44,10 @@ export class DashboardComponent implements OnInit {
   }
 
   onCreateNew(): void {
+    this.wizardService.resetSession();
+    this.specService.clearSpec();
+    this.specService.clearArtifacts();
+    this.specService.clearGeneratedCode();
     this.router.navigate(['/requirements']);
   }
 

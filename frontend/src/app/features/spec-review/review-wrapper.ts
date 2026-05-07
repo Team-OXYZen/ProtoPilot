@@ -21,6 +21,8 @@ export class ReviewWrapperComponent implements OnInit {
   @ViewChild(ChatboxComponent) chatbox!: ChatboxComponent;
 
   selectedFile: string = 'requirements.md';
+  selectedSection: string = '';
+  showSpecView = signal(false);
   files = signal<string[]>([]);
 
   wizardService = inject(WizardService);
@@ -54,6 +56,10 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   ngOnInit() {
+    const spec = this.specService.spec();
+    if (spec && Object.keys(spec).length > 0) {
+      this.selectedSection = Object.keys(spec).sort()[0];
+    }
     if (this.hasNonTechArtifacts()) {
       const allFiles = Object.keys(this.specService.nontech_artifacts_md() as any).sort();
       this.files.set(allFiles);
@@ -62,6 +68,14 @@ export class ReviewWrapperComponent implements OnInit {
     if (this.hasGeneratedCode()) {
       this.selectedFile = 'code-preview';
     }
+  }
+
+  onSectionSelect(section: string) {
+    this.selectedSection = section;
+  }
+
+  toggleSpecView() {
+    this.showSpecView.update(v => !v);
   }
 
   isStackblitzActive() {
