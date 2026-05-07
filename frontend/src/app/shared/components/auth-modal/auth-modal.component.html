@@ -1,0 +1,85 @@
+<div class="auth-modal-overlay" (click)="close()">
+  <div class="auth-modal" (click)="$event.stopPropagation()">
+    <button class="close-btn" (click)="close()" [disabled]="isLoading()" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <h2 class="modal-title">
+      {{ isSignUp() ? 'Sign Up' : 'Login' }}
+    </h2>
+
+    @if (errorMessage()) {
+      <div class="error-message">{{ errorMessage() }}</div>
+    }
+
+    <form (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          [(ngModel)]="username"
+          name="username"
+          placeholder="Enter your username"
+          [disabled]="isLoading()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Enter your password"
+          [disabled]="isLoading()"
+        />
+      </div>
+
+      @if (isSignUp()) {
+        <div class="form-group">
+          <label for="passwordConfirm">Confirm Password</label>
+          <input
+            id="passwordConfirm"
+            type="password"
+            [(ngModel)]="passwordConfirm"
+            name="passwordConfirm"
+            placeholder="Confirm your password"
+            [disabled]="isLoading()"
+          />
+        </div>
+      }
+
+      <button
+        type="submit"
+        class="submit-btn"
+        [disabled]="isLoading()"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        @if (isLoading()) {
+          <span>{{ isSignUp() ? 'Signing up...' : 'Logging in...' }}</span>
+        } @else {
+          <span>{{ isSignUp() ? 'Sign Up' : 'Login' }}</span>
+        }
+      </button>
+    </form>
+
+    <div class="toggle-mode">
+      @if (!isSignUp()) {
+        <span>Don't have an account? <button class="link-btn" (click)="toggleMode()" [disabled]="isLoading()">Sign Up</button></span>
+      } @else {
+        <span>Already have an account? <button class="link-btn" (click)="toggleMode()" [disabled]="isLoading()">Login</button></span>
+      }
+    </div>
+
+    <div class="demo-hint">
+      <small>Demo credentials: <strong>demo</strong> / <strong>demo123</strong></small>
+    </div>
+  </div>
+</div>

@@ -41,7 +41,8 @@
       }
 
       .user-msg-content {
-        background-color: var(--color-bg-tertiary);
+        background-color: var(--color-bg-primary);
+        border: 2px solid var(--color-border);
         display: flex;
         align-items: flex-end;
         max-width: 80%;

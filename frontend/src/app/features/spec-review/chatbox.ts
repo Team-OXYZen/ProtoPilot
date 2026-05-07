@@ -40,8 +40,6 @@ export class ChatboxComponent implements OnInit {
       let tempMessage = this.chatMessage;
       this.chatMessage = '';
 
-
-
       //code refinement flow when isStackblitzActive is true
       if (this.isStackblitzActive) {
         this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
@@ -122,14 +120,15 @@ export class ChatboxComponent implements OnInit {
                     systemResponse += " " + response.reply.suggestions;
                   }
                 }
+                this.sendBtnDisabled.set(false);
+                this.isThinking.set(false);
+                this.sendBtnText.set("Send");
+                console.log('Response received: ', response);
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
             });
           }
-          this.sendBtnDisabled.set(false);
-          this.isThinking.set(false);
-          this.sendBtnText.set("Send");
-          console.log('Response received: ', response);
+          
         });
       }
 

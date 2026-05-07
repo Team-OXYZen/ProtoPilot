@@ -1,0 +1,31 @@
+<header class="app-header">
+  <div class="header-left">
+    <button class="logo-btn" (click)="goToWelcome()" title="Go to Home">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 19l-7-7 7-7"></path>
+      </svg>
+      <h1 class="logo">ProtoPilot</h1>
+    </button>
+  </div>
+
+  <div class="header-center">
+    <ng-content select="[header-center]"></ng-content>
+  </div>
+
+  <div class="header-right">
+    <app-theme-toggle></app-theme-toggle>
+    
+    @if (showDashboardButton) {
+      <button class="dashboard-btn" (click)="goToDashboard()" title="Go to Dashboard" aria-label="Dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </button>
+    }
+
+    <ng-content select="[header-right]"></ng-content>
+  </div>
+</header>

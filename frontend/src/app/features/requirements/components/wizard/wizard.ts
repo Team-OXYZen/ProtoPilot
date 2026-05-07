@@ -4,13 +4,14 @@ import { WizardService } from '../../services/wizard-service';
 import { Question, Response, Spec } from '../../models/response.model';
 import { CONSTANTS } from '../../config/sample-questions';
 import { catchError, map, of } from 'rxjs';
+import { HeaderComponent } from '../../../../shared/components/header/header.component';
 
 @Component({
   selector: 'app-wizard',
   templateUrl: './wizard.html',
   styleUrls: ['./wizard.scss'],
   standalone: true,
-  imports: [FormsModule]
+  imports: [FormsModule, HeaderComponent]
 })
 export class WizardComponent implements OnInit {
 

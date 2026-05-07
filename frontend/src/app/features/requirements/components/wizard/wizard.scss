@@ -5,45 +5,35 @@
 .wizard-container {
   @include page-height;
   @include flex-center;
-  background-color: var(--color-wizard-bg);
+  background-color: var(--color-wizard-card-bg);
   color: var(--color-text-primary);
   padding: $space-md;
   gap: $space-md;
+  border: 2px solid transparent;
 
   @include breakpoint('md') {
     padding: $space-sm;
   }
 }
 
+.wizard-container:has(.thinking) {
+  border: 2px solid transparent;
+  background: linear-gradient(var(--color-wizard-card-bg), var(--color-wizard-card-bg)) padding-box,
+              linear-gradient(135deg, var(--color-primary), var(--color-secondary)) border-box;
+  background-size: 200% 200%;
+  animation: gradientBorder 3s ease infinite;
+}
+
 .wizard-card {
   width: 100%;
   max-width: 600px;
-  background-color: var(--color-wizard-card-bg);
   color: var(--color-wizard-card-text);
   padding: $space-2xl;
-  border-radius: $radius-lg;
-  border: 2px solid var(--color-border);
-  box-shadow: $shadow-md;
   transition: box-shadow $transition-base, transform $transition-base;
   display: flex;
   flex-direction: column;
   position: relative;
 
-  &:hover:not(.thinking) {
-    box-shadow: $shadow-lg;
-    transform: translateY(-2px);
-  }
-
-  // Only show animated gradient when thinking
-  &.thinking {
-    box-shadow: $shadow-lg;
-    transform: translateY(-2px);
-    border: 2px solid transparent;
-    background: linear-gradient(var(--color-wizard-card-bg), var(--color-wizard-card-bg)) padding-box,
-                linear-gradient(135deg, var(--color-primary), var(--color-secondary)) border-box;
-    background-size: 200% 200%;
-    animation: gradientBorder 3s ease infinite;
-  }
 
   @include breakpoint('md') {
     max-width: 100%;
@@ -82,15 +72,15 @@
 
 .question-title {
   @include heading($text-2xl, $font-semibold);
-  color: var(--color-wizard-card-text);
+  color: var(--color-text-secondary);
   margin-bottom: $space-md;
   text-align: center;
 }
 
 .question-subtitle {
-  @include heading($text-lg, $font-normal);
-  color: var(--color-text-secondary);
-  margin-bottom: $space-lg;
+  @include heading($text-xl, $font-normal);
+  color: var(--color-secondary);
+  margin: $space-lg 0;
   text-align: center;
 }
 
@@ -161,21 +151,29 @@
 
 .input-wrapper {
   position: relative;
-  border: 2px solid var(--color-input-border);
-  border-radius: $radius-md;
+  border: 2px solid var(--color-border);
+  border-radius: $radius-2xl;
   background-color: var(--color-input-bg);
   display: flex;
   flex-direction: column;
+  align-items: end;
   margin: $space-lg 0;
   transition: border-color $transition-base;
+  transition: box-shadow $transition-base;
 
   &:focus-within {
-    border-color: var(--color-primary);
+    border-color: var(--color-secondary);
+  }
+
+  &:hover {
+    box-shadow: $shadow-dark-lg;
   }
 
   textarea {
     border: none;
-    padding: $space-md;
+    border-radius: $radius-2xl;
+    padding-inline: $space-lg;
+    margin-top: $space-lg;
     min-height: 100px;
 
     &:focus {
@@ -198,6 +196,10 @@
   height: 44px;
   cursor: pointer;
   transition: all $transition-base;
+  width: 45px;
+  border-radius: 24px;
+  margin: 10px;
+  margin-top: 0;
 
   &:hover:not(:disabled) {
     background-color: color.adjust(#fbbf24, $lightness: -10%);
@@ -225,8 +227,7 @@
   align-items: center;
   flex-direction: column;
   gap: $space-md;
-  min-height: 60px;
-  margin: $space-lg 0;
+  margin-bottom: $space-2xl;
   width: 100%;
   text-align: center;
 }
@@ -265,7 +266,7 @@
 
 .thinking-text {
   margin: $space-md 0 0 0;
-  font-size: $text-2xl;
+  font-size: $text-xl;
   color: var(--color-text-secondary);
   font-style: italic;
   text-align: center;
