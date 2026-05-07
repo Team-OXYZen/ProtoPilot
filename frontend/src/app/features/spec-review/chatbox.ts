@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, inject, Input, OnInit, signal, ChangeDetectionStrategy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
@@ -25,8 +25,13 @@ export class ChatboxComponent implements OnInit {
   isThinking = signal<boolean>(false);
   @Input() isPreviewMode: boolean = false;
   @Input() isStackblitzActive: boolean = false;
+  @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
 
   constructor() { }
+
+  focusInput() {
+    this.textareaRef?.nativeElement.focus();
+  }
 
   ngOnInit() {
   }
@@ -81,55 +86,50 @@ export class ChatboxComponent implements OnInit {
           console.log('Error caught:', err);
           this.isThinking.set(false);
           this.sendBtnDisabled.set(false);
-          this.isThinking.set(false);
           this.sendBtnText.set("Send");
-          return of(null); // fallback value
+          return of(null);
         })).subscribe(response => {
           if (response) {
             this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
               console.log('Error caught:', err);
               this.isThinking.set(false);
               this.sendBtnDisabled.set(false);
-              this.isThinking.set(false);
               this.sendBtnText.set("Send");
-              return of(null); // fallback value
+              return of(null);
             })).subscribe(response => {
               if (response) {
                 if ((response as any).spec) {
                   this.specService.setSpec((response as any).spec);
-                  // Set artifacts if they exist in response
-                  if ((response as any).nontech_artifacts_md) {
-                    this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
-                  }
-                  if ((response as any).technical_artifacts_md) {
-                    this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
-                  }
                 }
- 
+                if ((response as any).nontech_artifacts_md) {
+                  this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
+                }
+                if ((response as any).technical_artifacts_md) {
+                  this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+                }
 
                 let systemResponse = "";
-
                 if (typeof response.reply == "string") {
                   systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-                } else if (response.reply.message) {
+                } else if (response.reply?.message) {
                   systemResponse = response.reply.message;
-                } else if (response.reply && response.reply.summary) {
+                } else if (response.reply?.summary) {
                   systemResponse = response.reply.summary;
-                  if (response.reply.question) {
-                    systemResponse += " " + response.reply.question;
-                  }
-                  if (response.reply.suggestions) {
-                    systemResponse += " " + response.reply.suggestions;
-                  }
+                  if (response.reply.question) systemResponse += " " + response.reply.question;
+                  if (response.reply.suggestions) systemResponse += " " + response.reply.suggestions;
                 }
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
+              // loading cleanup only after inner request completes
+              this.sendBtnDisabled.set(false);
+              this.isThinking.set(false);
+              this.sendBtnText.set("Send");
             });
+          } else {
+            this.sendBtnDisabled.set(false);
+            this.isThinking.set(false);
+            this.sendBtnText.set("Send");
           }
-          this.sendBtnDisabled.set(false);
-          this.isThinking.set(false);
-          this.sendBtnText.set("Send");
-          console.log('Response received: ', response);
         });
       }
 
