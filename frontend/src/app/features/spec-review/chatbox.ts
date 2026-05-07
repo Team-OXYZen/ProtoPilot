@@ -45,8 +45,6 @@ export class ChatboxComponent implements OnInit {
       let tempMessage = this.chatMessage;
       this.chatMessage = '';
 
-
-
       //code refinement flow when isStackblitzActive is true
       if (this.isStackblitzActive) {
         this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
@@ -118,6 +116,10 @@ export class ChatboxComponent implements OnInit {
                   if (response.reply.question) systemResponse += " " + response.reply.question;
                   if (response.reply.suggestions) systemResponse += " " + response.reply.suggestions;
                 }
+                this.sendBtnDisabled.set(false);
+                this.isThinking.set(false);
+                this.sendBtnText.set("Send");
+                console.log('Response received: ', response);
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
               // loading cleanup only after inner request completes

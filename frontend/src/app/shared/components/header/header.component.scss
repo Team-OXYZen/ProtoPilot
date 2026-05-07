@@ -1,0 +1,126 @@
+@use 'variables' as *;
+@use 'theme-mixins' as *;
+@use 'sass:color';
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-lg $space-2xl;
+  background-color: var(--color-header-bg);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+  z-index: 100;
+  position: relative;
+  transition: background-color 0.3s ease;
+
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  @include breakpoint('md') {
+    padding: $space-lg;
+  }
+
+  @include breakpoint('sm') {
+    padding: $space-md;
+  }
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo-btn {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $space-sm;
+  margin: -$space-sm;
+  border-radius: $radius-md;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(251, 191, 36, 0.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: #fbbf24;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover svg {
+    transform: translateX(-2px);
+  }
+}
+
+.logo {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  margin: 0;
+  padding: 10px;
+  background: linear-gradient(135deg, $color-secondary-yellow, color.adjust($color-secondary-yellow, $lightness: 15%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+
+  @include breakpoint('md') {
+    font-size: $text-xl;
+  }
+
+  @include breakpoint('sm') {
+    font-size: $text-lg;
+    letter-spacing: 1px;
+  }
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 $space-lg;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+
+  @include breakpoint('sm') {
+    gap: $space-sm;
+  }
+}
+
+.dashboard-btn {
+  padding: $space-md $space-lg;
+  background-color: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: $radius-md;
+  color: #fbbf24;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+    transform: translateY(-2px);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @include breakpoint('sm') {
+    padding: $space-sm;
+  }
+}

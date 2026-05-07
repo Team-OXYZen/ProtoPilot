@@ -1,3 +1,6 @@
+<app-header>
+  <h2 class="page-title" header-center>Requirements Wizard</h2>
+</app-header>
 <div class="wizard-container">
 
   <div class="wizard-card" [class.thinking]="isLoading()">
@@ -16,7 +19,7 @@
     </h2>
 
     @if(isLoading()) {
-      <p class="thinking-text">AI is thinking...</p>
+      <p class="thinking-text">Thinking...</p>
     }
 
     <h3 class="question-subtitle">

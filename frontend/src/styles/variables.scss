@@ -65,8 +65,10 @@ $color-info: #3b82f6;
   --color-text-secondary: #{$color-dark-text-secondary};
   --color-text-tertiary: #{$color-dark-text-tertiary};
   --color-border: #{$color-dark-border};
+  --color-input-bg: #{$color-dark-bg-primary};
   --color-input-border: #{$color-dark-bg-tertiary};
-  --color-shadow: rgba(255, 255, 255, 0.852);
+  --color-shadow: rgba(4, 4, 4, 0.939);
+  --color-dark-shadow: rgba(0, 0, 0, 0.485);
 
   --color-wizard-bg: #{$color-dark-bg-primary};
   --color-wizard-card-bg: #{$color-dark-bg-secondary};
@@ -92,6 +94,7 @@ $color-info: #3b82f6;
   --color-text-secondary: #{$color-light-text-secondary};
   --color-text-tertiary: #{$color-light-text-tertiary};
   --color-border: #{$color-light-border};
+  --color-input-bg: #{$color-light-bg-primary};
   --color-input-border: #{$color-light-bg-tertiary};
   --color-shadow: rgba(0, 0, 0, 0.1);
 
@@ -109,7 +112,7 @@ $color-info: #3b82f6;
   
   // Darker panels for dark mode
   --color-panel-bg: #{$color-light-bg-secondary};
-  --color-input-bg: #{$color-light-bg-secondary};
+  --color-input-bg: #{$color-dark-bg-secondary};
 }
 
 // Fallback to dark theme if no data-theme attribute
@@ -193,7 +196,8 @@ $line-height-relaxed: 1.75;
 
 $shadow-sm: 0 1px 2px 0 var(--color-shadow);
 $shadow-md: -1 3px 6px 0px var(--color-shadow);
-$shadow-lg: 0 4px 1px -1px var(--color-shadow);
+$shadow-lg: 0 4px 7px 0px var(--color-shadow);
+$shadow-dark-lg: 0 4px 20px 0px var(--color-dark-shadow);
 $shadow-xl: 0 20px 25px -5px var(--color-shadow);
 $shadow-2xl: 0 25px 50px -12px var(--color-shadow);
 

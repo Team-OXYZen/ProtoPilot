@@ -118,6 +118,7 @@ textarea {
 
 .mermaid-container {
   @include flex-center;
+  align-items: unset;
   padding: $space-xl;
   background-color: var(--color-bg-primary);
   border-radius: $radius-lg;
