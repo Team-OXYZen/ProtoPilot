@@ -72,12 +72,14 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     try {
       if (this.mermaidContainer) {
         // Extract mermaid code from markdown code block
-        const mermaidCode = this.extractMermaidCode(this.mdText);
+        let mermaidCode = this.extractMermaidCode(this.mdText);
+        mermaidCode = mermaidCode.replace(/\(/g, '&lpar;').replace(/\)/g, '&rpar;');        
+        console.log('Extracted Mermaid Code:', mermaidCode);
+
         const { svg } = await mermaid.render('graphDiv', mermaidCode);
 
         const container = this.mermaidContainer.nativeElement;
         container.innerHTML = svg;
-        console.log(mermaidCode);
       }
     } catch (error) {
       console.error('Error rendering mermaid diagram:', error);
