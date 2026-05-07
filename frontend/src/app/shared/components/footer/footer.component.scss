@@ -7,6 +7,10 @@
   bottom: 0;
   width: stretch; 
   z-index: 500;
+
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(0, 0, 0, 0.85);
+  }
 }
 
 .footer-text {
