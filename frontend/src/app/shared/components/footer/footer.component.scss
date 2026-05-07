@@ -1,0 +1,29 @@
+.app-footer {
+  background-color: var(--color-footer-bg);
+  padding: 0.35rem 1rem;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(251, 191, 36, 0.1);
+  position: absolute;
+  bottom: 0;
+  width: stretch; 
+  z-index: 500;
+
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.footer-text {
+  margin: 0;
+  font-size: 0.75rem;
+  text-align: center;
+  color: #fbbf24;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.divider {
+  margin: 0 0.75rem;
+  opacity: 0.6;
+  color: #fbbf24;
+}

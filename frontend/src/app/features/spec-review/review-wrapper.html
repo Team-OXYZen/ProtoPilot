@@ -1,6 +1,6 @@
-<div class="header">
-  <h1>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specification Review' }}</h1>
-  <div class="header-actions">
+<app-header>
+  <h2 class="page-title" header-center>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specifications Review' }}</h2>
+  <div class="header-actions" header-right>
     @if (hasNonTechArtifacts() && !hasTechnicalArtifacts()) {
       <button class="change-btn" title="Change Requirements" (click)="changeSpec()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -38,9 +38,8 @@
         </button>
       }
     }
-    <app-theme-toggle></app-theme-toggle>
   </div>
-</div>
+</app-header>
 
 <div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
   @if (!isStackblitzActive()) {
