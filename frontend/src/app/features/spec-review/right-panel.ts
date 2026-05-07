@@ -73,7 +73,7 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
       if (this.mermaidContainer) {
         // Extract mermaid code from markdown code block
         let mermaidCode = this.extractMermaidCode(this.mdText);
-        mermaidCode = mermaidCode.replace(/\(/g, '&lpar;').replace(/\)/g, '&rpar;');        
+        mermaidCode = mermaidCode.replace(/ \(/g, ' &lpar;').replace(/\)\)/g, '&rpar;)').replace(/\) /g, '&rpar; ');        
         console.log('Extracted Mermaid Code:', mermaidCode);
 
         const { svg } = await mermaid.render('graphDiv', mermaidCode);
