@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
@@ -14,7 +14,7 @@ import { catchError, of } from 'rxjs';
   styleUrl: './chatbox.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ChatboxComponent implements OnInit {
+export class ChatboxComponent implements OnInit, AfterViewInit {
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -25,10 +25,21 @@ export class ChatboxComponent implements OnInit {
   isThinking = signal<boolean>(false);
   @Input() isPreviewMode: boolean = false;
   @Input() isStackblitzActive: boolean = false;
+  @ViewChild('chatHistoryElement') chatHistoryElement!: ElementRef;
+  private observer?: MutationObserver;
 
   constructor() { }
 
   ngOnInit() {
+  }
+
+  ngAfterViewInit() {
+    this.observer = new MutationObserver(() => this.scrollToBottom());
+    this.observer.observe(this.chatHistoryElement.nativeElement, {
+      childList: true, // Watch for new messages
+      subtree: true,   // Watch for changes inside messages (like markdown updates)
+      characterData: true // Watch for streaming text changes
+    });
   }
 
   sendChatMessage() {
@@ -133,6 +144,11 @@ export class ChatboxComponent implements OnInit {
       }
 
     }
+  }
+
+  private scrollToBottom(): void {
+    const el = this.chatHistoryElement.nativeElement;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }
 
 }

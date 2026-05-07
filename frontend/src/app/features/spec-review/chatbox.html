@@ -1,6 +1,6 @@
 <div class="sidebar">
   <div class="chat-section">
-    <div class="chat-history">
+    <div #chatHistoryElement class="chat-history">
       @for(msg of chatHistory(); track msg.id){
         @if(msg.type != "user"){
           <div class="system-msg">
