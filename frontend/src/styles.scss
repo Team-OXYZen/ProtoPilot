@@ -89,6 +89,14 @@ body {
   transition: background-color $transition-base, color $transition-base;
 }
 
+//mermaid diagram error
 #dgraphDiv {
-  display: none;
+  // display: none;
+}
+
+.page-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  margin: 0;
+  color: #f1f5f9;
 }
