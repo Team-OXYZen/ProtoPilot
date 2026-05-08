@@ -2,64 +2,41 @@
   <h2 class="page-title" header-center>{{ isStackblitzActive() ? 'Prototype Preview' : 'Specifications Review' }}</h2>
   <div class="header-actions" header-right>
     @if (hasNonTechArtifacts() && !hasTechnicalArtifacts()) {
-      <button class="approve-btn" title="Approve Specs" (click)="approveSpec()">
+      <button class="preview-btn" title="Toggle spec / artifacts view" (click)="toggleSpecView()">
+        @if (showSpecView()) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span>View Artifacts</span>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>View Spec</span>
+        }
+      </button>
+      <button class="approve-btn" title="Approve and Generate Code" (click)="approveSpec()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span>Approve Specs</span>
+        <span>Approve</span>
       </button>
-      <button class="preview-btn" [title]="isPreviewMode() ? 'Edit Specs' : 'Preview Specs'" (click)="togglePreview()">
-        @if(isPreviewMode()) {
+    } @else if (hasTechnicalArtifacts() || hasGeneratedCode()) {
+      @if (isStackblitzActive()) {
+        <button class="preview-btn" title="Preview Artifacts" (click)="showArtifacts()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-        } @else {
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        }
-        <span>{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</span>
-      </button>
-    } @else if (hasTechnicalArtifacts() && !hasGeneratedCode()) {
-      <button class="generate-btn" title="Generate Code" (click)="generateCode()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="16 18 22 12 16 6"></polyline>
-          <polyline points="8 6 2 12 8 18"></polyline>
-        </svg>
-        <span>Generate Code</span>
-      </button>
-      <button class="preview-btn" [title]="isPreviewMode() ? 'Edit Specs' : 'Preview Specs'" (click)="togglePreview()">
-        @if(isPreviewMode()) {
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-        } @else {
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        }
-        <span>{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</span>
-      </button>
-    } @else if (hasGeneratedCode()) {
-      <button class="preview-btn" [title]="isPreviewMode() ? 'Edit Specs' : 'Preview Specs'" (click)="togglePreview()">
-        @if(isPreviewMode()) {
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-        } @else {
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-        }
-        <span>{{ isPreviewMode() ? 'Edit Specs' : 'Preview Specs' }}</span>
-      </button>
-      @if (!isStackblitzActive()) {
+          <span>Preview Artifacts</span>
+        </button>
+      }
+      @if (hasGeneratedCode() && !isStackblitzActive()) {
         <button class="view-prototype-btn" title="View Prototype" (click)="viewPrototype()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="16 18 22 12 16 6"></polyline>
@@ -73,18 +50,21 @@
 </app-header>
 
 <div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
-  @if (!isPreviewMode()) {
-  <app-left-panel [selectedSection]="selectedSection" (sectionSelected)="onSectionSelect($event)">
-  </app-left-panel>
-  <app-right-panel [selectedSection]="selectedSection">
-  </app-right-panel>
-  } @else {
   @if (!isStackblitzActive()) {
-  <app-left-panel [files]="files()" [selectedFile]="selectedFile" (fileSelected)="onFileSelect($event)">
-  </app-left-panel>
-  }
-  <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
-  </app-right-panel>
+    @if (showSpecView() && !hasGeneratedCode()) {
+      <app-left-panel [selectedSection]="selectedSection" (sectionSelected)="onSectionSelect($event)">
+      </app-left-panel>
+      <app-right-panel [selectedSection]="selectedSection">
+      </app-right-panel>
+    } @else {
+      <app-left-panel [files]="files()" [selectedFile]="selectedFile" (fileSelected)="onFileSelect($event)">
+      </app-left-panel>
+      <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
+      </app-right-panel>
+    }
+  } @else {
+    <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
+    </app-right-panel>
   }
   <app-chatbox [isStackblitzActive]="isStackblitzActive()"> </app-chatbox>
 </div>
