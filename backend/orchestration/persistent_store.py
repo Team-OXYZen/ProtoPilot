@@ -27,6 +27,26 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                stage TEXT,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_project_id
+            ON chat_messages(project_id, id)
+            """
+        )
         conn.commit()
 
 
@@ -156,3 +176,78 @@ def set_project_stage(project_id: str, stage: Stage) -> None:
             (stage.value, project_id),
         )
         conn.commit()
+
+
+def save_chat_message(
+    project_id: str,
+    session_id: str,
+    role: str,
+    content: Any,
+    stage: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    init_db()
+
+    if not isinstance(content, str):
+        content = json.dumps(content, ensure_ascii=False)
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT INTO chat_messages (
+                project_id,
+                session_id,
+                role,
+                stage,
+                content,
+                metadata
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                project_id,
+                session_id,
+                role,
+                stage,
+                content,
+                json.dumps(metadata, ensure_ascii=False) if metadata else None,
+            ),
+        )
+        conn.commit()
+
+
+def list_chat_messages(project_id: str) -> list[dict[str, Any]]:
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                id,
+                project_id,
+                session_id,
+                role,
+                stage,
+                content,
+                metadata,
+                created_at
+            FROM chat_messages
+            WHERE project_id = ?
+            ORDER BY id ASC
+            """,
+            (project_id,),
+        ).fetchall()
+
+    return [
+        {
+            "id": row[0],
+            "project_id": row[1],
+            "session_id": row[2],
+            "role": row[3],
+            "stage": row[4],
+            "content": row[5],
+            "metadata": json.loads(row[6]) if row[6] else None,
+            "created_at": row[7],
+        }
+        for row in rows
+    ]

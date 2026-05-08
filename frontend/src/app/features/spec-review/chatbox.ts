@@ -31,6 +31,28 @@ export class ChatboxComponent implements OnInit, AfterViewInit {
   constructor() { }
 
   ngOnInit() {
+    const projectId = this.wizardService.project?.id;
+
+    if (!projectId) {
+      return;
+    }
+
+    this.wizardService.getProjectMessages(projectId).subscribe({
+      next: (res) => {
+        const history = (res.messages || []).map((msg: any, index: number) => {
+          return {
+            id: msg.id || index + 1,
+            text: msg.content,
+            type: msg.role === "user" ? "user" : "system"
+          };
+        });
+
+        this.chatHistory.set(history);
+      },
+      error: (err) => {
+        console.error("Failed to load chat history:", err);
+      }
+    });
   }
 
   ngAfterViewInit() {
@@ -92,7 +114,7 @@ export class ChatboxComponent implements OnInit, AfterViewInit {
         });
       } else {
         //spec review flow
-        this.wizardService.sendMessage("change").pipe(catchError(err => {
+        this.wizardService.sendMessage("change", false).pipe(catchError(err => {
           console.log('Error caught:', err);
           this.isThinking.set(false);
           this.sendBtnDisabled.set(false);
