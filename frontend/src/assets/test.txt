@@ -7,7 +7,8 @@ A move rating app for personal use that fetches movies from TMDB external API, u
 App idea 3
 A simple calculator with basic add, subtract, mul, divide operations only. Should look like a real calculator. Should apply BODMAS correctly, divide by zero gives error. No backend calls.
 
-
+App idea 4
+A simple local tic tac toe app with amazing UI, vibrant colors, interactive animations. It will be user vs AI with three level of difficulty. User should be able to reset the game. We should show a pop up after a game ends with a confetti or sad animation.
 
 payload example for testing tools:
 {
