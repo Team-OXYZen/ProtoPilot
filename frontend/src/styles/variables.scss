@@ -75,14 +75,14 @@ $color-info: #3b82f6;
   --color-wizard-card-text: #{$color-dark-text-primary};
 
   // Sidebar, header, footer
-  --color-sidebar-bg: #{$color-dark-bg-secondary};
+  --color-sidebar-bg: #{$color-dark-bg-primary};
   --color-sidebar-text: #{$color-dark-text-primary};
-  --color-header-bg: #{$color-dark-bg-secondary};
-  --color-footer-bg: #{$color-dark-bg-secondary};
+  --color-header-bg: #{$color-dark-bg-primary};
+  --color-footer-bg: #{$color-dark-bg-primary};
   --color-chat-bg: #{$color-dark-bg-secondary};
   
   // Darker panels for dark mode
-  --color-panel-bg: #{$color-dark-bg-primary};
+  --color-panel-bg: #{$color-dark-bg-secondary};
   --color-input-bg: #{$color-dark-bg-primary};
 }
 
