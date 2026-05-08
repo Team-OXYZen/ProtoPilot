@@ -34,12 +34,9 @@ First, classify the user's request into one of three change types:
 
 ## Step 3: Return a JSON response
 
-After completing all changes, return ONLY this JSON (no extra text):
-{
-  "change_type": "code_only" | "docs_only" | "both",
-  "message": "Brief summary of what was changed and why.",
-  "files_changed": ["list", "of", "changed", "filenames"]
-}
+After completing all changes, return ONLY this message (no extra text):
+"change_type": "code_only" | "docs_only" | "both",
+Brief summary of what was changed and why.
 
 Available tools:
 - load_spec(project_id)
