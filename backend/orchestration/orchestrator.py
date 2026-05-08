@@ -10,8 +10,12 @@ from orchestration.tools import (
     delete_generated_code_file,
     list_generated_code_files,
     load_generated_code_file,
+    load_nontech_artifacts,
     load_spec,
+    load_technical_artifacts,
     patch_generated_code_file,
+    patch_nontech_artifact,
+    patch_technical_artifact,
     rename_generated_code_file,
     save_nontech_artifacts,
     save_technical_artifacts,
@@ -53,7 +57,13 @@ class Orchestrator:
         return [load_spec, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
     
     def _qa_tools(self) -> list:
-        return [load_spec, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
+        return [
+            load_spec,
+            load_nontech_artifacts, load_technical_artifacts,
+            patch_nontech_artifact, patch_technical_artifact,
+            list_generated_code_files, load_generated_code_file,
+            patch_generated_code_file, delete_generated_code_file, rename_generated_code_file,
+        ]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
         proj = get_or_create_project(project_id, req_session_id)
