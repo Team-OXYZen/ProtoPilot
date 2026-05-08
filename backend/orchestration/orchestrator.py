@@ -147,6 +147,7 @@ class Orchestrator:
             reply = {"message": "Non-technical artifacts generated successfully and awaiting approval."}
         else:
             reply = {"message": "Non-technical artifacts generation failed. Please try again.", "error": f"{_raw_reply}"}
+            proj.stage = Stage.REQ  # Revert stage to requirements if artifact generation failed
 
         return self._build_response(
             proj=proj,
