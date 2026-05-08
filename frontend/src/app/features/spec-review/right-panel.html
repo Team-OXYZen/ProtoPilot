@@ -22,7 +22,6 @@
     }
 
     @if (!isPreviewMode) {
-      @if (!isEditing) {
       <section>
         @if (isObjectArray) {
         <div class="cards">
@@ -51,46 +50,7 @@
         } @else {
         <pre>{{ selectedData | json }}</pre>
         }
-        <button (click)="startEdit()">Edit</button>
       </section>
-      } @else {
-      <section>
-        @if (isObjectArray) {
-        <div class="cards">
-          @for (obj of editedObjects; track $index) {
-          <div class="card">
-            @for (key of getObjectKeys(obj); track key) {
-            <label>{{ toTitleCase(key) }}:</label>
-            <input [(ngModel)]="obj[key]" />
-            }
-            <button (click)="removeObject($index)">Remove</button>
-          </div>
-          }
-          <button (click)="addObject()">Add Object</button>
-        </div>
-        } @else if (isObject) {
-        <div class="card">
-          @for (key of getObjectKeys(editedObjects[0]); track key) {
-          <label>{{ toTitleCase(key) }}:</label>
-          <input [(ngModel)]="editedObjects[0][key]" />
-          }
-        </div>
-        } @else if (isStringArray) {
-        <div>
-          @for (item of editedArray; track $index) {
-          <input [(ngModel)]="editedArray[$index]" />
-          <button (click)="removeItem($index)">Remove</button>
-          }
-          <button (click)="addItem()">Add Item</button>
-        </div>
-        } @else {
-        <textarea [(ngModel)]="editedValue" rows="8" cols="60"></textarea>
-        }
-        <br>
-        <button (click)="saveEdit()">Save</button>
-        <button (click)="cancelEdit()">Cancel</button>
-      </section>
-      }
     }
   </div>
 </div>

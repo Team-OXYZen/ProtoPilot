@@ -1,17 +1,14 @@
 import { JsonPipe, CommonModule } from '@angular/common';
 import { Component, inject, Input, OnChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
-import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
-import { catchError, of } from 'rxjs';
 import mermaid from 'mermaid';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 
 @Component({
   selector: 'app-right-panel',
   standalone: true,
-  imports: [FormsModule, JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
+  imports: [JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
   templateUrl: './right-panel.html',
   styleUrl: './right-panel.scss'
 })
@@ -23,12 +20,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   @Input() selectedFile: string = '';
   @ViewChild('mermaidContainer', { static: false }) mermaidContainer?: ElementRef;
 
-  isEditing: boolean = false;
-  editedValue: string = '';
-  editedArray: string[] = [];
-  editedObjects: any[] = [];
-  chatMessage: string = '';
-  wizardService = inject(WizardService);
   specService = inject(SpecService);
 
   constructor() {
@@ -42,8 +33,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   }
 
   ngOnChanges() {
-    this.isEditing = false;
-    // Re-render mermaid if content changed
     if (this.isPreviewMode && this.isMermaidDiagram(this.mdText)) {
       setTimeout(() => {
         this.renderMermaid();
@@ -179,89 +168,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
 
   toTitleCase(str: string): string {
     return str?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  }
-
-  startEdit() {
-    this.isEditing = true;
-    const data = this.selectedData;
-    const isString = typeof data === 'string';
-    const isStringArray = this.isStringArray;
-    const isObjectArray = this.isObjectArray;
-    const isObject = this.isObject;
-
-    if (isString) {
-      this.editedValue = data;
-    } else if (isStringArray) {
-      this.editedArray = [...data];
-    } else if (isObjectArray) {
-      this.editedObjects = JSON.parse(JSON.stringify(data));
-    } else if (isObject) {
-      this.editedObjects = [JSON.parse(JSON.stringify(data))];
-    } else {
-      this.editedValue = JSON.stringify(data, null, 2);
-    }
-  }
-
-  saveEdit() {
-    try {
-      const data = this.selectedData;
-      const isString = typeof data === 'string';
-      const isStringArray = this.isStringArray;
-      const isObjectArray = this.isObjectArray;
-      const isObject = this.isObject;
-
-        if (isString) {
-        this.specService.updateSection(this.selectedSection, this.editedValue);
-      } else if (isStringArray) {
-        this.specService.updateSection(this.selectedSection, this.editedArray);
-      } else if (isObjectArray) {
-        this.specService.updateSection(this.selectedSection, this.editedObjects);
-      } else if (isObject) {
-        this.specService.updateSection(this.selectedSection, this.editedObjects[0]);
-      } else {
-        this.specService.updateSection(this.selectedSection, JSON.parse(this.editedValue));
-      }
-      this.isEditing = false;
-    } catch (e) {
-      alert('Invalid input');
-    }
-  }
-
-  cancelEdit() {
-    this.isEditing = false;
-  }
-
-  addItem() {
-    this.editedArray.push('');
-  }
-
-  removeItem(index: number) {
-    this.editedArray.splice(index, 1);
-  }
-
-  addObject() {
-    const template = this.editedObjects.length > 0 ? {...this.editedObjects[0]} : {};
-    Object.keys(template).forEach(k => template[k] = '');
-    this.editedObjects.push(template);
-  }
-
-  removeObject(index: number) {
-    this.editedObjects.splice(index, 1);
-  }
-
-  sendChatMessage() {
-    if (this.chatMessage) {
-      this.wizardService.sendMessage(this.chatMessage).pipe(catchError(err => {
-                console.log('Error caught:', err);
-                return of(null); // fallback value
-              })).subscribe(response => {
-        if (response) {
-          // Update spec based on response
-          console.log('Response received: ' + JSON.stringify(response));
-        }
-        this.chatMessage = '';
-      });
-    }
   }
 
 }
