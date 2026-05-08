@@ -32,11 +32,12 @@ First, classify the user's request into one of three change types:
 - Keep styling and code conventions consistent with the existing codebase.
 - Do not introduce unnecessary complexity.
 
-## Step 3: Return a JSON response
+## Step 3: Reply to the user
 
-After completing all changes, return ONLY this message (no extra text):
-"change_type": "code_only" | "docs_only" | "both",
-Brief summary of what was changed and why.
+After completing all changes, write a short plain-text message to the user explaining:
+- What type of change was made (UI, docs, or functional)
+- Which files were updated
+- A brief summary of what changed
 
 Available tools:
 - load_spec(project_id)
