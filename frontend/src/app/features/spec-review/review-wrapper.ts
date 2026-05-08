@@ -33,8 +33,14 @@ export class ReviewWrapperComponent implements OnInit {
     // Auto-refresh file list when non-tech artifacts change (e.g. after chatbox modification)
     effect(() => {
       const nontechArtifacts = this.specService.nontech_artifacts_md();
+      const technicalArtifacts = this.specService.technical_artifacts_md();
+
       if (nontechArtifacts && this.selectedFile !== 'code-preview') {
         const allFiles = Object.keys(nontechArtifacts).sort();
+
+        if (technicalArtifacts) {
+          allFiles.push(...Object.keys(technicalArtifacts).sort());
+        }
         this.files.set(allFiles);
         if (allFiles.length > 0 && !allFiles.includes(this.selectedFile)) {
           this.selectedFile = allFiles[0];
@@ -83,7 +89,7 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   approveSpec() {
-    this.loaderService.startWithMessages(['Approving...', 'Generating technical artifacts...', 'Almost there...']);
+    this.loaderService.startWithMessages(['Understanding requirements...', 'Analyzing...', 'Generating system design...', 'Generating API documentation...', 'Almost there...']);
     this.wizardService.sendMessage('approve').pipe(catchError(err => {
       console.log('Error caught:', err);
       this.loaderService.stop();
@@ -94,10 +100,6 @@ export class ReviewWrapperComponent implements OnInit {
       }
       this.generateCode();
     });
-  }
-
-  changeSpec() {
-    this.chatbox.focusInput();
   }
 
   showArtifacts() {

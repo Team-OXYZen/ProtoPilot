@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WizardService } from '../../services/wizard-service';
@@ -21,7 +21,6 @@ export class WizardComponent implements OnInit {
   answer: string = '';
   sessionId: string = '';
   isLoading = signal(false);
-  @ViewChild('textAreaRef') textAreaRef!: ElementRef<HTMLTextAreaElement>;
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);

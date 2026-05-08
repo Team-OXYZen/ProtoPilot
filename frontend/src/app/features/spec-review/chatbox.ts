@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, Input, OnInit, signal, ChangeDetectionStrategy, ViewChild } from '@angular/core';
+import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
@@ -25,13 +25,8 @@ export class ChatboxComponent implements OnInit {
   isThinking = signal<boolean>(false);
   @Input() isPreviewMode: boolean = false;
   @Input() isStackblitzActive: boolean = false;
-  @ViewChild('textareaRef') textareaRef!: ElementRef<HTMLTextAreaElement>;
 
   constructor() { }
-
-  focusInput() {
-    this.textareaRef?.nativeElement.focus();
-  }
 
   ngOnInit() {
   }
