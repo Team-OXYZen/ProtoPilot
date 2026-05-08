@@ -55,6 +55,12 @@ export class ChatboxComponent implements OnInit {
             if((response as any).generated_code_files){
               this.specService.setGeneratedCode((response as any).generated_code_files);
             }
+            if ((response as any).nontech_artifacts_md) {
+              this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
+            }
+            if ((response as any).technical_artifacts_md) {
+              this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+            }
 
             let systemResponse = "";
 
