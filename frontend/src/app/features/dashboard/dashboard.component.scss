@@ -179,7 +179,8 @@
 }
 
 .project-card {
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
   border: 2px solid var(--color-border);
   border-radius: $radius-lg;
   padding: $space-lg;
@@ -202,9 +203,10 @@
     justify-content: center;
     flex-direction: column;
     gap: $space-lg;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(30, 58, 138, 0.05));
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(30, 58, 138, 0.15));
     border: 2px dashed var(--color-secondary);
     min-height: 200px;
+    color: var(--color-text-primary);
 
     &:hover {
       background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(30, 58, 138, 0.1));
@@ -221,7 +223,7 @@
     .card-label {
       font-size: $text-lg;
       font-weight: $font-semibold;
-      color: var(--color-secondary);
+      color: var(--color-primary);
       margin: 0;
       text-align: center;
     }
@@ -240,7 +242,7 @@
   font-size: $text-lg;
   font-weight: $font-semibold;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-sidebar-text);
   word-break: break-word;
   flex: 1;
 }
@@ -279,7 +281,7 @@
 
 .card-description {
   font-size: $text-sm;
-  color: var(--color-text-secondary);
+  color: rgba(241, 245, 249, 0.8);
   margin: 0 0 $space-md 0;
   line-height: 1.5;
   flex: 1;
@@ -307,7 +309,7 @@
 
 .meta-label {
   font-size: $text-xs;
-  color: var(--color-text-tertiary);
+  color: rgba(241, 245, 249, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: $font-medium;
@@ -315,7 +317,7 @@
 
 .meta-value {
   font-size: $text-sm;
-  color: var(--color-text-primary);
+  color: var(--color-sidebar-text);
   font-weight: $font-semibold;
 }
 

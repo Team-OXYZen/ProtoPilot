@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
@@ -14,7 +14,7 @@ import { catchError, of } from 'rxjs';
   styleUrl: './chatbox.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ChatboxComponent implements OnInit, AfterViewInit {
+export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -56,12 +56,22 @@ export class ChatboxComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.observer = new MutationObserver(() => this.scrollToBottom());
-    this.observer.observe(this.chatHistoryElement.nativeElement, {
-      childList: true, // Watch for new messages
-      subtree: true,   // Watch for changes inside messages (like markdown updates)
-      characterData: true // Watch for streaming text changes
-    });
+    // Only initialize MutationObserver on client-side (browser environment)
+    if (typeof window !== 'undefined' && MutationObserver) {
+      this.observer = new MutationObserver(() => this.scrollToBottom());
+      this.observer.observe(this.chatHistoryElement.nativeElement, {
+        childList: true, // Watch for new messages
+        subtree: true,   // Watch for changes inside messages (like markdown updates)
+        characterData: true // Watch for streaming text changes
+      });
+    }
+  }
+
+  ngOnDestroy() {
+    // Clean up observer when component is destroyed
+    if (this.observer) {
+      this.observer.disconnect();
+    }
   }
 
   sendChatMessage() {

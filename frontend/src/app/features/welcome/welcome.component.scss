@@ -5,7 +5,7 @@
 .welcome-container {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-primary) 50%, var(--color-bg-primary) 100%);
+  background: var(--welcome-gradient, linear-gradient(135deg, #1e3a8a 0%, #2c5282 50%, #1e3a8a 100%));
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
@@ -19,7 +19,7 @@
   justify-content: space-between;
   align-items: center;
   padding: $space-lg $space-2xl;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(30, 58, 138, 0.15);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(251, 191, 36, 0.1);
   z-index: 100;
@@ -250,7 +250,7 @@
   font-size: $text-2xl;
   font-weight: $font-semibold;
   margin: 0 0 $space-lg 0;
-  color: var(--color-text-secondary);
+  color: #f1f5f9;
 
   @include breakpoint('md') {
     font-size: $text-xl;
@@ -263,7 +263,7 @@
 
 .hero-description {
   font-size: $text-lg;
-  color: var(--color-text-secondary);
+  color: #f1f5f9;
   margin: 0 0 $space-2xl 0;
   line-height: 1.6;
 

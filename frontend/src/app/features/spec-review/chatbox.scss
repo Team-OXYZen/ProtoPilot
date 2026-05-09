@@ -28,7 +28,7 @@
 
       .system-msg {
         padding: $space-xs;
-        font-size: $text-sm;
+        font-size: $text-base;
         overflow-wrap: break-word;
         color: var(--color-text-secondary);
       }
@@ -41,17 +41,17 @@
       }
 
       .user-msg-content {
-        background-color: var(--color-bg-primary);
-        border: 2px solid var(--color-border);
+        background-color: var(--color-chat-item-bg, #1e3a8a);
+        border: 2px solid var(--color-chat-item-bg, #1e3a8a);
         display: flex;
         align-items: flex-end;
         max-width: 80%;
         margin: $space-lg 0;
         padding: $space-md;
         border-radius: $radius-lg;
-        font-size: $text-sm;
+        font-size: $text-base;
         word-break: break-word;
-        color: var(--color-text-primary);
+        color: #f1f5f9;
       }
 
       .ai-thinking {
@@ -93,7 +93,7 @@
       }
 
       .thinking-text {
-        font-size: $text-xs;
+        font-size: $text-base;
         color: var(--color-text-secondary);
         margin: 0;
         font-style: italic;
