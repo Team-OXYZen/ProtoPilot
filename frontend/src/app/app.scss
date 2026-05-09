@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: center;
   font-size: $text-xs;
-  color: #f1f5f9;
+  color: var(--color-sidebar-text);
   margin-top: auto;
   transition: background-color 0.3s ease, color 0.3s ease;
 

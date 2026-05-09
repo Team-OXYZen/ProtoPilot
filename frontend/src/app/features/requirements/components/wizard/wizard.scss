@@ -33,6 +33,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  border-radius: $radius-lg;
 
 
   @include breakpoint('md') {
@@ -79,7 +80,7 @@
 
 .question-subtitle {
   @include heading($text-xl, $font-normal);
-  color: var(--color-secondary);
+  color: var(--color-primary);
   margin: $space-lg 0;
   text-align: center;
 }
@@ -158,15 +159,16 @@
   flex-direction: column;
   align-items: end;
   margin: $space-lg 0;
-  transition: border-color $transition-base;
-  transition: box-shadow $transition-base;
+  transition: border-color $transition-base, box-shadow $transition-base;
+  box-shadow: $shadow-md;
 
   &:focus-within {
     border-color: var(--color-secondary);
+    box-shadow: $shadow-lg;
   }
 
   &:hover {
-    box-shadow: $shadow-dark-lg;
+    box-shadow: $shadow-lg;
   }
 
   textarea {
