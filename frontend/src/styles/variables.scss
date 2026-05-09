@@ -28,18 +28,22 @@ $color-dark-text-tertiary: #94a3b8; // Tertiary text (very muted)
 $color-dark-border: #475569;        // Border color (dark mode)
 
 // Light Mode Palette
-$color-light-bg-primary: #0f2d54;  // Very light blue background (main content)
-$color-light-bg-secondary: #cce4ff; // Light blue (panels, cards in content)
-$color-light-bg-tertiary: #254883; // Light blue (inputs, borders)
-$color-light-text-primary: #152434; // Dark text
-$color-light-text-secondary: #f1f5f9; // Muted text (darker for better contrast)
-$color-light-text-tertiary: #475569; // Very muted text
-$color-light-border: #bfdbfe;       // Border color - light blue (light mode)
+$color-light-bg-primary: #f0f4ff;    // Lightest navy blue background (main content)
+$color-light-bg-secondary: #e8ecf7;  // Light navy (panels, cards)
+$color-light-bg-tertiary: #c7d2e8;   // Navy-tinted (inputs, borders)
+$color-light-text-primary: #003366;  // Navy text
+$color-light-text-secondary: #3949ab; // Navy text (secondary)
+$color-light-text-tertiary: #5c6bc0; // Navy text (muted)
+$color-light-border: #a5b4d1;        // Border color - navy blue tinted (light mode)
 
 // Light Mode - Navy Sidebar/Header (override for UI chrome)
-$color-light-sidebar-bg: #1e293b;   // Dark slate for sidebars
-$color-light-sidebar-text: #f1f5f9; // Light text on dark sidebar
-$color-light-header-bg: #1e293b;    // Dark slate for headers
+$color-light-sidebar-bg: #003366;   // Navy for sidebars/navbar/footer
+$color-light-sidebar-text: #f1f5f9; // Light text on navy
+$color-light-header-bg: #003366;    // Navy for headers
+
+// Light Mode - Chat Box
+$color-light-chat-bg: #ffffff;      // White for chat box background
+$color-light-chat-item-bg: #003366; // Navy for chat items
 
 // Semantic Colors (consistent across themes)
 $color-success: #10b981;
@@ -80,10 +84,14 @@ $color-info: #3b82f6;
   --color-header-bg: #{$color-dark-bg-primary};
   --color-footer-bg: #{$color-dark-bg-primary};
   --color-chat-bg: #{$color-dark-bg-secondary};
+  --color-chat-item-bg: #{$color-dark-bg-primary};
   
   // Darker panels for dark mode
   --color-panel-bg: #{$color-dark-bg-secondary};
   --color-input-bg: #{$color-dark-bg-primary};
+  
+  // Welcome gradient
+  --welcome-gradient: linear-gradient(135deg, #0a1120 0%, #1a1a3e 50%, #0a1120 100%);
 }
 
 :root[data-theme="light"] {
@@ -96,23 +104,23 @@ $color-info: #3b82f6;
   --color-border: #{$color-light-border};
   --color-input-bg: #{$color-light-bg-primary};
   --color-input-border: #{$color-light-bg-tertiary};
-  --color-shadow: rgba(0, 0, 0, 0.1);
+  --color-shadow: rgba(30, 58, 138, 0.08);
 
-  --color-wizard-bg: #{$color-light-bg-secondary};
-  --color-wizard-card-bg: #{$color-light-bg-primary};
-  --color-wizard-card-text: #{$color-light-text-secondary};
+  --color-wizard-bg: #{$color-light-bg-primary};
+  --color-wizard-card-bg: #{$color-light-bg-secondary};
+  --color-wizard-card-text: #{$color-light-text-primary};
 
-  // Sidebar, header, footer
-  --color-sidebar-bg: #{$color-light-bg-primary};
-  --color-sidebar-text: #{$color-light-text-secondary};
-
-  --color-header-bg: #{$color-light-bg-primary};
-  --color-footer-bg: #{$color-light-bg-primary};
-  --color-chat-bg: #{$color-light-bg-primary};
+  // Sidebar, header, footer - Navy for UI chrome
+  --color-sidebar-bg: #{$color-light-sidebar-bg};
+  --color-sidebar-text: #{$color-light-sidebar-text};
+  --color-header-bg: #{$color-light-sidebar-bg};
+  --color-footer-bg: #{$color-light-sidebar-bg};
+  --color-chat-bg: #{$color-light-chat-bg};
+  --color-chat-item-bg: #{$color-light-chat-item-bg};
   
-  // Darker panels for dark mode
+  // Panels for light mode
   --color-panel-bg: #{$color-light-bg-secondary};
-  --color-input-bg: #{$color-dark-bg-secondary};
+  --color-input-bg: #{$color-light-bg-primary};
 }
 
 // Fallback to dark theme if no data-theme attribute
@@ -129,10 +137,10 @@ $color-info: #3b82f6;
   --color-shadow: rgba(0, 0, 0, 0.3);
   
   // Sidebar, header, footer
-  // --color-sidebar-bg: #1e3a8a;
+  // --color-sidebar-bg: #003366;
   // --color-sidebar-text: #f1f5f9;
-  // --color-header-bg: #1e3a8a;
-  // --color-footer-bg: #1e3a8a;
+  // --color-header-bg: #003366;
+  // --color-footer-bg: #003366;
   
   
   // Brand colors (same across themes)
@@ -249,7 +257,7 @@ $bp-2xl: 1920px; // Wide desktop
 // -------------------------------------------------------------------
 
 $button-primary-bg: var(--color-primary);
-$button-primary-bg-hover: color.adjust(#1e3a8a, $lightness: -10%);
+$button-primary-bg-hover: color.adjust(#003366, $lightness: -10%);
 $button-primary-text: #ffffff;
 
 $button-secondary-bg: var(--color-secondary);
