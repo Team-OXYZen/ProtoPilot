@@ -71,6 +71,12 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
             if((response as any).generated_code_files){
               this.specService.setGeneratedCode((response as any).generated_code_files);
             }
+            if ((response as any).nontech_artifacts_md) {
+              this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
+            }
+            if ((response as any).technical_artifacts_md) {
+              this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+            }
 
             let systemResponse = "";
 
@@ -100,46 +106,37 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
           console.log('Error caught:', err);
           this.isThinking.set(false);
           this.sendBtnDisabled.set(false);
-          this.isThinking.set(false);
           this.sendBtnText.set("Send");
-          return of(null); // fallback value
+          return of(null);
         })).subscribe(response => {
           if (response) {
             this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
               console.log('Error caught:', err);
               this.isThinking.set(false);
               this.sendBtnDisabled.set(false);
-              this.isThinking.set(false);
               this.sendBtnText.set("Send");
-              return of(null); // fallback value
+              return of(null);
             })).subscribe(response => {
               if (response) {
                 if ((response as any).spec) {
                   this.specService.setSpec((response as any).spec);
-                  // Set artifacts if they exist in response
-                  if ((response as any).nontech_artifacts_md) {
-                    this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
-                  }
-                  if ((response as any).technical_artifacts_md) {
-                    this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
-                  }
                 }
- 
+                if ((response as any).nontech_artifacts_md) {
+                  this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
+                }
+                if ((response as any).technical_artifacts_md) {
+                  this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+                }
 
                 let systemResponse = "";
-
                 if (typeof response.reply == "string") {
                   systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-                } else if (response.reply.message) {
+                } else if (response.reply?.message) {
                   systemResponse = response.reply.message;
-                } else if (response.reply && response.reply.summary) {
+                } else if (response.reply?.summary) {
                   systemResponse = response.reply.summary;
-                  if (response.reply.question) {
-                    systemResponse += " " + response.reply.question;
-                  }
-                  if (response.reply.suggestions) {
-                    systemResponse += " " + response.reply.suggestions;
-                  }
+                  if (response.reply.question) systemResponse += " " + response.reply.question;
+                  if (response.reply.suggestions) systemResponse += " " + response.reply.suggestions;
                 }
                 this.sendBtnDisabled.set(false);
                 this.isThinking.set(false);
@@ -147,9 +144,16 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
                 console.log('Response received: ', response);
                 this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
               }
+              // loading cleanup only after inner request completes
+              this.sendBtnDisabled.set(false);
+              this.isThinking.set(false);
+              this.sendBtnText.set("Send");
             });
+          } else {
+            this.sendBtnDisabled.set(false);
+            this.isThinking.set(false);
+            this.sendBtnText.set("Send");
           }
-          
         });
       }
 

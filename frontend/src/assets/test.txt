@@ -8,6 +8,9 @@ App idea 3
 A simple calculator with basic add, subtract, mul, divide operations only. Should look like a real calculator. Should apply BODMAS correctly, divide by zero gives error. No backend calls.
 
 App idea 4
+A simple local tic tac toe app with amazing UI, vibrant colors, interactive animations. It will be user vs AI with three level of difficulty. User should be able to reset the game. We should show a pop up after a game ends with a confetti or sad animation.
+
+App idea 5
 An IT Ticketing system app for HelpDesk agents. Everybody is Admin and can create, view, reassign, update status, add comments to the tickets. We can focus on single ticket type for now "Incident". The ticket can have fields like title, description, customer, priority, impact, due date, assignee, etc.
 Status can be open, in progress, blocked, resolved, reopened. There should be a dashboard page to show all stats and analytics. Create ticket screen and view tickets screen. No auth required for this POC. Make the UI attractive, it should look modern, clean, minimal, use favicons everywhere, colors matching to the theme of black white orange. Project name must by SmartIT.
 

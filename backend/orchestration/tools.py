@@ -135,6 +135,58 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
 
+def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        _log_tool_event("load_nontech_artifacts", {"project_id": project_id})
+        return {"project_id": project_id, "nontech_artifacts_md": proj.nontech_artifacts_md or {}}
+    except Exception as e:
+        error_msg = f"load_nontech_artifacts failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id, "nontech_artifacts_md": {}}
+
+
+def load_technical_artifacts(project_id: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        _log_tool_event("load_technical_artifacts", {"project_id": project_id})
+        return {"project_id": project_id, "technical_artifacts_md": proj.technical_artifacts_md or {}}
+    except Exception as e:
+        error_msg = f"load_technical_artifacts failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id, "technical_artifacts_md": {}}
+
+
+def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        if not proj.nontech_artifacts_md:
+            proj.nontech_artifacts_md = {}
+        proj.nontech_artifacts_md[filename] = content
+        persist_project(project_id)
+        _log_tool_event("patch_nontech_artifact", {"project_id": project_id, "filename": filename})
+        return {"ok": True, "project_id": project_id, "filename": filename}
+    except Exception as e:
+        error_msg = f"patch_nontech_artifact failed for {filename}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
+
+
+def patch_technical_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        if not proj.technical_artifacts_md:
+            proj.technical_artifacts_md = {}
+        proj.technical_artifacts_md[filename] = content
+        persist_project(project_id)
+        _log_tool_event("patch_technical_artifact", {"project_id": project_id, "filename": filename})
+        return {"ok": True, "project_id": project_id, "filename": filename}
+    except Exception as e:
+        error_msg = f"patch_technical_artifact failed for {filename}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
+
+
 def load_artifacts(project_id: str) -> dict[str, Any]:
     try:
         proj = get_or_create_project(project_id, req_session_id=project_id)
