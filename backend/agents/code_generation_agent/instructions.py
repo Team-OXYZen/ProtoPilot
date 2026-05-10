@@ -21,6 +21,7 @@ Code rules:
 - Use CommonModule and ReactiveFormsModule when needed
 - Every component must have styleUrl and real SCSS
 - Use realistic feature/service structure
+- Functional correctness is top priority; UI polish is secondary
 
 UI Design Guidelines:
 - Choose a visual direction suited to the app's domain before writing components (e.g. dark dashboard, clean editorial, soft consumer app). Never default to generic AI-looking UI.
