@@ -24,7 +24,9 @@ First, classify the user's request into one of three change types:
 
 ### both
 - Start with artifacts: load and patch the affected nontech/technical artifact files.
+- Before writing any new Angular code, read src/styles.scss and at least one existing component's .scss and .ts files to understand the established design conventions (SCSS variables, component structure, naming patterns).
 - Then update Angular code: list, load, and patch the affected code files to match the updated spec.
+- New components must follow the same patterns as existing ones: same SCSS variable usage, same standalone component structure, same import conventions.
 
 ## General rules
 - Always read the current state of files before modifying them.
