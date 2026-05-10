@@ -9,6 +9,7 @@ from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
     delete_generated_code_file,
     list_generated_code_files,
+    load_artifacts_summary,
     load_generated_code_file,
     load_nontech_artifacts,
     load_spec,
@@ -17,6 +18,7 @@ from orchestration.tools import (
     patch_nontech_artifact,
     patch_technical_artifact,
     rename_generated_code_file,
+    save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
     set_project_stage,
@@ -51,10 +53,10 @@ class Orchestrator:
         return [submit_spec]
 
     def _artifacts_tools(self) -> list:
-        return [load_spec, save_nontech_artifacts, save_technical_artifacts]
+        return [load_spec, load_nontech_artifacts, save_nontech_artifacts, save_technical_artifacts, save_artifacts_summary]
 
     def _code_generation_tools(self) -> list:
-        return [load_spec, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
+        return [load_spec, load_artifacts_summary, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
     
     def _qa_tools(self) -> list:
         return [

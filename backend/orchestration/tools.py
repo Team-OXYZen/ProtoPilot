@@ -135,6 +135,30 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
 
+def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj.artifacts_summary = summary
+        persist_project(project_id)
+        _log_tool_event("save_artifacts_summary", {"project_id": project_id, "summary_length": len(summary)})
+        return {"ok": True, "project_id": project_id}
+    except Exception as e:
+        error_msg = f"save_artifacts_summary failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id}
+
+
+def load_artifacts_summary(project_id: str) -> dict[str, Any]:
+    try:
+        proj = get_or_create_project(project_id, req_session_id=project_id)
+        _log_tool_event("load_artifacts_summary", {"project_id": project_id, "has_summary": proj.artifacts_summary is not None})
+        return {"project_id": project_id, "artifacts_summary": proj.artifacts_summary or ""}
+    except Exception as e:
+        error_msg = f"load_artifacts_summary failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id, "artifacts_summary": ""}
+
+
 def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
     try:
         proj = get_or_create_project(project_id, req_session_id=project_id)

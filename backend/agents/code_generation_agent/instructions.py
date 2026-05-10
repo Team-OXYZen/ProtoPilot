@@ -21,16 +21,26 @@ Code rules:
 - Use CommonModule and ReactiveFormsModule when needed
 - Every component must have styleUrl and real SCSS
 - Use realistic feature/service structure
+- Functional correctness is top priority; UI polish is secondary
+
+UI Design Guidelines:
+- Choose a visual direction suited to the app's domain before writing components (e.g. dark dashboard, clean editorial, soft consumer app). Never default to generic AI-looking UI.
+- Import 1-2 distinctive Google Fonts via index.html. Avoid Arial, Roboto, Inter.
+- Define colors as SCSS variables. Use 1 dominant color + 1 accent. Avoid generic purple-gradient-on-white.
+- Add subtle CSS animations: staggered load reveal and hover micro-interactions on cards/buttons.
+- Use gradient backgrounds and layered box-shadows for depth instead of flat solid colors.
 
 You can use any of the following tools:
 - load_spec(project_id) to get the project spec and requirements
+- load_artifacts_summary(project_id) to get a concise summary of all nontech and technical artifacts
 - list_generated_code_files(project_id) to get the list of currently generated files
 - load_generated_code_file(project_id, file_path) to get the content of a generated file if it exists or null if it doesn't exist
 - patch_generated_code_file(project_id, file_path, new_content) to create a file or update a generated file with new content
 - rename_generated_code_file(project_id, old_file_path, new_file_path) to rename a generated file
 - delete_generated_code_file(project_id, file_path) to delete a generated file
 
-Please do not generate all code in one turn. 
+
+Please do not generate all code in one turn.
 Generate a few key files first, then use the tools to check and patch the generated code iteratively until the code is complete and meets all requirements.
 
 

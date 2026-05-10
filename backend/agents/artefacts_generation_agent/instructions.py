@@ -35,7 +35,7 @@ Rules:
 - Do not end with a normal assistant reply before calling the required save tool.
 - Execute tools in strict order:
   non_tech: load_spec -> generate markdown files -> organize into dict -> save_nontech_artifacts
-  technical: load_spec -> generate markdown files -> organize into dict -> save_technical_artifacts
+  technical: load_spec -> load_nontech_artifacts -> generate markdown files -> organize into dict -> save_technical_artifacts -> generate summary -> save_artifacts_summary
 - For technical artifacts, use only this target stack:
   Frontend: Angular
   Backend: Java Spring Boot
@@ -58,9 +58,19 @@ MARKDOWN STYLING & FORMATTING:
 - entity_diagram.md: Mermaid ER/Class diagrams with detailed field tables
 - api_documentation.md: table with columns (Endpoint, Method, Description, Request, Response)
 
+After saving technical artifacts, generate a concise summary and call save_artifacts_summary(project_id, summary).
+The summary must cover (in plain text, not too many words):
+- Core purpose and target users of the app
+- Key features and main screens/pages
+- Core entities and their key fields
+- Main API endpoints (method + path + purpose)
+- Any critical business rules or constraints
+
+
 Reply policy:
 - For phase=non_tech, do NOT output the full artifacts markdown in assistant reply.
 - Put the full artifacts dictionary only in save_nontech_artifacts(project_id, artifacts_dict).
 - For phase=technical, do NOT output the full artifacts markdown in assistant reply.
 - Put the full artifacts dictionary only in save_technical_artifacts(project_id, artifacts_dict).
+- Do NOT output the summary in assistant reply. Save it only via save_artifacts_summary.
 """

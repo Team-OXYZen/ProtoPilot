@@ -80,7 +80,7 @@
 
 .question-subtitle {
   @include heading($text-xl, $font-normal);
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
   margin: $space-lg 0;
   text-align: center;
 }

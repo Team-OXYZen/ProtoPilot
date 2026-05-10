@@ -22,11 +22,16 @@ def init_db() -> None:
                 nontech_artifacts_md TEXT,
                 technical_artifacts_md TEXT,
                 generated_code_files TEXT,
+                artifacts_summary TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        try:
+            conn.execute("ALTER TABLE projects ADD COLUMN artifacts_summary TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS chat_messages (
@@ -76,9 +81,10 @@ def save_project(proj: ProjectState) -> None:
                 nontech_artifacts_md,
                 technical_artifacts_md,
                 generated_code_files,
+                artifacts_summary,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(project_id) DO UPDATE SET
                 req_session_id = excluded.req_session_id,
                 stage = excluded.stage,
@@ -86,6 +92,7 @@ def save_project(proj: ProjectState) -> None:
                 nontech_artifacts_md = excluded.nontech_artifacts_md,
                 technical_artifacts_md = excluded.technical_artifacts_md,
                 generated_code_files = excluded.generated_code_files,
+                artifacts_summary = excluded.artifacts_summary,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -96,6 +103,7 @@ def save_project(proj: ProjectState) -> None:
                 _to_json(proj.nontech_artifacts_md),
                 _to_json(proj.technical_artifacts_md),
                 _to_json(proj.generated_code_files),
+                proj.artifacts_summary,
             ),
         )
         conn.commit()
@@ -114,7 +122,8 @@ def load_project(project_id: str) -> ProjectState | None:
                 spec,
                 nontech_artifacts_md,
                 technical_artifacts_md,
-                generated_code_files
+                generated_code_files,
+                artifacts_summary
             FROM projects
             WHERE project_id = ?
             """,
@@ -132,6 +141,7 @@ def load_project(project_id: str) -> ProjectState | None:
         nontech_artifacts_md=_from_json(row[4]),
         technical_artifacts_md=_from_json(row[5]),
         generated_code_files=_from_json(row[6]),
+        artifacts_summary=row[7],
     )
 
 
