@@ -21,6 +21,10 @@ export class WizardComponent implements OnInit {
   answer: string = '';
   sessionId: string = '';
   isLoading = signal(false);
+  userId = '';
+  projectTitle = '';
+  projectDescription = '';
+  projectCreated = false;
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -94,5 +98,20 @@ export class WizardComponent implements OnInit {
   back() {
     this.router.navigate(['/dashboard']);
   }
+
+  createProject(): void {
+    if (!this.userId || !this.projectTitle) {
+      alert('Please enter user ID and project title.');
+      return;
+    }
+
+    this.wizardService.createProject(
+      this.userId,
+      this.projectTitle,
+      this.projectDescription
+    );
+
+    this.projectCreated = true;
+}
 
 }

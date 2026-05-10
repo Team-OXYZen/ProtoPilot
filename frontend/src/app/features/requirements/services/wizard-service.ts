@@ -11,6 +11,10 @@ import { Project } from '../models/project.model';
 })
 export class WizardService {
 
+  userId = '';
+  projectTitle = '';
+  projectDescription = '';
+
   http = inject(HttpClient);
 
   private sessionSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
@@ -42,13 +46,16 @@ export class WizardService {
   }
 
   sendMessage = (message: string, saveToHistory: boolean = true): Observable<Response | null> => {
-    if (!this.session) return of(null);
-    
+    if (!this.session || !this.project) return of(null);
+
     return this.http.post<Response>(CONSTANTS.REQUIREMENTS_AGENT_URL, {
-      session_id: this.session?.id,
-      project_id: this.project?.id,
-      message: message,
-      save_to_history: saveToHistory
+      user_id: this.userId,
+      project_id: this.project.id,
+      session_id: this.session.id,
+      project_title: this.projectTitle,
+      project_description: this.projectDescription,
+      message,
+      save_to_history: saveToHistory,
     });
   }
 
@@ -74,6 +81,28 @@ export class WizardService {
     });
 
     console.log('Loaded existing project:', project.project_id);
+  }
+
+  createProject(userId: string, title: string, description: string): void {
+    this.userId = userId;
+    this.projectTitle = title;
+    this.projectDescription = description;
+
+    this.sessionSubject.next({
+      id: crypto.randomUUID(),
+    });
+
+    this.projectSubject.next({
+      id: crypto.randomUUID(),
+    });
+
+    console.log('Project created:', {
+      user_id: this.userId,
+      project_title: this.projectTitle,
+      project_description: this.projectDescription,
+      project_id: this.project?.id,
+      session_id: this.session?.id,
+    });
   }
   
 }

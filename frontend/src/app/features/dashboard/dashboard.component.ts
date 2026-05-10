@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { WizardService } from '../../features/requirements/services/wizard-service';
 import { AuthService } from '../../core/auth.service';
 import { ProjectCard } from '../../shared/models/project-card.model';
@@ -10,7 +11,7 @@ import { SpecService } from '../spec-review/services/spec.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, HeaderComponent],
+  imports: [CommonModule, HeaderComponent, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -18,6 +19,9 @@ export class DashboardComponent implements OnInit {
   projects = signal<ProjectCard[]>([]);
   isLoading = signal(false);
   currentUser = signal<string | null>(null);
+  showCreateForm = signal(false);
+  projectTitle = '';
+  projectDescription = '';
 
   private wizardService = inject(WizardService);
   private authService = inject(AuthService);
@@ -44,11 +48,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onCreateNew(): void {
-    this.wizardService.resetSession();
-    this.specService.clearSpec();
-    this.specService.clearArtifacts();
-    this.specService.clearGeneratedCode();
-    this.router.navigate(['/requirements']);
+    this.showCreateForm.set(true)
   }
 
   onProjectClick(project: ProjectCard): void {
@@ -120,5 +120,33 @@ export class DashboardComponent implements OnInit {
       QA: 'QA',
     };
     return stageLabels[stage] || stage;
+  }
+
+  confirmCreateProject(): void {
+    const userId = this.currentUser() || 'local-user';
+
+    if (!this.projectTitle.trim()) {
+      alert('Please enter a project title.');
+      return;
+    }
+
+    this.wizardService.resetSession();
+    this.specService.clearSpec();
+    this.specService.clearArtifacts();
+    this.specService.clearGeneratedCode();
+
+    this.wizardService.createProject(
+      userId,
+      this.projectTitle.trim(),
+      this.projectDescription.trim()
+    );
+
+    this.router.navigate(['/requirements']);
+  }
+
+  cancelCreateProject(): void {
+    this.showCreateForm.set(false);
+    this.projectTitle = '';
+    this.projectDescription = '';
   }
 }

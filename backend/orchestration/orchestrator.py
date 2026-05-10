@@ -104,8 +104,8 @@ class Orchestrator:
 
         return self._build_response(proj=proj, reply=reply)
 
-    async def handle(self, project_id: str, req_session_id: str, user_message: str) -> dict:
-        proj = get_or_create_project(project_id, req_session_id)
+    async def handle(self,project_id: str,req_session_id: str,user_message: str,user_id: str = "local-user",project_title: str | None = None,project_description: str | None = None,) -> dict:
+        proj = get_or_create_project(project_id=project_id,req_session_id=req_session_id,user_id=user_id,project_title=project_title,project_description=project_description,)
         normalized = user_message.strip().lower()
 
         # Approval gate does not need an LLM call.
