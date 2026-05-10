@@ -41,16 +41,15 @@ export class WizardService {
     this.projectSubject.next({ id: crypto.randomUUID() });
   }
 
-  sendMessage = (message: string):Observable<Response|null> => {
+  sendMessage = (message: string, saveToHistory: boolean = true): Observable<Response | null> => {
     if (!this.session) return of(null);
     
     return this.http.post<Response>(CONSTANTS.REQUIREMENTS_AGENT_URL, {
-        session_id: this.session?.id,
-        project_id: this.project?.id,
-        // session_id: "todo",
-        // project_id: "todo",
-        message: message
-      });
+      session_id: this.session?.id,
+      project_id: this.project?.id,
+      message: message,
+      save_to_history: saveToHistory
+    });
   }
 
   getProjects(): Observable<any> {
@@ -59,6 +58,10 @@ export class WizardService {
 
   getProject(projectId: string): Observable<any> {
     return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+  }
+
+  getProjectMessages(projectId: string): Observable<any> {
+    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`);
   }
 
   loadExistingProject(project: any): void {
