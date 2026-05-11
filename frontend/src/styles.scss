@@ -50,10 +50,12 @@ textarea {
   0%, 100% {
     opacity: 0.3;
     box-shadow: 0 0 2px var(--color-secondary);
+    scale: 1.0;
   }
   50% {
     opacity: 1;
     box-shadow: 0 0 10px var(--color-secondary);
+    scale: 1.03;
   }
 }
 

@@ -12,38 +12,6 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $space-lg $space-2xl;
-  background-color: var(--color-header-bg);
-  color: var(--color-sidebar-text);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: $shadow-sm;
-  transition: background-color 0.3s ease;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-
-  @include breakpoint('md') {
-    padding: $space-lg;
-    flex-direction: column;
-    gap: $space-lg;
-    align-items: flex-start;
-  }
-
-  @include breakpoint('sm') {
-    padding: $space-md;
-  }
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: $space-sm;
-}
-
 .dashboard-title {
   font-size: $text-2xl;
   font-weight: $font-bold;
@@ -64,23 +32,6 @@
   color: var(--color-text-secondary);
   margin: 0;
   font-weight: $font-medium;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: $space-lg;
-
-  @include breakpoint('md') {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  @include breakpoint('sm') {
-    flex-direction: column;
-    gap: $space-md;
-    width: 100%;
-  }
 }
 
 .user-greeting {
@@ -107,11 +58,24 @@
   font-weight: $font-semibold;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+
+  svg {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
 
   &:hover {
     background-color: rgba(251, 191, 36, 0.2);
     border-color: #fbbf24;
     transform: translateY(-2px);
+    
+    svg {
+      transform: translateX(2px);
+    }
   }
 
   @include breakpoint('sm') {
@@ -188,7 +152,7 @@
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  height: 240px;
+  height: 200px;
   box-shadow: $shadow-md;
 
   &:hover {
@@ -239,7 +203,7 @@
 }
 
 .card-title {
-  font-size: $text-lg;
+  font-size: $text-xl;
   font-weight: $font-semibold;
   margin: 0;
   color: var(--color-sidebar-text);
@@ -280,7 +244,7 @@
 }
 
 .card-description {
-  font-size: $text-sm;
+  font-size: $text-base;
   color: rgba(241, 245, 249, 0.8);
   margin: 0 0 $space-md 0;
   line-height: 1.5;

@@ -1,4 +1,4 @@
-import { Component, inject, signal, output } from '@angular/core';
+import { Component, inject, signal, output, input, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,17 @@ import { AuthService } from '../../../core/auth.service';
   styleUrl: './auth-modal.component.scss',
 })
 export class AuthModalComponent {
-  isSignUp = signal(false);
+
+  private _isSignUp = signal(false);
+
+  @Input() set isSignUp(value: boolean) {
+    this._isSignUp.set(value);
+  }
+
+  get isSignUp() {
+    return this._isSignUp();
+  }
+
   username = signal('');
   password = signal('');
   passwordConfirm = signal('');
@@ -25,7 +35,7 @@ export class AuthModalComponent {
   private router = inject(Router);
 
   toggleMode(): void {
-    this.isSignUp.set(!this.isSignUp());
+    this._isSignUp.set(!this._isSignUp());
     this.clearForm();
   }
 
@@ -48,7 +58,7 @@ export class AuthModalComponent {
       return;
     }
 
-    if (this.isSignUp() && this.password() !== this.passwordConfirm()) {
+    if (this._isSignUp() && this.password() !== this.passwordConfirm()) {
       this.errorMessage.set('Passwords do not match');
       return;
     }
