@@ -18,7 +18,7 @@
 }
 
 .approve-btn {
-  @include button-primary;
+  @include button-secondary;
   font-size: $text-base;
   padding: $space-md $space-lg;
   height: 44px;
@@ -26,15 +26,23 @@
   align-items: center;
   justify-content: center;
   gap: $space-sm;
+  font-weight: $font-semibold;
 
   svg {
     width: 20px;
     height: 20px;
     flex-shrink: 0;
+    transition: transform 0.2s ease;
   }
 
   span {
     white-space: nowrap;
+  }
+
+  &:hover:not(:disabled) {
+    svg {
+      transform: scale(1.2);
+    }
   }
 }
 
