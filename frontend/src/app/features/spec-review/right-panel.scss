@@ -24,6 +24,9 @@
 .spec-content {
   flex: 1;
   margin-bottom: $space-lg;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-md;
 
   section {
     max-height: 60vh;
@@ -109,10 +112,8 @@ textarea {
   padding: $space-lg;
   background-color: var(--color-bg-primary);
   border-radius: $radius-lg;
-  border: 1px solid var(--color-border);
   overflow: auto;
   max-height: calc(100vh - 180px);
-  max-width: 750px;
   color: var(--color-text-secondary);
 }
 
@@ -135,11 +136,13 @@ textarea {
 }
 
 .code-preview-container {
-  width: 1000px;
   height: 100%;
-  border-radius: $radius-lg;
-  border: 1px solid var(--color-border);
   background-color: var(--color-bg-primary);
+
+  iframe {
+    border-radius: $radius-lg;
+    border: 1px solid var(--color-border);
+  }
 }
 
 .code-preview-header {

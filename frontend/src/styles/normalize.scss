@@ -380,6 +380,7 @@ header, footer, main {
 
 ::-webkit-scrollbar-track {
   background: var(--color-bg-secondary);
+  border-radius: $radius-2xl;
 }
 
 ::-webkit-scrollbar-thumb {
