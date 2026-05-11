@@ -214,14 +214,16 @@ class Orchestrator:
             )
 
     async def _run_qa(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict:
+        import time
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
         qa_prompt = (
             f"project_id={project_id}\n"
             f"User feedback: {user_message}"
         )
-        
+
         print(f"[QA] Starting QA with prompt: {qa_prompt}")
-        _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
+        qa_session_id = f"{req_session_id}-qa-{int(time.time())}"
+        _raw_reply = await run_turn(qa_agent, session_id=qa_session_id, message=qa_prompt)
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
         proj = get_or_create_project(project_id, req_session_id)
