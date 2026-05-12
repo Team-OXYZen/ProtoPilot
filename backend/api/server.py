@@ -1,5 +1,6 @@
 from orchestration.tools import delete_generated_code_file, list_generated_code_files, load_generated_code_file, patch_generated_code_file, rename_generated_code_file
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from dotenv import load_dotenv
 from api.routes.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,36 @@ def root():
 def health():
     return {"ok": True}
 
+class CreateProjectRequest(BaseModel):
+    user_id: str
+    project_id: str
+    session_id: str
+    project_title: str
+    project_description: str | None = None
+
+@app.post("/projects")
+def create_project(req: CreateProjectRequest):
+    from orchestration.store import get_or_create_project, persist_project
+
+    proj = get_or_create_project(
+        project_id=req.project_id,
+        req_session_id=req.session_id,
+        user_id=req.user_id,
+        project_title=req.project_title,
+        project_description=req.project_description,
+    )
+
+    persist_project(req.project_id)
+
+    return {
+        "ok": True,
+        "project_id": proj.project_id,
+        "user_id": proj.user_id,
+        "session_id": proj.req_session_id,
+        "project_title": proj.project_title,
+        "project_description": proj.project_description,
+        "stage": proj.stage.value,
+    }
 
 @app.get("/projects")
 def projects():
@@ -45,7 +76,10 @@ def project_detail(project_id: str):
 
     return {
         "project_id": proj.project_id,
+        "user_id": proj.user_id,
         "session_id": proj.req_session_id,
+        "project_title": proj.project_title,
+        "project_description": proj.project_description,
         "stage": proj.stage.value,
         "spec": proj.spec,
         "nontech_artifacts_md": proj.nontech_artifacts_md,

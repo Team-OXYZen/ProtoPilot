@@ -122,27 +122,36 @@ export class DashboardComponent implements OnInit {
     return stageLabels[stage] || stage;
   }
 
-  confirmCreateProject(): void {
-    const userId = this.currentUser() || 'local-user';
+confirmCreateProject(): void {
+  const userId = this.currentUser() || 'local-user';
 
-    if (!this.projectTitle.trim()) {
-      alert('Please enter a project title.');
-      return;
-    }
-
-    this.wizardService.resetSession();
-    this.specService.clearSpec();
-    this.specService.clearArtifacts();
-    this.specService.clearGeneratedCode();
-
-    this.wizardService.createProject(
-      userId,
-      this.projectTitle.trim(),
-      this.projectDescription.trim()
-    );
-
-    this.router.navigate(['/requirements']);
+  if (!this.projectTitle.trim()) {
+    alert('Please enter a project title.');
+    return;
   }
+
+  this.wizardService.resetSession();
+  this.specService.clearSpec();
+  this.specService.clearArtifacts();
+  this.specService.clearGeneratedCode();
+
+  this.wizardService.createProject(
+    userId,
+    this.projectTitle.trim(),
+    this.projectDescription.trim()
+  );
+
+  this.wizardService.createProjectInDb().subscribe({
+    next: (res) => {
+      console.log('Project saved to database:', res);
+      this.router.navigate(['/requirements']);
+    },
+    error: (err) => {
+      console.error('Failed to create project in database:', err);
+      alert('Failed to create project. Please try again.');
+    },
+  });
+}
 
   cancelCreateProject(): void {
     this.showCreateForm.set(false);

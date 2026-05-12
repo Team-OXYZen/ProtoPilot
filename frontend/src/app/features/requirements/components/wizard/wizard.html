@@ -4,43 +4,6 @@
 
 <div class="wizard-container">
 
-  @if (!projectCreated) {
-    <div class="wizard-card">
-      <h2 class="question-title">Create Project</h2>
-
-      <div class="input-wrapper">
-        <input
-          [(ngModel)]="userId"
-          placeholder="User ID"
-          class="input-area"
-        />
-      </div>
-
-      <div class="input-wrapper">
-        <input
-          [(ngModel)]="projectTitle"
-          placeholder="Project Title"
-          class="input-area"
-        />
-      </div>
-
-      <div class="input-wrapper">
-        <textarea
-          [(ngModel)]="projectDescription"
-          placeholder="Project Description"
-          class="input-area">
-        </textarea>
-      </div>
-
-      <button
-        class="send-btn"
-        (click)="createProject()"
-        [disabled]="!userId || !projectTitle">
-        Create Project
-      </button>
-    </div>
-  } @else {
-
     <div class="wizard-card" [class.thinking]="isLoading()">
 
       <h2 class="question-title">
@@ -100,6 +63,5 @@
       </div>
 
     </div>
-  }
 
 </div>
