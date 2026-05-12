@@ -1,10 +1,12 @@
 import json
 import logging
+import os
 import re
 from typing import Any
 
 from core.auth import get_oauth_token
 from core.runner import run_turn
+from core.sessions import session_service
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
     delete_generated_code_file,
@@ -214,7 +216,6 @@ class Orchestrator:
             )
 
     async def _run_qa(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict:
-        import time
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
         qa_prompt = (
             f"project_id={project_id}\n"
@@ -222,7 +223,15 @@ class Orchestrator:
         )
 
         print(f"[QA] Starting QA with prompt: {qa_prompt}")
-        qa_session_id = f"{req_session_id}-qa-{int(time.time())}"
+        qa_session_id = f"{req_session_id}-qa"
+        try:
+            await session_service.delete_session(
+                app_name=os.getenv("APP_NAME", "ProtoPilot"),
+                user_id=os.getenv("USER_ID", "local-user"),
+                session_id=qa_session_id,
+            )
+        except Exception:
+            pass
         _raw_reply = await run_turn(qa_agent, session_id=qa_session_id, message=qa_prompt)
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
