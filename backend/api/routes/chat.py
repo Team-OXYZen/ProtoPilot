@@ -11,7 +11,7 @@ orch = Orchestrator()
 
 
 class ChatRequest(BaseModel):
-    user_id: str = "local-user"
+    user_id: str
     project_id: str
     session_id: str
     project_title: str | None = None
