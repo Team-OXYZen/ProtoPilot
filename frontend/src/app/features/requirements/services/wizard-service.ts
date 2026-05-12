@@ -53,15 +53,15 @@ export class WizardService {
   }
 
   getProjects(): Observable<any> {
-  return this.http.get<any>('http://127.0.0.1:8000/projects');
+  return this.http.get<any>('https://agent-backend-868822018920.us-central1.run.app/projects');
   }
 
   getProject(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+    return this.http.get<any>(`https://agent-backend-868822018920.us-central1.run.app/projects/${projectId}`);
   }
 
   getProjectMessages(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`);
+    return this.http.get<any>(`https://agent-backend-868822018920.us-central1.run.app/projects/${projectId}/messages`);
   }
 
   loadExistingProject(project: any): void {

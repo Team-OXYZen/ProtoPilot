@@ -21,7 +21,7 @@ export const REQUIREMENTS_QUESTION_FLOW: Question[] = [
 
 export enum CONSTANTS {
   REQUIREMENTS_AGENT_NAME = "requirements",
-  REQUIREMENTS_AGENT_URL = "http://127.0.0.1:8000/chat",
+  REQUIREMENTS_AGENT_URL = "https://agent-backend-868822018920.us-central1.run.app/chat",
   REQUIREMENTS_INITIAL_PROMPT = "Hi, What are you trying to build today?",
   REQUIREMENTS_DONE_TEXT = "Great! I think we have enough clarity on the idea now!",
   THINKING_TEXT = "Thinking...",
