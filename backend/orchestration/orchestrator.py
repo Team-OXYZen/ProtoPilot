@@ -24,7 +24,7 @@ from orchestration.tools import (
     set_project_stage,
     submit_spec,
 )
-from orchestration.store import Stage, get_or_create_project, persist_project
+from orchestration.store import Stage, get_or_create_project, get_project
 
 
 class Orchestrator:
@@ -67,14 +67,14 @@ class Orchestrator:
             patch_generated_code_file, delete_generated_code_file, rename_generated_code_file,
         ]
 
-    async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
-        proj = get_or_create_project(project_id, req_session_id)
+    async def _handle_wait_approval(self, project_id: str, normalized: str) -> dict[str, Any]:
+        proj = get_project(project_id)
         if normalized == "approve":
             set_project_stage(project_id, Stage.TECH_ARTIFACTS)
             return {}
         if normalized == "change":
             set_project_stage(project_id, Stage.REQ)
-            proj = get_or_create_project(project_id, req_session_id)
+            proj = get_project(project_id)
             return self._build_response(
                 proj=proj,
                 reply={"message": "You have entered revision mode. Please describe the changes needed."},
@@ -87,7 +87,7 @@ class Orchestrator:
         )
 
     async def _run_requirements(self, token, project_id: str, req_session_id: str, user_message: str) -> dict[str, Any]:
-        proj = get_or_create_project(project_id, req_session_id)
+        proj = get_project(project_id)
         req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
         req_prompt = (
@@ -97,7 +97,7 @@ class Orchestrator:
             f"User message:\n{user_message}"
         )
         reply = await run_turn(req_agent, req_session_id, message=req_prompt)
-        proj = get_or_create_project(project_id, req_session_id)
+        proj = get_project(project_id)
 
         if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
             return await self._run_artifacts_non_tech(token, project_id, req_session_id)
@@ -110,10 +110,10 @@ class Orchestrator:
 
         # Approval gate does not need an LLM call.
         if proj.stage == Stage.WAIT_APPROVAL:
-            approval_result = await self._handle_wait_approval(project_id, req_session_id, normalized)
+            approval_result = await self._handle_wait_approval(project_id, normalized)
             if approval_result:
                 return approval_result
-            proj = get_or_create_project(project_id, req_session_id)
+            proj = get_project(project_id)
 
         # Remaining stages are model-backed.
         token = await get_oauth_token()
@@ -143,7 +143,7 @@ class Orchestrator:
             "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
-        proj = get_or_create_project(project_id, req_session_id)
+        proj = get_project(project_id)
 
         if proj.stage == Stage.WAIT_APPROVAL:
             reply = {"message": "Non-technical artifacts generated successfully and awaiting approval."}
@@ -166,7 +166,7 @@ class Orchestrator:
             "Use load_spec(project_id) first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
-        proj = get_or_create_project(project_id, req_session_id)
+        proj = get_project(project_id)
         reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
@@ -185,13 +185,12 @@ class Orchestrator:
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
             print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
-            proj = get_or_create_project(project_id, req_session_id)
+            proj = get_project(project_id)
             
             # Check if code generation was successful
             if proj.generated_code_files:
                 reply = {"message": "Code generated successfully."}
-                set_project_stage(proj.project_id, Stage.QA)  # Move to QA stage after successful code generation
-                persist_project(project_id)
+                set_project_stage(proj.project_id, Stage.QA)
                 return self._build_response(
                     proj=proj,
                     reply=reply,
@@ -204,7 +203,7 @@ class Orchestrator:
                     reply=reply,
                 )
         except Exception as e:
-            proj = get_or_create_project(project_id, req_session_id)
+            proj = get_project(project_id)
             error_message = f"Code generation failed with error: {str(e)}"
             reply = {"message": error_message}
             print(f"[ERROR] Code generation: {error_message}")
@@ -224,7 +223,7 @@ class Orchestrator:
         _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
-        proj = get_or_create_project(project_id, req_session_id)
+        proj = get_project(project_id)
         reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
