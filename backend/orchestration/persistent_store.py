@@ -129,7 +129,10 @@ def load_project(project_id: str) -> ProjectState | None:
             """
             SELECT
                 project_id,
+                user_id,
                 req_session_id,
+                project_title,
+                project_description,
                 stage,
                 spec,
                 nontech_artifacts_md,
@@ -147,13 +150,16 @@ def load_project(project_id: str) -> ProjectState | None:
 
     return ProjectState(
         project_id=row[0],
-        req_session_id=row[1],
-        stage=Stage(row[2]),
-        spec=_from_json(row[3]),
-        nontech_artifacts_md=_from_json(row[4]),
-        technical_artifacts_md=_from_json(row[5]),
-        generated_code_files=_from_json(row[6]),
-        artifacts_summary=row[7],
+        user_id=row[1],
+        req_session_id=row[2],
+        project_title=row[3],
+        project_description=row[4],
+        stage=Stage(row[5]),
+        spec=_from_json(row[6]),
+        nontech_artifacts_md=_from_json(row[7]),
+        technical_artifacts_md=_from_json(row[8]),
+        generated_code_files=_from_json(row[9]),
+        artifacts_summary=row[10],
     )
 
 
