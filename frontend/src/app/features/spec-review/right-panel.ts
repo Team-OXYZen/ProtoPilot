@@ -90,11 +90,11 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   }
 
   getGeneratedFiles(): Record<string, string> | null {
-    return this.specService.generated_code_files();
+    return this.specService.angular_code_files();
   }
 
   createStackBlitzProject(): any {
-    const generatedCode = this.specService.generated_code_files();
+    const generatedCode = this.specService.angular_code_files();
     if (!generatedCode) return null;
 
     return {
@@ -105,7 +105,7 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   }
 
   openStackBlitz(): void {
-    const generatedCode = this.specService.generated_code_files();
+    const generatedCode = this.specService.angular_code_files();
     if (!generatedCode) {
       console.error('No generated code found');
       return;
