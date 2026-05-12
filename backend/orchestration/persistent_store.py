@@ -21,17 +21,26 @@ def init_db() -> None:
                 spec TEXT,
                 nontech_artifacts_md TEXT,
                 technical_artifacts_md TEXT,
-                generated_code_files TEXT,
+                angular_code_files TEXT,
+                java_code_files TEXT,
                 artifacts_summary TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        for col in ("artifacts_summary TEXT", "angular_code_files TEXT", "java_code_files TEXT"):
+            try:
+                conn.execute(f"ALTER TABLE projects ADD COLUMN {col}")
+            except sqlite3.OperationalError:
+                pass  # column already exists
+        # migrate data from old generated_code_files column if it exists
         try:
-            conn.execute("ALTER TABLE projects ADD COLUMN artifacts_summary TEXT")
+            conn.execute(
+                "UPDATE projects SET angular_code_files = generated_code_files WHERE angular_code_files IS NULL AND generated_code_files IS NOT NULL"
+            )
         except sqlite3.OperationalError:
-            pass  # column already exists
+            pass  # generated_code_files column doesn't exist, nothing to migrate
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS chat_messages (
@@ -80,18 +89,20 @@ def save_project(proj: ProjectState) -> None:
                 spec,
                 nontech_artifacts_md,
                 technical_artifacts_md,
-                generated_code_files,
+                angular_code_files,
+                java_code_files,
                 artifacts_summary,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(project_id) DO UPDATE SET
                 req_session_id = excluded.req_session_id,
                 stage = excluded.stage,
                 spec = excluded.spec,
                 nontech_artifacts_md = excluded.nontech_artifacts_md,
                 technical_artifacts_md = excluded.technical_artifacts_md,
-                generated_code_files = excluded.generated_code_files,
+                angular_code_files = excluded.angular_code_files,
+                java_code_files = excluded.java_code_files,
                 artifacts_summary = excluded.artifacts_summary,
                 updated_at = CURRENT_TIMESTAMP
             """,
@@ -102,7 +113,8 @@ def save_project(proj: ProjectState) -> None:
                 _to_json(proj.spec),
                 _to_json(proj.nontech_artifacts_md),
                 _to_json(proj.technical_artifacts_md),
-                _to_json(proj.generated_code_files),
+                _to_json(proj.angular_code_files),
+                _to_json(proj.java_code_files),
                 proj.artifacts_summary,
             ),
         )
@@ -122,7 +134,8 @@ def load_project(project_id: str) -> ProjectState | None:
                 spec,
                 nontech_artifacts_md,
                 technical_artifacts_md,
-                generated_code_files,
+                angular_code_files,
+                java_code_files,
                 artifacts_summary
             FROM projects
             WHERE project_id = ?
@@ -140,8 +153,9 @@ def load_project(project_id: str) -> ProjectState | None:
         spec=_from_json(row[3]),
         nontech_artifacts_md=_from_json(row[4]),
         technical_artifacts_md=_from_json(row[5]),
-        generated_code_files=_from_json(row[6]),
-        artifacts_summary=row[7],
+        angular_code_files=_from_json(row[6]),
+        java_code_files=_from_json(row[7]),
+        artifacts_summary=row[8],
     )
 
 

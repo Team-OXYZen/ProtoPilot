@@ -80,8 +80,11 @@ export class DashboardComponent implements OnInit {
         if (proj.technical_artifacts_md) {
           this.specService.setTechnicalArtifacts(proj.technical_artifacts_md);
         }
-        if (proj.generated_code_files) {
-          this.specService.setGeneratedCode(proj.generated_code_files);
+        if (proj.angular_code_files) {
+          this.specService.setAngularCode(proj.angular_code_files);
+        }
+        if (proj.java_code_files) {
+          this.specService.setJavaCode(proj.java_code_files);
         }
         
         this.router.navigate([route]);

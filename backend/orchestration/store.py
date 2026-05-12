@@ -10,6 +10,7 @@ class Stage(str, Enum):
     TECH_ARTIFACTS = "TECH_ARTIFACTS"
     CODEGEN = "CODEGEN"
     QA = "QA"
+    FINALIZE = "FINALIZE"
 
 
 @dataclass
@@ -20,7 +21,8 @@ class ProjectState:
     spec: Optional[dict[str, Any]] = None
     nontech_artifacts_md: Optional[dict[str, str]] = None
     technical_artifacts_md: Optional[dict[str, str]] = None
-    generated_code_files: Optional[dict[str, str]] = None
+    angular_code_files: Optional[dict[str, str]] = None
+    java_code_files: Optional[dict[str, str]] = None
     artifacts_summary: Optional[str] = None
 
 
