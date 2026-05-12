@@ -3,7 +3,7 @@
   <div class="spec-content">
     @if (isCodePreview()) {
       <div class="code-preview-container">
-        <app-live-preview [generatedFiles]="specService.generated_code_files()"></app-live-preview>
+        <app-live-preview [generatedFiles]="specService.angular_code_files()"></app-live-preview>
       </div>
     } @else if (isPreviewMode && mdText) {
       @if (isMermaidDiagram(mdText)) {

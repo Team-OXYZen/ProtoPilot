@@ -13,8 +13,8 @@ First, classify the user's request into one of three change types:
 
 ### code_only
 - Use load_spec to understand requirements if needed.
-- Use list_generated_code_files, load_generated_code_file to review affected files.
-- Use patch_generated_code_file to apply changes.
+- Use list_angular_code_files, load_angular_code_file to review affected files.
+- Use patch_angular_code_file to apply changes.
 - Do NOT touch artifact files.
 
 ### docs_only
@@ -45,9 +45,9 @@ Available tools:
 - load_technical_artifacts(project_id)
 - patch_nontech_artifact(project_id, filename, content)
 - patch_technical_artifact(project_id, filename, content)
-- list_generated_code_files(project_id)
-- load_generated_code_file(project_id, filename)
-- patch_generated_code_file(project_id, filename, new_content)
-- rename_generated_code_file(project_id, old_filename, new_filename)
-- delete_generated_code_file(project_id, filename)
+- list_angular_code_files(project_id)
+- load_angular_code_file(project_id, filename)
+- patch_angular_code_file(project_id, filename, new_content)
+- rename_angular_code_file(project_id, old_filename, new_filename)
+- delete_angular_code_file(project_id, filename)
 """

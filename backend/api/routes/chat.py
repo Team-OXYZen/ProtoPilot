@@ -87,7 +87,7 @@ async def chat(req: ChatRequest):
                     "has_spec": result.get("spec") is not None,
                     "has_nontech_artifacts": result.get("nontech_artifacts_md") is not None,
                     "has_technical_artifacts": result.get("technical_artifacts_md") is not None,
-                    "has_generated_code": result.get("generated_code_files") is not None,
+                    "has_generated_code": result.get("angular_code_files") is not None,
                 },
             )
 

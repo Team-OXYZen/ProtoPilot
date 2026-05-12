@@ -90,8 +90,8 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
           return of(null); // fallback value
         })).subscribe(response => {
           if (response) {
-            if((response as any).generated_code_files){
-              this.specService.setGeneratedCode((response as any).generated_code_files);
+            if((response as any).angular_code_files){
+              this.specService.setAngularCode((response as any).angular_code_files);
             }
             if ((response as any).nontech_artifacts_md) {
               this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);

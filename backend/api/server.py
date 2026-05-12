@@ -1,4 +1,4 @@
-from orchestration.tools import delete_generated_code_file, list_generated_code_files, load_generated_code_file, patch_generated_code_file, rename_generated_code_file
+from orchestration.tools import delete_angular_code_file, list_angular_code_files, load_angular_code_file, patch_angular_code_file, rename_angular_code_file
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 from api.routes.chat import router as chat_router
@@ -50,7 +50,8 @@ def project_detail(project_id: str):
         "spec": proj.spec,
         "nontech_artifacts_md": proj.nontech_artifacts_md,
         "technical_artifacts_md": proj.technical_artifacts_md,
-        "generated_code_files": proj.generated_code_files,
+        "angular_code_files": proj.angular_code_files,
+        "java_code_files": proj.java_code_files,
     }
 
 # update project stage
@@ -74,7 +75,6 @@ def update_project_stage(project_id: str, stage: str):
     return {"message": "Project stage updated successfully"}
 
 
-# write a test route to test the individual tools (toolname in body, payload in body)
 @app.post("/test_tool")
 def test_tool(payload: dict):
     from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
@@ -84,11 +84,11 @@ def test_tool(payload: dict):
         "save_nontech_artifacts": save_nontech_artifacts,
         "save_technical_artifacts": save_technical_artifacts,
         "set_project_stage": set_project_stage,
-        "list_generated_code_files": list_generated_code_files,
-        "load_generated_code_file": load_generated_code_file,
-        "patch_generated_code_file": patch_generated_code_file,
-        "delete_generated_code_file": delete_generated_code_file,
-        "rename_generated_code_file": rename_generated_code_file,
+        "list_angular_code_files": list_angular_code_files,
+        "load_angular_code_file": load_angular_code_file,
+        "patch_angular_code_file": patch_angular_code_file,
+        "delete_angular_code_file": delete_angular_code_file,
+        "rename_angular_code_file": rename_angular_code_file,
     }
 
     tool_name = payload.get("tool")
@@ -100,5 +100,4 @@ def test_tool(payload: dict):
     tool_func = tool_mapping[tool_name]
     result = tool_func(**tool_payload)
 
-    return {"result": result}    
-
+    return {"result": result}
