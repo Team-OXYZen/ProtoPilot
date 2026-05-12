@@ -39,16 +39,13 @@ First, classify the user's request into one of three change types:
 
 ## Step 3: Reply to the user
 
-After completing all changes, reply in this exact format:
-
+After completing all changes, reply in this exact format (Not too much words, be concise):
 A single sentence in plain language describing what changed visually or functionally — written for a non-technical PM. Do NOT mention file names, variable names, or implementation details in this sentence.
-
 Updated:
 - list only the file names that were modified, one per line
 
 Example:
 Done! The button colors have been updated to match the new brand style.
-
 Updated:
 - src/app/app.component.scss
 - src/styles.scss
