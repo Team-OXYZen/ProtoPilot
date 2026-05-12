@@ -1,4 +1,5 @@
 import { Component, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import JSZip from 'jszip';
 import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
 import { WizardService } from '../requirements/services/wizard-service';
@@ -58,7 +59,11 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   hasGeneratedCode() {
-    return this.specService.generated_code_files() && Object.keys(this.specService.generated_code_files() as any).length > 0;
+    return this.specService.angular_code_files() && Object.keys(this.specService.angular_code_files() as any).length > 0;
+  }
+
+  hasJavaCode() {
+    return this.specService.java_code_files() && Object.keys(this.specService.java_code_files() as any).length > 0;
   }
 
   ngOnInit() {
@@ -119,8 +124,8 @@ export class ReviewWrapperComponent implements OnInit {
       this.loaderService.stop();
       return of(null);
     })).subscribe((reply) => {
-      if ((reply as any).generated_code_files) {
-        this.specService.setGeneratedCode((reply as any).generated_code_files);
+      if ((reply as any).angular_code_files) {
+        this.specService.setAngularCode((reply as any).angular_code_files);
         this.files.set([]);
         this.selectedFile = 'code-preview';
         this.loaderService.stop();
@@ -129,6 +134,46 @@ export class ReviewWrapperComponent implements OnInit {
         console.error('Code generation failed');
       }
     });
+  }
+
+  finalizeProject() {
+    this.loaderService.startWithMessages(['Analysing Angular services...', 'Generating Spring Boot code...', 'Updating Angular services...', 'Almost there...']);
+    this.wizardService.sendMessage('finalize').pipe(catchError(err => {
+      console.log('Error caught:', err);
+      this.loaderService.stop();
+      return of(null);
+    })).subscribe((reply) => {
+      this.loaderService.stop();
+      if ((reply as any)?.java_code_files) {
+        this.specService.setJavaCode((reply as any).java_code_files);
+      }
+      if ((reply as any)?.angular_code_files) {
+        this.specService.setAngularCode((reply as any).angular_code_files);
+      }
+    });
+  }
+
+  async downloadZip() {
+    const angularFiles = this.specService.angular_code_files();
+    const javaFiles = this.specService.java_code_files();
+    const zip = new JSZip();
+
+    if (angularFiles) {
+      const fe = zip.folder('frontend')!;
+      Object.entries(angularFiles).forEach(([path, content]) => fe.file(path, content));
+    }
+    if (javaFiles) {
+      const be = zip.folder('backend')!;
+      Object.entries(javaFiles).forEach(([path, content]) => be.file(path, content));
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.wizardService.project?.id ?? 'project'}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   viewPrototype() {

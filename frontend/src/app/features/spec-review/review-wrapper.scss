@@ -17,6 +17,21 @@
   }
 }
 
+.download-btn {
+  @include button-primary;
+  font-size: $text-base;
+  padding: $space-md $space-lg;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+  font-weight: $font-semibold;
+
+  svg { width: 20px; height: 20px; flex-shrink: 0; }
+  span { white-space: nowrap; }
+}
+
 .approve-btn {
   @include button-secondary;
   font-size: $text-base;
@@ -48,7 +63,9 @@
 
 .preview-btn,
 .generate-btn,
-.view-prototype-btn {
+.view-prototype-btn,
+.finalize-btn,
+.download-btn {
   @include button-secondary;
   font-size: $text-base;
   padding: $space-md $space-lg;
