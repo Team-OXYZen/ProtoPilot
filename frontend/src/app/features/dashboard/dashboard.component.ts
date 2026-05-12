@@ -123,7 +123,12 @@ export class DashboardComponent implements OnInit {
   }
 
 confirmCreateProject(): void {
-  const userId = this.currentUser() || 'local-user';
+  const userId = this.currentUser();
+
+  if (!userId) {
+    alert('You must be logged in to create a project.');
+    return;
+  }
 
   if (!this.projectTitle.trim()) {
     alert('Please enter a project title.');

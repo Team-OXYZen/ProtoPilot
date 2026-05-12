@@ -33,10 +33,13 @@ _PROJECTS: dict[str, ProjectState] = {}
 def get_or_create_project(
     project_id: str,
     req_session_id: str,
-    user_id: str = "local-user",
+    user_id: str,
     project_title: str | None = None,
     project_description: str | None = None,
 ) -> ProjectState:
+    if not user_id:
+        raise ValueError("user_id is required and cannot be empty")
+
     from orchestration.persistent_store import load_project, save_project
 
     proj = _PROJECTS.get(project_id)
