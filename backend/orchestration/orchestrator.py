@@ -195,7 +195,8 @@ class Orchestrator:
 
             if proj.generated_code_files:
                 reply = {"message": "Code generated successfully."}
-                set_project_stage(proj.project_id, Stage.QA)
+                set_project_stage(proj.project_id, Stage.QA)  # Move to QA stage after successful code generation
+                persist_project(project_id)
                 return self._build_response(
                     proj=proj,
                     reply=reply,
