@@ -1,36 +1,42 @@
 import json
 import logging
+import os
 import re
 from typing import Any
 
 from core.auth import get_oauth_token
 from core.runner import run_turn
+from core.sessions import session_service
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
-    delete_generated_code_file,
-    list_generated_code_files,
+    delete_angular_code_file,
+    list_angular_code_files,
     load_artifacts_summary,
-    load_generated_code_file,
+    load_angular_code_file,
     load_nontech_artifacts,
     load_spec,
     load_technical_artifacts,
-    patch_generated_code_file,
+    patch_angular_code_file,
     patch_nontech_artifact,
     patch_technical_artifact,
-    rename_generated_code_file,
+    rename_angular_code_file,
     save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
     set_project_stage,
     submit_spec,
+    list_java_code_files,
+    load_java_code_file,
+    patch_java_code_file,
+    delete_java_code_file,
+    rename_java_code_file,
 )
 from orchestration.store import Stage, get_or_create_project, persist_project
 
 
 class Orchestrator:
-    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None, generated_code_files: dict[str, str] | None = None) -> dict[str, Any]:
-        
-        # handle parsing of reply if it's a JSON string, otherwise return as is
+    def _build_response(self, proj, reply: str, artifacts_md: dict[str, str] | None = None, angular_code_files: dict[str, str] | None = None) -> dict[str, Any]:
+
         if reply and isinstance(reply, str):
             try:
                 json_match = re.search(r'\{.*\}', reply, re.DOTALL)
@@ -46,7 +52,8 @@ class Orchestrator:
             "nontech_artifacts_md": proj.nontech_artifacts_md,
             "technical_artifacts_md": proj.technical_artifacts_md,
             "artifacts_md": artifacts_md or proj.technical_artifacts_md or proj.nontech_artifacts_md,
-            "generated_code_files": generated_code_files or proj.generated_code_files,
+            "angular_code_files": angular_code_files or proj.angular_code_files,
+            "java_code_files": proj.java_code_files,
         }
 
     def _requirements_tools(self) -> list:
@@ -55,16 +62,16 @@ class Orchestrator:
     def _artifacts_tools(self) -> list:
         return [load_spec, load_nontech_artifacts, save_nontech_artifacts, save_technical_artifacts, save_artifacts_summary]
 
-    def _code_generation_tools(self) -> list:
-        return [load_spec, load_artifacts_summary, list_generated_code_files, load_generated_code_file, patch_generated_code_file, delete_generated_code_file, rename_generated_code_file]
-    
+    def _angular_codegen_tools(self) -> list:
+        return [load_spec, load_artifacts_summary, list_angular_code_files, load_angular_code_file, patch_angular_code_file, delete_angular_code_file, rename_angular_code_file]
+
     def _qa_tools(self) -> list:
         return [
             load_spec,
             load_nontech_artifacts, load_technical_artifacts,
             patch_nontech_artifact, patch_technical_artifact,
-            list_generated_code_files, load_generated_code_file,
-            patch_generated_code_file, delete_generated_code_file, rename_generated_code_file,
+            list_angular_code_files, load_angular_code_file,
+            patch_angular_code_file, delete_angular_code_file, rename_angular_code_file,
         ]
 
     async def _handle_wait_approval(self, project_id: str, req_session_id: str, normalized: str) -> dict[str, Any]:
@@ -108,14 +115,12 @@ class Orchestrator:
         proj = get_or_create_project(project_id, req_session_id)
         normalized = user_message.strip().lower()
 
-        # Approval gate does not need an LLM call.
         if proj.stage == Stage.WAIT_APPROVAL:
             approval_result = await self._handle_wait_approval(project_id, req_session_id, normalized)
             if approval_result:
                 return approval_result
             proj = get_or_create_project(project_id, req_session_id)
 
-        # Remaining stages are model-backed.
         token = await get_oauth_token()
 
         if proj.stage == Stage.REQ:
@@ -123,15 +128,20 @@ class Orchestrator:
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
             return await self._run_artifacts_non_tech(token, project_id, req_session_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(token, project_id, req_session_id)            
+            return await self._run_artifacts_technical(token, project_id, req_session_id)
         if proj.stage == Stage.CODEGEN:
-            return await self._run_code_generation(token, project_id, req_session_id)
+            return await self._run_angular_codegen(token, project_id, req_session_id)
         if proj.stage == Stage.QA:
+            if normalized == "finalize":
+                set_project_stage(project_id, Stage.FINALIZE)
+                return await self._run_java_codegen(token, project_id, req_session_id)
             return await self._run_qa(token, project_id, req_session_id, user_message)
+        if proj.stage == Stage.FINALIZE:
+            return await self._run_java_codegen(token, project_id, req_session_id)
 
         return self._build_response(
             proj=proj,
-            reply={"message": "Project complete. Ready for QA."},
+            reply={"message": "Project complete."},
         )
 
     async def _run_artifacts_non_tech(self, token, project_id: str, req_session_id: str) -> dict:
@@ -149,7 +159,7 @@ class Orchestrator:
             reply = {"message": "Non-technical artifacts generated successfully and awaiting approval."}
         else:
             reply = {"message": "Non-technical artifacts generation failed. Please try again.", "error": f"{_raw_reply}"}
-            proj.stage = Stage.REQ  # Revert stage to requirements if artifact generation failed
+            proj.stage = Stage.REQ
 
         return self._build_response(
             proj=proj,
@@ -174,9 +184,9 @@ class Orchestrator:
             artifacts_md=proj.technical_artifacts_md,
         )
 
-    async def _run_code_generation(self, token, project_id: str, req_session_id: str) -> dict:
+    async def _run_angular_codegen(self, token, project_id: str, req_session_id: str) -> dict:
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._code_generation_tools())
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools())
             code_prompt = (
                 f"project_id={project_id}\n"
                 "Generate a POC-level Angular frontend code now.\n"
@@ -186,32 +196,62 @@ class Orchestrator:
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
             print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
             proj = get_or_create_project(project_id, req_session_id)
-            
-            # Check if code generation was successful
-            if proj.generated_code_files:
-                reply = {"message": "Code generated successfully."}
-                set_project_stage(proj.project_id, Stage.QA)  # Move to QA stage after successful code generation
+
+            if proj.angular_code_files:
+                set_project_stage(proj.project_id, Stage.QA)
                 persist_project(project_id)
                 return self._build_response(
                     proj=proj,
-                    reply=reply,
-                    generated_code_files=proj.generated_code_files,
+                    reply={"message": "Angular code generated successfully."},
+                    angular_code_files=proj.angular_code_files,
                 )
             else:
-                reply = {"message": "Code generation failed. Please try again."}
                 return self._build_response(
                     proj=proj,
-                    reply=reply,
+                    reply={"message": "Code generation failed. Please try again."},
                 )
         except Exception as e:
             proj = get_or_create_project(project_id, req_session_id)
             error_message = f"Code generation failed with error: {str(e)}"
-            reply = {"message": error_message}
-            print(f"[ERROR] Code generation: {error_message}")
-            return self._build_response(
-                proj=proj,
-                reply=reply,
+            print(f"[ERROR] Angular codegen: {error_message}")
+            return self._build_response(proj=proj, reply={"message": error_message})
+
+    def _java_codegen_tools(self) -> list:
+        return [
+            load_spec, load_artifacts_summary,
+            list_angular_code_files, load_angular_code_file, patch_angular_code_file,
+            list_java_code_files, load_java_code_file, patch_java_code_file,
+            delete_java_code_file, rename_java_code_file,
+        ]
+
+    async def _run_java_codegen(self, token, project_id: str, req_session_id: str) -> dict:
+        from agents.code_generation_agent.instructions import JAVA_CODEGEN_INSTRUCTIONS
+        try:
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS)
+            code_prompt = (
+                f"project_id={project_id}\n"
+                "Generate a Java Spring Boot backend and update Angular services to use real API calls.\n"
+                "Follow the instructions step by step: analyse Angular services first, then generate Java files one at a time, then update Angular services."
             )
+            _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-javacodegen", message=code_prompt)
+            print(f"[JAVA_CODEGEN] Raw agent reply: {_raw_reply}")
+            proj = get_or_create_project(project_id, req_session_id)
+
+            if proj.java_code_files:
+                return self._build_response(
+                    proj=proj,
+                    reply={"message": "Java Spring Boot code generated successfully."},
+                )
+            else:
+                return self._build_response(
+                    proj=proj,
+                    reply={"message": "Java code generation failed. Please try again."},
+                )
+        except Exception as e:
+            proj = get_or_create_project(project_id, req_session_id)
+            error_message = f"Java code generation failed with error: {str(e)}"
+            print(f"[ERROR] Java codegen: {error_message}")
+            return self._build_response(proj=proj, reply={"message": error_message})
 
     async def _run_qa(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict:
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
@@ -219,14 +259,11 @@ class Orchestrator:
             f"project_id={project_id}\n"
             f"User feedback: {user_message}"
         )
-        
+
         print(f"[QA] Starting QA with prompt: {qa_prompt}")
         _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
         print(f"[QA] Raw agent reply: {_raw_reply}")
-        
+
         proj = get_or_create_project(project_id, req_session_id)
         reply = {"message": f"{_raw_reply}"}
-        return self._build_response(
-            proj=proj,
-            reply=reply,
-        )
+        return self._build_response(proj=proj, reply=reply)
