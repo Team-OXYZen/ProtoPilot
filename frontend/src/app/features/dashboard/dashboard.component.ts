@@ -61,6 +61,7 @@ export class DashboardComponent implements OnInit {
       TECH_ARTIFACTS: '/spec-review',
       CODEGEN: '/spec-review',
       QA: '/spec-review',
+      FINALIZE: '/spec-review',
     };
 
     const route = stageToRouteMap[stage] || '/requirements';
@@ -121,6 +122,7 @@ export class DashboardComponent implements OnInit {
       TECH_ARTIFACTS: 'Technical Artifacts',
       CODEGEN: 'Code Generation',
       QA: 'QA',
+      FINALIZE: 'Finalized',
     };
     return stageLabels[stage] || stage;
   }

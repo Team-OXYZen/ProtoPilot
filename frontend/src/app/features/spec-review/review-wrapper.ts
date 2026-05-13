@@ -142,14 +142,17 @@ export class ReviewWrapperComponent implements OnInit {
       console.log('Error caught:', err);
       this.loaderService.stop();
       return of(null);
-    })).subscribe((reply) => {
-      this.loaderService.stop();
-      if ((reply as any)?.java_code_files) {
-        this.specService.setJavaCode((reply as any).java_code_files);
-      }
-      if ((reply as any)?.angular_code_files) {
-        this.specService.setAngularCode((reply as any).angular_code_files);
-      }
+    })).subscribe((_) => {
+      const projectId = this.wizardService.project?.id;
+      if (!projectId) { this.loaderService.stop(); return; }
+      this.wizardService.getProject(projectId).subscribe({
+        next: (proj) => {
+          if (proj.angular_code_files) this.specService.setAngularCode(proj.angular_code_files);
+          if (proj.java_code_files) this.specService.setJavaCode(proj.java_code_files);
+          this.loaderService.stop();
+        },
+        error: () => this.loaderService.stop(),
+      });
     });
   }
 
