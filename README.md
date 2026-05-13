@@ -85,7 +85,7 @@ ProtoPilot uses a multi-agent orchestration system to generate production-ready 
 
 ### Prerequisites
 - Node.js 18+ (for frontend)
-- Python 3.8+ (for backend)
+- Python 3.13.0 (for backend)
 - npm or yarn (for frontend package management)
 
 ### Backend Setup
