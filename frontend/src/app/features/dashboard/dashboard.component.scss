@@ -241,6 +241,11 @@
     background-color: rgba(168, 85, 247, 0.2);
     color: var(--color-error);
   }
+
+  &.stage-finalize {
+    background-color: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+  }
 }
 
 .card-description {

@@ -35,6 +35,17 @@
           </svg>
           <span>Preview Artifacts</span>
         </button>
+      }
+      @if (hasGeneratedCode() && !isStackblitzActive()) {
+        <button class="view-prototype-btn" title="View Prototype" (click)="viewPrototype()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span>View Prototype</span>
+        </button>
+      }
+      @if (hasGeneratedCode()) {
         @if (hasJavaCode()) {
           <button class="download-btn" title="Download ZIP" (click)="downloadZip()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,7 +53,7 @@
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span>Download ZIP</span>
+            <span>Export Package</span>
           </button>
         } @else {
           <button class="finalize-btn" title="Generate Java Spring Boot backend" (click)="finalizeProject()">
@@ -54,15 +65,6 @@
             <span>Finalize</span>
           </button>
         }
-      }
-      @if (hasGeneratedCode() && !isStackblitzActive()) {
-        <button class="view-prototype-btn" title="View Prototype" (click)="viewPrototype()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 18 22 12 16 6"></polyline>
-            <polyline points="8 6 2 12 8 18"></polyline>
-          </svg>
-          <span>View Prototype</span>
-        </button>
       }
     }
   </div>

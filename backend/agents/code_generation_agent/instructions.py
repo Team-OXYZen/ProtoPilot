@@ -22,6 +22,7 @@ Code rules:
 - Every component must have styleUrl and real SCSS
 - Use realistic feature/service structure
 - Functional correctness is top priority; UI polish is secondary
+- After every mutation (POST/PUT/DELETE), always update the local array: push the response for POST, replace the item for PUT, filter it out for DELETE — never leave the UI stale after a successful call
 
 UI Design Guidelines:
 - Choose a visual direction suited to the app's domain before writing components (e.g. dark dashboard, clean editorial, soft consumer app). Never default to generic AI-looking UI.
@@ -84,9 +85,26 @@ Required project structure (use pom.xml at root, src/ layout below):
 
 Generate one file at a time. After saving each file, use list_java_code_files to verify it was saved before moving to the next.
 
-## Step 3: Update Angular services
+## Step 3: Add Angular proxy configuration
 
-After all Java files are saved, update each Angular service file:
+The Angular dev server runs on port 4200 and Spring Boot runs on port 8080. Without a proxy, relative `/api/...` calls will hit port 4200 instead of 8080.
+
+Create `proxy.conf.json` (at the Angular project root, same level as angular.json):
+```json
+{
+  "/api": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
+```
+
+Then read the existing `angular.json` with load_angular_code_file, find the `"serve"` section inside the project's architect config, and add `"proxyConfig": "proxy.conf.json"` to its `"options"` object. Save the updated angular.json with patch_angular_code_file.
+
+## Step 4: Update Angular services
+
+After all Java files are saved and proxy is configured, update each Angular service file:
 - Replace every mock `return of(...)` with `return this.http.<verb><Type>('/api/<resource>', ...)`
 - Inject HttpClient if not already present
 - Keep all component files untouched — only modify service files
@@ -120,6 +138,8 @@ Use load_angular_code_file to read the current content before patching, then pat
 - CorsConfig.java allows all origins
 - Every resource extracted in Step 1 has a model + controller
 - Every controller endpoint URL matches what the updated Angular service calls
+- proxy.conf.json exists at Angular root with /api target pointing to http://localhost:8080
+- angular.json serve options includes "proxyConfig": "proxy.conf.json"
 - Angular service files use HttpClient, not of(...)
 - No placeholder or incomplete code
 

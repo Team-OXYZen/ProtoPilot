@@ -240,7 +240,7 @@ class Orchestrator:
             if proj.java_code_files:
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Java Spring Boot code generated successfully."},
+                    reply={"message": "Project is finalized successfully."},
                 )
             else:
                 return self._build_response(
