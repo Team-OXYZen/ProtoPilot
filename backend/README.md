@@ -8,7 +8,24 @@ FastAPI + Google ADK multi-agent backend for AI-driven prototype generation.
 cp .env.example .env  # fill in credentials
 uvicorn api.server:app --reload --port 8000
 ```
+## Environment Variables
 
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CLIENT_ID` | Yes | OAuth client ID for Cotality authentication |
+| `CLIENT_SECRET` | Yes | OAuth client secret for Cotality authentication |
+| `LITELLM_MODEL` | Yes | Default LLM model to use (e.g., `openai/gemini-2.5-pro-litellm-usc1`) |
+| `LITELLM_API_BASE` | Yes | Base URL for Cotality's LiteLLM proxy service |
+| `LITELLM_API_KEY` | Yes | API key for LiteLLM service authentication |
+| `LITELLM_MODEL_REQUIREMENTS` | No | Override model for Requirements Agent (falls back to `LITELLM_MODEL` if not set) |
+| `LITELLM_MODEL_CODEGEN` | No | Override model for Code Generation Agent |
+| `LITELLM_MODEL_QA` | No | Override model for QA Agent |
+| `LITELLM_MODEL_ARTIFACTS` | No | Override model for Artifacts Agent |
+| `USER_ID` | No | Current user identifier for session tracking |
+| `APP_NAME` | No | Application name for logging and identification |
+| `SESSION_ID` | No | Session identifier for tracking |
+
+**Note:** Refer to `.example.env` for sample values and default configurations.
 ## Completed Workflow
 
 The backend runs a stage-driven pipeline. Each user message hits `POST /chat` and the orchestrator routes it based on the current project stage.

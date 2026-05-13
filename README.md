@@ -30,10 +30,10 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 | Name | LinkedIn |
 |------|----------|
-| Omkar Dabir | [LinkedIn URL] |
-| Xin Xiang | [LinkedIn URL] |
-| Yiniu Han | [LinkedIn URL] |
-| Zhihao Wang | [LinkedIn URL] |
+| Omkar Dabir | https://www.linkedin.com/in/rakmo33/ |
+| Xin Jiang | https://www.linkedin.com/in/xin-jiang12/ |
+| Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
+| Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
 ---
 
@@ -81,59 +81,88 @@ ProtoPilot uses a multi-agent orchestration system to generate production-ready 
 
 ---
 
-## ⚙️ Setup Instructions
+## ⚙️ Setup & Run Locally
 
 ### Prerequisites
-- Node.js 18+ (for frontend)
-- Python 3.8+ (for backend)
-- npm or yarn (for frontend package management)
 
-### Backend Setup
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | 18+ | Frontend runtime |
+| npm | 11.6.2+ | Frontend package manager |
+| Python | 3.8+ | Backend runtime |
+| pip | Latest | Python package manager |
+
+### Installation & Running
+
+**Backend Setup** (Terminal 1):
 
 ```bash
 cd backend
-python3 -m venv .venv
+
+python3 -m venv .venv # One-time creation of virtual environment
+
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .example.env .env
-uvicorn api.server:app --reload --port 8000
+
+cp .example.env .env # Add your environment variables in '/backend/.env'
+
+uvicorn api.server:app --reload --port 8000 # Start the FastAPI Server
 ```
 
-**Important:** ProtoPilot uses Cotality's private LLM service, which requires OAuth credentials (CLIENT_ID and CLIENT_SECRET). Refer to the `.example.env` file and add your Cotality credentials to `.env`.
+**Important:** ProtoPilot uses Cotality's private LLM service, which requires credentials (CLIENT_ID and CLIENT_SECRET). Refer to the `.example.env` file and add your Cotality credentials to `.env`.
 
-### Frontend Setup
+**Frontend Setup** (Terminal 2):
 
 ```bash
 cd frontend
 npm install
-npm start
+npm run start
 ```
 
 Navigate to `http://localhost:4200/`. The application automatically reloads when you modify source files.
 
+⚠️ **API Key Setup:** ProtoPilot currently does not support custom LLM API key configuration. So the platform might not work as expected without Cotality's private LiteLLM proxy credentials.
+
+**Verify it's working:** Create a new project through the **Requirements Wizard**, answer the guided questions, and watch ProtoPilot generate your specification and prototype in real-time.
+
 ---
 
-## 🚀 How to Run Locally
+## Project Structure
 
-1. **Start the backend** (Terminal 1):
-   ```bash
-   cd backend
-   source .venv/bin/activate
-   uvicorn api.server:app --reload --port 8000
-   ```
+```
+ProtoPilot/
+├── frontend/              # Angular 21 application
+│   ├── src/
+│   ├── package.json
+│   └── README.md          # Frontend-specific documentation
+│
+├── backend/               # FastAPI Python application
+│   ├── agents/            # 4 specialized AI agents
+│   ├── api/               # REST API routes
+│   ├── core/              # Core services (auth, LLM, sessions)
+│   ├── orchestration/     # Agent orchestrator & workflow
+│   ├── requirements.txt
+│   ├── .example.env       # Environment variables template
+│   └── README.md          # Backend-specific documentation
+│
+└── README.md              # This file (main project docs)
+```
 
-2. **Start the frontend** (Terminal 2):
-   ```bash
-   cd frontend
-   npm start
-   ```
+**Key Locations:**
+- **Frontend**: `./frontend/` — Angular UI, user dashboard, requirements wizard, spec review chat
+- **Backend**: `./backend/` — FastAPI server, LLM agent orchestration, session management
+- **Documentation**: Each folder has its own `README.md` with detailed setup and architecture info
 
-3. **Open in browser**:
-   ```
-   http://localhost:4200
-   ```
+---
 
-4. Create a new project through the **Requirements Wizard**, answer the guided questions, and watch ProtoPilot generate your specification and prototype in real-time.
+## 🚀 Running the Application
+
+Once both backend and frontend are running:
+
+1. Open `http://localhost:4200` in your browser
+2. Create a new project through the **Requirements Wizard**
+3. Answer the guided questions
+4. Watch ProtoPilot generate your specification and interactive prototype in real-time
 
 ---
 
@@ -145,6 +174,10 @@ TBD
 
 ## 🌐 Deployment & CI/CD
 
+⚠️ **Important:** The deployed version currently does not function without API credentials. We have intentionally removed all LLM API keys from the deployment for security purposes. If you would like to test the deployed application, please reach out via LinkedIn and we will add the credentials temporarily for your testing session.
+
+**Live URL:** https://protopilot.onrender.com/
+
 **Current Status:** CI/CD is set up for this repo and gets triggered whenever new commits are pushed into the `chore/render_deployment` branch.
 
 ### Backend Deployment
@@ -153,7 +186,6 @@ TBD
 
 ### Frontend Deployment
 - **Deployed on:** Render
-- **URL:** https://protopilot.onrender.com/
 - **Configuration:** Built with `npm run build` and served via Render's static hosting
 
 ---
@@ -173,19 +205,17 @@ Please refer our issues tracker here: \
 https://github.com/orgs/Team-OXYZen/projects/1
 
 ### Known Issues / Improvements
-- [ ] Authentication currently uses session-based tokens; OAuth2 integration planned
+- [ ] Add support for user authentication. We are using demo credentials for loggin in as of now
 - [ ] Allow users to export the generated markdown files
+- [ ] Allow users to configure env variables or API keys from UI 
+- [ ] Generate a publically sharable URL for viewing the prototype
 
 ### Future Enhancements
 - [ ] **GitHub Integration** — Auto-create repository and push generated code
 - [ ] **JIRA Integration** — Sync requirements and track development tasks
 - [ ] **User Authentication** — Implement OAuth2 with multiple identity providers
 - [ ] **Java Backend Support** — Generate Java/Spring Boot backends in addition to frontend
-- [ ] **Advanced State Management** — NgRx/Akita integration for complex apps
-- [ ] **Database Schema Generation** — Auto-generate database schemas from specifications
-- [ ] **API Mock Server** — Generate mock REST API alongside frontend
 - [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
-- [ ] **Design System Export** — Export generated designs to Figma/Sketch
 
 ---
 
