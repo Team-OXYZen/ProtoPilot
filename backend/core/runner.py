@@ -1,10 +1,11 @@
 import os
 from google.adk.runners import Runner
+from google.adk.apps.app import App, EventsCompactionConfig
+from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
 from google.genai import types
 from core.sessions import session_service
-import uuid
 
-async def run_turn(agent, session_id: str, message: str) -> str:
+async def run_turn(agent, session_id: str, message: str, use_compaction: bool = False) -> str:
     user_id = os.getenv("USER_ID", "local-user")
     app_name = os.getenv("APP_NAME", "ProtoPilot")
 
@@ -25,7 +26,20 @@ async def run_turn(agent, session_id: str, message: str) -> str:
             session_id=session_id,
         )
 
-    runner = Runner(agent=agent, app_name=app_name, session_service=session_service)
+    if use_compaction:
+        compaction_config = EventsCompactionConfig(
+            summarizer=LlmEventSummarizer(llm=agent.model),
+            compaction_interval=10,
+            overlap_size=2,
+        )
+        app = App(
+            name=app_name,
+            root_agent=agent,
+            events_compaction_config=compaction_config,
+        )
+        runner = Runner(app=app, session_service=session_service)
+    else:
+        runner = Runner(agent=agent, app_name=app_name, session_service=session_service)
 
     chunks: list[str] = []
 
