@@ -2,7 +2,7 @@
 https://protopilot.onrender.com
 
 # Backend URL
-trigger
+https://protopilot-api-868822018920.us-west2.run.app/
 
 
 # ProtoPilot
