@@ -31,7 +31,7 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 | Name | LinkedIn |
 |------|----------|
 | Omkar Dabir | [LinkedIn URL] |
-| Xin Xiang | [LinkedIn URL] |
+| Xin Jiang | [LinkedIn URL] |
 | Yiniu Han | [LinkedIn URL] |
 | Zhihao Wang | [LinkedIn URL] |
 
