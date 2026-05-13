@@ -52,6 +52,11 @@ export class DashboardComponent implements OnInit {
   }
 
   onProjectClick(project: ProjectCard): void {
+    this.wizardService.resetSession();
+    this.specService.clearSpec();
+    this.specService.clearArtifacts();
+    this.specService.clearGeneratedCode();
+
     // Navigate based on stage
     const stage = project.stage;
     const stageToRouteMap: { [key: string]: string } = {
