@@ -1,67 +1,93 @@
-# Frontend
+# ProtoPilot Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.3.
+Angular 21 application for the ProtoPilot intelligent prototyping platform. Transforms product requirements into functional applications using LLM agents.
 
-## Development server
+## Quick Start
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Install Dependencies
 
 ```bash
-ng generate component component-name
+npm install
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### Run Development Server
 
 ```bash
-ng generate --help
+npm start
 ```
 
-## Building
+Navigate to `http://localhost:4200/`. The application automatically reloads when you modify source files.
 
-To build the project run:
+---
 
-```bash
-ng build
-```
+## User Flow
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+1. **Welcome** → User lands on the welcome page
+2. **Dashboard** → View and manage existing projects
+3. **Requirements** → Create a new project through an interactive wizard to gather product requirements
+4. **Spec Review** → Review the generated specification with an AI-powered chat interface
+5. **Prototype Preview** → Live preview of the app + Project artifacts (design, code) ready for download
 
-## Running unit tests
+---
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Screens
 
-```bash
-ng test
-```
+### Welcome (`/welcome`)
+Entry point for the application. Option to create a new project or navigate to the dashboard.
 
-## Running end-to-end tests
+### Dashboard (`/dashboard`)
+Display list of projects with status and recent activity. Users can:
+- Create a new project
+- View existing projects
+- Access project details
 
-For end-to-end (e2e) testing, run:
+### Requirements Wizard (`/requirements`)
+Interactive multi-step wizard to gather product requirements:
+- Project details (name, description)
+- Feature requirements
+- Design preferences
+- Technical specifications
 
-```bash
-ng e2e
-```
+Collected data is sent to the backend for processing by the agents.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+### Spec Review (`/spec-review`)
+Multi-panel interface to review generated specifications:
+- **Left Panel**: Specification preview with Markdown rendering
+- **Chat Panel**: AI-powered chat to ask clarifying questions and refine specs
+- **Right Panel**: Generated artifacts preview (if available)
 
-## Additional Resources
+Users can iterate and refine the specification before proceeding.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+### Prototype Preview
+Live interactive preview of the generated Angular application:
+- **Live App Preview**: Run the generated prototype in an embedded iframe or side panel
+- **Design Artifacts**: View generated design files (Figma, wireframes, etc.)
+- **Code Artifacts**: Browse generated source code with syntax highlighting
+- **Download**: Export artifacts (code, design files, documentation)
 
+Users can test the prototype functionality and download all generated materials.
 
+---
 
-## Todos
+## Key Services
 
-- [ ] How to show MD requirements preview
-- [ ] How should the user edit / approve
-- [ ] 
+| Service | Location | Purpose |
+|---------|----------|---------|
+| `AuthService` | `core/auth.service.ts` | User authentication & token management |
+| `ThemeService` | `core/theme.service.ts` | Dark/light theme management |
+| `LoaderService` | `shared/services/loader.service.ts` | Global loading state |
+| Requirements API | `features/requirements/services/` | Communicate with backend wizard API |
+| Spec Review API | `features/spec-review/services/` | Chat and spec retrieval endpoints |
+
+---
+
+## Important Files
+
+- [src/app/app.routes.ts](src/app/app.routes.ts) — Route definitions
+- [src/app/app.config.ts](src/app/app.config.ts) — App initialization config
+- [src/app/features/requirements/models/project.model.ts](src/app/features/requirements/models/project.model.ts) — Project data structure
+- [src/app/shared/models/user.model.ts](src/app/shared/models/user.model.ts) — User data structure
+- [src/styles/variables.scss](src/styles/variables.scss) — Design tokens and theme variables
+
+---
+
