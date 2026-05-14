@@ -24,7 +24,7 @@ from orchestration.tools import (
     set_project_stage,
     submit_spec,
 )
-from orchestration.store import Stage, get_or_create_project, get_project
+from orchestration.store import Stage, get_or_create_project
 
 
 class Orchestrator:
@@ -67,14 +67,14 @@ class Orchestrator:
             patch_generated_code_file, delete_generated_code_file, rename_generated_code_file,
         ]
 
-    async def _handle_wait_approval(self, project_id: str, normalized: str) -> dict[str, Any]:
-        proj = get_project(project_id)
+    async def _handle_wait_approval(self, proj, normalized: str) -> dict[str, Any]:
         if normalized == "approve":
-            set_project_stage(project_id, Stage.TECH_ARTIFACTS)
+            set_project_stage(proj.project_id, Stage.TECH_ARTIFACTS)
+            proj.stage=Stage.TECH_ARTIFACTS
             return {}
         if normalized == "change":
-            set_project_stage(project_id, Stage.REQ)
-            proj = get_project(project_id)
+            set_project_stage(proj.project_id, Stage.REQ)
+            proj.stage=Stage.REQ
             return self._build_response(
                 proj=proj,
                 reply={"message": "You have entered revision mode. Please describe the changes needed."},
@@ -86,21 +86,19 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_requirements(self, token, project_id: str, req_session_id: str, user_message: str) -> dict[str, Any]:
-        proj = get_project(project_id)
+    async def _run_requirements(self, token, proj, req_session_id: str, user_message: str) -> dict[str, Any]:
         req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
         req_prompt = (
-            f"project_id={project_id}\n"
+            f"project_id={proj.project_id}\n"
             f"phase={phase}\n"
             "Continue requirements gathering for this project.\n"
             f"User message:\n{user_message}"
         )
         reply = await run_turn(req_agent, req_session_id, message=req_prompt)
-        proj = get_project(project_id)
 
         if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
-            return await self._run_artifacts_non_tech(token, project_id, req_session_id)
+            return await self._run_artifacts_non_tech(token, proj, req_session_id)
 
         return self._build_response(proj=proj, reply=reply)
 
@@ -110,40 +108,38 @@ class Orchestrator:
 
         # Approval gate does not need an LLM call.
         if proj.stage == Stage.WAIT_APPROVAL:
-            approval_result = await self._handle_wait_approval(project_id, normalized)
+            approval_result = await self._handle_wait_approval(proj, normalized)
             if approval_result:
                 return approval_result
-            proj = get_project(project_id)
 
         # Remaining stages are model-backed.
         token = await get_oauth_token()
 
         if proj.stage == Stage.REQ:
-            return await self._run_requirements(token, project_id, req_session_id, user_message)
+            return await self._run_requirements(token, proj, req_session_id, user_message)
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
-            return await self._run_artifacts_non_tech(token, project_id, req_session_id)
+            return await self._run_artifacts_non_tech(token, proj, req_session_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(token, project_id, req_session_id)            
+            return await self._run_artifacts_technical(token, proj, req_session_id)            
         if proj.stage == Stage.CODEGEN:
-            return await self._run_code_generation(token, project_id, req_session_id)
+            return await self._run_code_generation(token, proj, req_session_id)
         if proj.stage == Stage.QA:
-            return await self._run_qa(token, project_id, req_session_id, user_message)
+            return await self._run_qa(token, proj, req_session_id, user_message)
 
         return self._build_response(
             proj=proj,
             reply={"message": "Project complete. Ready for QA."},
         )
 
-    async def _run_artifacts_non_tech(self, token, project_id: str, req_session_id: str) -> dict:
+    async def _run_artifacts_non_tech(self, token, proj, req_session_id: str) -> dict:
         art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
         art_prompt = (
-            f"project_id={project_id}\n"
+            f"project_id={proj.project_id}\n"
             "phase=non_tech\n"
             "Generate PM-facing non-technical artifacts now.\n"
             "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
-        proj = get_project(project_id)
 
         if proj.stage == Stage.WAIT_APPROVAL:
             reply = {"message": "Non-technical artifacts generated successfully and awaiting approval."}
@@ -157,16 +153,15 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_artifacts_technical(self, token, project_id: str, req_session_id: str) -> dict:
+    async def _run_artifacts_technical(self, token, proj, req_session_id: str) -> dict:
         art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical")
         art_prompt = (
-            f"project_id={project_id}\n"
+            f"project_id={proj.project_id}\n"
             "phase=technical\n"
             "Generate technical artifacts now. "
             "Use load_spec(project_id) first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
         )
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-tech", message=art_prompt)
-        proj = get_project(project_id)
         reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
@@ -174,23 +169,23 @@ class Orchestrator:
             artifacts_md=proj.technical_artifacts_md,
         )
 
-    async def _run_code_generation(self, token, project_id: str, req_session_id: str) -> dict:
+    async def _run_code_generation(self, token, proj, req_session_id: str) -> dict:
         try:
             code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._code_generation_tools())
             code_prompt = (
-                f"project_id={project_id}\n"
+                f"project_id={proj.project_id}\n"
                 "Generate a POC-level Angular frontend code now.\n"
                 "Use tools to get requirements and artifacts, "
                 "generate modular Angular components and services with mocked API calls, "
             )
             _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-codegen", message=code_prompt)
             print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
-            proj = get_project(project_id)
             
             # Check if code generation was successful
             if proj.generated_code_files:
                 reply = {"message": "Code generated successfully."}
                 set_project_stage(proj.project_id, Stage.QA)
+                proj.stage=Stage.QA
                 return self._build_response(
                     proj=proj,
                     reply=reply,
@@ -203,7 +198,6 @@ class Orchestrator:
                     reply=reply,
                 )
         except Exception as e:
-            proj = get_project(project_id)
             error_message = f"Code generation failed with error: {str(e)}"
             reply = {"message": error_message}
             print(f"[ERROR] Code generation: {error_message}")
@@ -212,10 +206,10 @@ class Orchestrator:
                 reply=reply,
             )
 
-    async def _run_qa(self, llm, project_id: str, req_session_id: str, user_message: str) -> dict:
+    async def _run_qa(self, llm, proj, req_session_id: str, user_message: str) -> dict:
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
         qa_prompt = (
-            f"project_id={project_id}\n"
+            f"project_id={proj.project_id}\n"
             f"User feedback: {user_message}"
         )
         
@@ -223,7 +217,6 @@ class Orchestrator:
         _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
-        proj = get_project(project_id)
         reply = {"message": f"{_raw_reply}"}
         return self._build_response(
             proj=proj,
