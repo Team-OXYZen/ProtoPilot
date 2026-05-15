@@ -297,6 +297,49 @@
   }
 }
 
+.project-input {
+  @include input-base;
+}
+
+.project-textarea {
+  @include textarea-base;
+  flex: 1;
+  min-height: 0;
+  resize: none;
+}
+
+.form-actions {
+  display: flex;
+  gap: $space-md;
+  flex-shrink: 0;
+}
+
+.btn-create {
+  @include button-primary;
+  flex: 1;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-cancel {
+  @include button-secondary;
+  flex: 1;
+}
+
+.create-form-card {
+  cursor: default;
+  overflow: hidden;
+
+  &:hover {
+    transform: none !important;
+    border-color: var(--color-border) !important;
+    box-shadow: $shadow-md !important;
+  }
+}
+
 .loading-placeholder,
 .empty-state {
   grid-column: 1 / -1;

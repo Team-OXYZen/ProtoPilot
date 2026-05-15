@@ -11,8 +11,11 @@ orch = Orchestrator()
 
 
 class ChatRequest(BaseModel):
+    user_id: str
     project_id: str
     session_id: str
+    project_title: str | None = None
+    project_description: str | None = None
     message: str
     save_to_history: bool = True
 
@@ -70,7 +73,14 @@ async def chat(req: ChatRequest):
                 content=req.message,
             )
 
-        result = await orch.handle(req.project_id, req.session_id, req.message)
+        result = await orch.handle(
+            req.project_id,
+            req.session_id,
+            req.message,
+            user_id=req.user_id,
+            project_title=req.project_title,
+            project_description=req.project_description,
+        )
 
         if req.save_to_history:
             reply = result.get("reply")

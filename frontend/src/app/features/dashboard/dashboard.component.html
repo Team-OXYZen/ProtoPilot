@@ -26,6 +26,41 @@
         <p class="card-label">Create New Project</p>
       </div>
 
+      <!-- Create Project Form -->
+      @if (showCreateForm()) {
+        <div class="project-card create-form-card" (click)="$event.stopPropagation()">
+          <div class="card-header">
+            <h3 class="card-title">New Project</h3>
+          </div>
+
+          <input
+            class="project-input"
+            type="text"
+            [(ngModel)]="projectTitle"
+            placeholder="Project title"
+          />
+
+          <textarea
+            class="project-textarea"
+            [(ngModel)]="projectDescription"
+            placeholder="Project description"
+          ></textarea>
+
+          <div class="form-actions">
+            <button
+              class="btn-create"
+              (click)="confirmCreateProject()"
+              [disabled]="!projectTitle.trim()">
+              Continue
+            </button>
+
+            <button class="btn-cancel" (click)="cancelCreateProject()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+
       <!-- Project Cards -->
       @if (isLoading()) {
         <div class="loading-placeholder">
@@ -39,14 +74,17 @@
         @for (project of projects(); track project.project_id) {
           <div class="project-card" (click)="onProjectClick(project)">
             <div class="card-header">
-              <h3 class="card-title">{{ project.project_id }}</h3>
+              <h3 class="card-title">
+                {{ project.project_title || project.project_id }}
+              </h3>
+
               <span class="stage-badge" [class]="'stage-' + project.stage.toLowerCase()">
                 {{ getStageLabel(project.stage) }}
               </span>
             </div>
 
-            @if (project.description) {
-              <p class="card-description">{{ project.description }}</p>
+            @if (project.project_description) {
+              <p class="card-description">{{ project.project_description }}</p>
             }
 
             <div class="card-footer">
@@ -54,6 +92,7 @@
                 <span class="meta-label">Last edited</span>
                 <span class="meta-value">{{ formatDate(project.updated_at) }}</span>
               </div>
+
               <div class="card-arrow">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="9 18 15 12 9 6"></polyline>

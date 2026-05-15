@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from orchestration.store import Stage, get_or_create_project, persist_project
+from orchestration.store import Stage, get_project, persist_project
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ def _log_tool_event(tool: str, payload: dict[str, Any]) -> None:
 
 def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         before = proj.stage.value
 
         proj.spec = spec
@@ -41,7 +41,7 @@ def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
 
 def load_spec(project_id: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
 
         _log_tool_event(
             "load_spec",
@@ -61,7 +61,7 @@ def load_spec(project_id: str) -> dict[str, Any]:
 
 def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         before = proj.stage.value
 
         proj.nontech_artifacts_md = artifacts_md
@@ -87,7 +87,7 @@ def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dic
 
 def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         before = proj.stage.value
 
         proj.technical_artifacts_md = artifacts_md
@@ -113,7 +113,7 @@ def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> d
 
 def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         before = proj.stage.value
 
         proj.stage = Stage(stage)
@@ -137,7 +137,7 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
 
 def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         proj.artifacts_summary = summary
         persist_project(project_id)
         _log_tool_event("save_artifacts_summary", {"project_id": project_id, "summary_length": len(summary)})
@@ -150,7 +150,7 @@ def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
 
 def load_artifacts_summary(project_id: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         _log_tool_event("load_artifacts_summary", {"project_id": project_id, "has_summary": proj.artifacts_summary is not None})
         return {"project_id": project_id, "artifacts_summary": proj.artifacts_summary or ""}
     except Exception as e:
@@ -161,7 +161,7 @@ def load_artifacts_summary(project_id: str) -> dict[str, Any]:
 
 def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         _log_tool_event("load_nontech_artifacts", {"project_id": project_id})
         return {"project_id": project_id, "nontech_artifacts_md": proj.nontech_artifacts_md or {}}
     except Exception as e:
@@ -172,7 +172,7 @@ def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
 
 def load_technical_artifacts(project_id: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         _log_tool_event("load_technical_artifacts", {"project_id": project_id})
         return {"project_id": project_id, "technical_artifacts_md": proj.technical_artifacts_md or {}}
     except Exception as e:
@@ -183,7 +183,7 @@ def load_technical_artifacts(project_id: str) -> dict[str, Any]:
 
 def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         if not proj.nontech_artifacts_md:
             proj.nontech_artifacts_md = {}
         proj.nontech_artifacts_md[filename] = content
@@ -198,7 +198,7 @@ def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict
 
 def patch_technical_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         if not proj.technical_artifacts_md:
             proj.technical_artifacts_md = {}
         proj.technical_artifacts_md[filename] = content
@@ -213,7 +213,7 @@ def patch_technical_artifact(project_id: str, filename: str, content: str) -> di
 
 def load_artifacts(project_id: str) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
 
         _log_tool_event(
             "load_artifacts",
@@ -238,7 +238,7 @@ def load_artifacts(project_id: str) -> dict[str, Any]:
 
 def save_generated_code(project_id: str, files_json: dict[str, str]) -> dict[str, Any]:
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         before = proj.stage.value
 
         proj.generated_code_files = files_json
@@ -266,7 +266,7 @@ def load_generated_code(project_id: str) -> dict[str, Any]:
     Load generated code files for QA review.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         _log_tool_event(
             "load_generated_code",
             {
@@ -290,7 +290,7 @@ def list_generated_code_files(project_id: str) -> dict[str, Any]:
     List the filenames of generated code files for QA review.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         file_list = list(proj.generated_code_files.keys()) if proj.generated_code_files else []
         _log_tool_event(
             "list_generated_code_files",
@@ -315,7 +315,7 @@ def load_generated_code_file(project_id: str, filename: str) -> dict[str, Any]:
     Load a specific generated code file content for QA review.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         file_content = proj.generated_code_files.get(filename) if proj.generated_code_files else None
         _log_tool_event(
             "load_generated_code_file",
@@ -342,7 +342,7 @@ def patch_generated_code_file(project_id: str, filename: str, new_content: str) 
     Can also be used to create a new file if filename does not exist.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
 
         if not proj.generated_code_files:
             proj.generated_code_files = {}
@@ -374,7 +374,7 @@ def delete_generated_code_file(project_id: str, filename: str) -> dict[str, Any]
     Delete a specific generated code file during QA review.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         if not proj.generated_code_files or filename not in proj.generated_code_files:
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": filename}
 
@@ -402,7 +402,7 @@ def rename_generated_code_file(project_id: str, old_filename: str, new_filename:
     Rename a specific generated code file during QA review.
     """
     try:
-        proj = get_or_create_project(project_id, req_session_id=project_id)
+        proj = get_project(project_id)
         if not proj.generated_code_files or old_filename not in proj.generated_code_files:
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": old_filename}
 
