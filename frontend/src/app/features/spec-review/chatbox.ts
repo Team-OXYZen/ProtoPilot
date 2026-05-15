@@ -74,6 +74,74 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private resetSendState(): void {
+    this.sendBtnDisabled.set(false);
+    this.isThinking.set(false);
+    this.sendBtnText.set("Send");
+  }
+
+  private addSystemMessage(text: string): void {
+    this.chatHistory.update((prev) => [
+      ...prev,
+      {
+        type: "system",
+        text,
+        id: prev.length + 1
+      }
+    ]);
+  }
+
+  private getErrorMessage(err: any): string {
+    const detail = err?.error?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+
+    if (detail?.message) {
+      return detail.message;
+    }
+
+    return err?.message || "Unknown backend error";
+  }
+
+  private getReplyText(response: any): string {
+    const reply = response?.reply;
+
+    if (!reply) {
+      return response?.raw_reply || "";
+    }
+
+    if (typeof reply === "string") {
+      try {
+        const parsed = JSON.parse(reply);
+        return Object.values(parsed).join(" ");
+      } catch {
+        return reply;
+      }
+    }
+
+    if (reply.message) {
+      return reply.message;
+    }
+
+    if (reply.summary) {
+      let text = reply.summary;
+
+      if (reply.question) {
+        text += " " + reply.question;
+      }
+
+      if (reply.suggestions) {
+        text += " " + reply.suggestions;
+      }
+
+      return text;
+    }
+
+    return response?.raw_reply || JSON.stringify(reply);
+  }
+
   sendChatMessage() {
     if (this.chatMessage) {
       this.sendBtnDisabled.set(true);
@@ -87,6 +155,8 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.isStackblitzActive) {
         this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
           console.log('Error caught:', err);
+          this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+          this.resetSendState();
           return of(null); // fallback value
         })).subscribe(response => {
           if (response) {
@@ -100,43 +170,25 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
               this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
             }
 
-            let systemResponse = "";
-
-            if (typeof response.reply == "string") {
-              systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-            } else if (response.reply.message) {
-              systemResponse = response.reply.message;
-            } else if (response.reply && response.reply.summary) {
-              systemResponse = response.reply.summary;
-              if (response.reply.question) {
-                systemResponse += " " + response.reply.question;
-              }
-              if (response.reply.suggestions) {
-                systemResponse += " " + response.reply.suggestions;
-              }
-            }
-            this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
+            const systemResponse = this.getReplyText(response);
+            this.addSystemMessage(systemResponse);
           }
-          this.sendBtnDisabled.set(false);
-          this.isThinking.set(false);
-          this.sendBtnText.set("Send");
+          this.resetSendState();
           console.log('Response received: ', response);
         });
       } else {
         //spec review flow
         this.wizardService.sendMessage("change", false).pipe(catchError(err => {
           console.log('Error caught:', err);
-          this.isThinking.set(false);
-          this.sendBtnDisabled.set(false);
-          this.sendBtnText.set("Send");
+          this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+          this.resetSendState();
           return of(null);
         })).subscribe(response => {
           if (response) {
             this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
               console.log('Error caught:', err);
-              this.isThinking.set(false);
-              this.sendBtnDisabled.set(false);
-              this.sendBtnText.set("Send");
+              this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+              this.resetSendState();
               return of(null);
             })).subscribe(response => {
               if (response) {
@@ -150,31 +202,16 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
                   this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
                 }
 
-                let systemResponse = "";
-                if (typeof response.reply == "string") {
-                  systemResponse = Object.values(JSON.parse((response.reply) as any)).join(" ");
-                } else if (response.reply?.message) {
-                  systemResponse = response.reply.message;
-                } else if (response.reply?.summary) {
-                  systemResponse = response.reply.summary;
-                  if (response.reply.question) systemResponse += " " + response.reply.question;
-                  if (response.reply.suggestions) systemResponse += " " + response.reply.suggestions;
-                }
-                this.sendBtnDisabled.set(false);
-                this.isThinking.set(false);
-                this.sendBtnText.set("Send");
+                const systemResponse = this.getReplyText(response);
+                this.resetSendState();
                 console.log('Response received: ', response);
-                this.chatHistory.update((prev) => [...prev, { type: "system", text: systemResponse, id: prev.length + 1 }]);
+                this.addSystemMessage(systemResponse);
               }
               // loading cleanup only after inner request completes
-              this.sendBtnDisabled.set(false);
-              this.isThinking.set(false);
-              this.sendBtnText.set("Send");
+              this.resetSendState();
             });
           } else {
-            this.sendBtnDisabled.set(false);
-            this.isThinking.set(false);
-            this.sendBtnText.set("Send");
+            this.resetSendState();
           }
         });
       }

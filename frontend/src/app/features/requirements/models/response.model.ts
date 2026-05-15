@@ -36,10 +36,12 @@ export interface Response {
   project_id: string;
   stage: string;
   reply: Question;
+  raw_reply?: string;
   spec: Spec;
   nontech_artifacts_md: Record<string, string>;
   technical_artifacts_md: Record<string, string>;
   artifacts_md: Record<string, string>;
+  generated_code_files?: Record<string, string>;
 }
 
 export interface WizardCompleteData {
