@@ -212,9 +212,10 @@ class Orchestrator:
             f"project_id={proj.project_id}\n"
             f"User feedback: {user_message}"
         )
-        
+
         print(f"[QA] Starting QA with prompt: {qa_prompt}")
-        _raw_reply = await run_turn(qa_agent, session_id=f"{req_session_id}-qa", message=qa_prompt)
+        qa_session_id = f"{req_session_id}-qa"
+        _raw_reply = await run_turn(qa_agent, session_id=qa_session_id, message=qa_prompt, use_compaction=True)
         print(f"[QA] Raw agent reply: {_raw_reply}")
         
         reply = {"message": f"{_raw_reply}"}
