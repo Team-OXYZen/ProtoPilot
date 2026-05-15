@@ -3,7 +3,14 @@
     <span class="user-greeting" header-center>
       Welcome, <strong>{{ currentUser() }}</strong>
     </span>
-    <button class="btn-logout" (click)="logout()" header-right>Logout</button>
+    <button class="btn-logout" (click)="logout()" header-right aria-label="Log Out">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      <span>Log Out</span>
+    </button>
   </app-header>
 
   <div class="dashboard-content">
@@ -19,6 +26,41 @@
         <p class="card-label">Create New Project</p>
       </div>
 
+      <!-- Create Project Form -->
+      @if (showCreateForm()) {
+        <div class="project-card create-form-card" (click)="$event.stopPropagation()">
+          <div class="card-header">
+            <h3 class="card-title">New Project</h3>
+          </div>
+
+          <input
+            class="project-input"
+            type="text"
+            [(ngModel)]="projectTitle"
+            placeholder="Project title"
+          />
+
+          <textarea
+            class="project-textarea"
+            [(ngModel)]="projectDescription"
+            placeholder="Project description"
+          ></textarea>
+
+          <div class="form-actions">
+            <button
+              class="btn-create"
+              (click)="confirmCreateProject()"
+              [disabled]="!projectTitle.trim()">
+              Continue
+            </button>
+
+            <button class="btn-cancel" (click)="cancelCreateProject()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      }
+
       <!-- Project Cards -->
       @if (isLoading()) {
         <div class="loading-placeholder">
@@ -32,14 +74,17 @@
         @for (project of projects(); track project.project_id) {
           <div class="project-card" (click)="onProjectClick(project)">
             <div class="card-header">
-              <h3 class="card-title">{{ project.project_id }}</h3>
+              <h3 class="card-title">
+                {{ project.project_title || project.project_id }}
+              </h3>
+
               <span class="stage-badge" [class]="'stage-' + project.stage.toLowerCase()">
                 {{ getStageLabel(project.stage) }}
               </span>
             </div>
 
-            @if (project.description) {
-              <p class="card-description">{{ project.description }}</p>
+            @if (project.project_description) {
+              <p class="card-description">{{ project.project_description }}</p>
             }
 
             <div class="card-footer">
@@ -47,6 +92,7 @@
                 <span class="meta-label">Last edited</span>
                 <span class="meta-value">{{ formatDate(project.updated_at) }}</span>
               </div>
+
               <div class="card-arrow">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="9 18 15 12 9 6"></polyline>

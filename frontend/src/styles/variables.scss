@@ -17,6 +17,8 @@
 $color-primary-navy: #0b1b47;      // Deep navy - primary brand color
 $color-secondary-yellow: #fbbf24;  // Warm yellow - accent/highlight color
 $color-tertiary-amber: #f59e0b;    // Amber - additional accent
+$color-white: #ffffff;             // Pure white for light mode
+$color-black: #000000;             // Pure black for dark mode
 
 // Dark Mode Palette
 $color-dark-bg-primary: #0a1120;   // Darkest background
@@ -74,9 +76,13 @@ $color-info: #3b82f6;
   --color-shadow: rgba(4, 4, 4, 0.939);
   --color-dark-shadow: rgba(0, 0, 0, 0.485);
 
+  --color-modal-hint: #{$color-dark-bg-tertiary};
+  --color-modal-title: #{$color-dark-text-primary};
+
   --color-wizard-bg: #{$color-dark-bg-primary};
   --color-wizard-card-bg: #{$color-dark-bg-secondary};
   --color-wizard-card-text: #{$color-dark-text-primary};
+  --color-question-subtitle: #{$color-secondary-yellow};
 
   // Sidebar, header, footer
   --color-sidebar-bg: #{$color-dark-bg-primary};
@@ -102,25 +108,28 @@ $color-info: #3b82f6;
   --color-text-secondary: #{$color-light-text-secondary};
   --color-text-tertiary: #{$color-light-text-tertiary};
   --color-border: #{$color-light-border};
-  --color-input-bg: #{$color-light-bg-primary};
+  --color-input-bg: #{$color-white};
   --color-input-border: #{$color-light-bg-tertiary};
   --color-shadow: rgba(30, 58, 138, 0.08);
 
-  --color-wizard-bg: #{$color-light-bg-primary};
+  --color-modal-hint: #{$color-light-bg-secondary};
+  --color-modal-title: #{$color-light-text-primary};
+
+  --color-wizard-bg: #{$color-white};
   --color-wizard-card-bg: #{$color-light-bg-secondary};
   --color-wizard-card-text: #{$color-light-text-primary};
+  --color-question-subtitle: #{color-light-text-primary};
 
   // Sidebar, header, footer - Navy for UI chrome
   --color-sidebar-bg: #{$color-light-sidebar-bg};
   --color-sidebar-text: #{$color-light-sidebar-text};
   --color-header-bg: #{$color-light-sidebar-bg};
   --color-footer-bg: #{$color-light-sidebar-bg};
-  --color-chat-bg: #{$color-light-chat-bg};
+  --color-chat-bg: #{$color-light-bg-secondary};
   --color-chat-item-bg: #{$color-light-chat-item-bg};
   
   // Panels for light mode
-  --color-panel-bg: #{$color-light-bg-secondary};
-  --color-input-bg: #{$color-light-bg-primary};
+  --color-panel-bg: #{$color-white};
 }
 
 // Fallback to dark theme if no data-theme attribute

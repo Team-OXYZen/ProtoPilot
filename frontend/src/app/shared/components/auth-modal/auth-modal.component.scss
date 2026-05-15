@@ -1,5 +1,6 @@
 @use 'variables' as *;
 @use 'theme-mixins' as *;
+@use 'sass:color';
 
 .auth-modal-overlay {
   position: fixed;
@@ -91,7 +92,7 @@
   font-weight: $font-bold;
   margin: 0 0 $space-xl 0;
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--color-modal-title);
 }
 
 .error-message {
@@ -134,8 +135,8 @@
 
   &:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
   }
 
   &:disabled {
@@ -145,30 +146,43 @@
 }
 
 .submit-btn {
-  @include button-primary;
-  padding: $space-md $space-lg;
-  height: 44px;
+  @include button-secondary;
+  padding: $space-lg $space-2xl;
+  height: 48px;
   font-size: $text-base;
   font-weight: $font-semibold;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: $space-sm;
+  position: relative;
+  color: #0f172a;
 
   svg {
     flex-shrink: 0;
+    transition: transform 0.3s ease;
+    color: #0f172a;
   }
 
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 6px 16px rgba(251, 191, 36, 0.35);
+    
+    svg {
+      transform: scale(1.15);
+    }
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
   }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }
@@ -187,13 +201,9 @@
   font-weight: $font-semibold;
   cursor: pointer;
   text-decoration: underline;
-  padding: 0;
+  padding: 5px;
   font-size: inherit;
-  transition: color 0.2s ease;
-
-  &:hover:not(:disabled) {
-    color: var(--color-primary);
-  }
+  transition: 0.2s ease;
 
   &:disabled {
     opacity: 0.5;
@@ -206,7 +216,7 @@
   font-size: $text-xs;
   color: var(--color-text-tertiary);
   padding: $space-md;
-  background-color: rgba(251, 191, 36, 0.05);
+  background-color: var(--color-modal-hint);
   border-radius: $radius-md;
   border-left: 3px solid var(--color-secondary);
 
