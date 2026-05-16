@@ -24,7 +24,7 @@ export class WizardService {
     return this.sessionSubject.value;
   }
   
-  private projectSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
+  private projectSubject:BehaviorSubject<Project | null> = new BehaviorSubject<Project | null>(null);
   project$ = this.projectSubject.asObservable();
 
 
@@ -104,6 +104,7 @@ export class WizardService {
 
     this.projectSubject.next({
       id: project.project_id,
+      title: project.project_title,
     });
 
     console.log('Loaded existing project:', project.project_id);

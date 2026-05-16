@@ -281,7 +281,9 @@ export class ReviewWrapperComponent implements OnInit {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${this.wizardService.project?.id ?? 'project'}.zip`;
+    const rawName = this.wizardService.project?.title || this.wizardService.project?.id || 'project';
+    const safeName = rawName.replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    a.download = `${safeName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
     } catch (e) {
