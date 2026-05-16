@@ -5,6 +5,7 @@ import { Question, Response } from '../models/response.model';
 import { CONSTANTS, REQUIREMENTS_QUESTION_FLOW } from '../config/sample-questions';
 import { HttpClient } from '@angular/common/http';
 import { Project } from '../models/project.model';
+import { AuthService } from '../../../core/auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +17,7 @@ export class WizardService {
   projectDescription = '';
 
   http = inject(HttpClient);
+  private authService = inject(AuthService);
 
   private sessionSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
   session$ = this.sessionSubject.asObservable();
@@ -100,6 +102,8 @@ export class WizardService {
   }
 
   loadExistingProject(project: any): void {
+    this.userId = this.authService.getCurrentUser()()?.username || '';
+
     this.sessionSubject.next({
       id: project.session_id || project.req_session_id || crypto.randomUUID(),
     });

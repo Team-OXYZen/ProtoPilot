@@ -116,6 +116,8 @@ After all Java files are saved and proxy is configured, update each Angular serv
 
 Use load_angular_code_file to read the current content before patching, then patch_angular_code_file to save the updated version.
 
+CRITICAL: The content passed to patch_angular_code_file must be the raw file content with real newlines and real quote characters — NOT escaped strings. Do not use `\n` for newlines or `\'` for quotes. The tool expects actual source code, not a string literal.
+
 ## Code rules
 
 - Spring Boot 3 / Java 17, no Lombok, no JPA, no database
