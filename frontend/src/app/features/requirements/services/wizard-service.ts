@@ -43,6 +43,8 @@ export class WizardService {
   resetSession = (): void => {
     this.sessionSubject.next({ id: crypto.randomUUID() });
     this.projectSubject.next({ id: crypto.randomUUID() });
+    this.projectTitle = '';
+    this.projectDescription = '';
   }
 
 
