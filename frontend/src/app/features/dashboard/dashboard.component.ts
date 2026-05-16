@@ -52,6 +52,11 @@ export class DashboardComponent implements OnInit {
   }
 
   onProjectClick(project: ProjectCard): void {
+    this.wizardService.resetSession();
+    this.specService.clearSpec();
+    this.specService.clearArtifacts();
+    this.specService.clearGeneratedCode();
+
     // Navigate based on stage
     const stage = project.stage;
     const stageToRouteMap: { [key: string]: string } = {
@@ -61,6 +66,7 @@ export class DashboardComponent implements OnInit {
       TECH_ARTIFACTS: '/spec-review',
       CODEGEN: '/spec-review',
       QA: '/spec-review',
+      FINALIZE: '/spec-review',
     };
 
     const route = stageToRouteMap[stage] || '/requirements';
@@ -80,8 +86,11 @@ export class DashboardComponent implements OnInit {
         if (proj.technical_artifacts_md) {
           this.specService.setTechnicalArtifacts(proj.technical_artifacts_md);
         }
-        if (proj.generated_code_files) {
-          this.specService.setGeneratedCode(proj.generated_code_files);
+        if (proj.angular_code_files) {
+          this.specService.setAngularCode(proj.angular_code_files);
+        }
+        if (proj.java_code_files) {
+          this.specService.setJavaCode(proj.java_code_files);
         }
         
         this.router.navigate([route]);
@@ -118,6 +127,7 @@ export class DashboardComponent implements OnInit {
       TECH_ARTIFACTS: 'Technical Artifacts',
       CODEGEN: 'Code Generation',
       QA: 'QA',
+      FINALIZE: 'Finalized',
     };
     return stageLabels[stage] || stage;
   }

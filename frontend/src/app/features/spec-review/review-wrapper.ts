@@ -1,4 +1,7 @@
 import { Component, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import JSZip from 'jszip';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
+import mermaid from 'mermaid';
 import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
 import { WizardService } from '../requirements/services/wizard-service';
@@ -58,7 +61,11 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   hasGeneratedCode() {
-    return this.specService.generated_code_files() && Object.keys(this.specService.generated_code_files() as any).length > 0;
+    return this.specService.angular_code_files() && Object.keys(this.specService.angular_code_files() as any).length > 0;
+  }
+
+  hasJavaCode() {
+    return this.specService.java_code_files() && Object.keys(this.specService.java_code_files() as any).length > 0;
   }
 
   ngOnInit() {
@@ -119,8 +126,8 @@ export class ReviewWrapperComponent implements OnInit {
       this.loaderService.stop();
       return of(null);
     })).subscribe((reply) => {
-      if ((reply as any).generated_code_files) {
-        this.specService.setGeneratedCode((reply as any).generated_code_files);
+      if ((reply as any).angular_code_files) {
+        this.specService.setAngularCode((reply as any).angular_code_files);
         this.files.set([]);
         this.selectedFile = 'code-preview';
         this.loaderService.stop();
@@ -129,6 +136,159 @@ export class ReviewWrapperComponent implements OnInit {
         console.error('Code generation failed');
       }
     });
+  }
+
+  finalizeProject() {
+    this.loaderService.startWithMessages(['Analysing Angular services...', 'Generating Spring Boot code...', 'Updating Angular services...', 'Almost there...']);
+    this.wizardService.sendMessage('finalize').pipe(catchError(err => {
+      console.log('Error caught:', err);
+      this.loaderService.stop();
+      return of(null);
+    })).subscribe((_) => {
+      const projectId = this.wizardService.project?.id;
+      if (!projectId) { this.loaderService.stop(); return; }
+      this.wizardService.getProject(projectId).subscribe({
+        next: (proj) => {
+          if (proj.angular_code_files) this.specService.setAngularCode(proj.angular_code_files);
+          if (proj.java_code_files) this.specService.setJavaCode(proj.java_code_files);
+          this.loaderService.stop();
+        },
+        error: () => this.loaderService.stop(),
+      });
+    });
+  }
+
+  private async mmdToSvg(mmdContent: string): Promise<Blob | null> {
+    try {
+      mermaid.initialize({ startOnLoad: false, theme: 'default' });
+      const id = 'mmd-render-' + Date.now();
+      const { svg } = await mermaid.render(id, mmdContent);
+      return new Blob([svg], { type: 'image/svg+xml' });
+    } catch {
+      return null;
+    }
+  }
+
+  private parseInlineRuns(text: string, forceBold = false): TextRun[] {
+    const runs: TextRun[] = [];
+    const segments = text.split(/<br\s*\/?>/gi);
+    segments.forEach((segment, idx) => {
+      if (idx > 0) runs.push(new TextRun({ break: 1 }));
+      for (const part of segment.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)) {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          runs.push(new TextRun({ text: part.slice(2, -2), bold: true }));
+        } else if (part.startsWith('*') && part.endsWith('*')) {
+          runs.push(new TextRun({ text: part.slice(1, -1), italics: !forceBold, bold: forceBold }));
+        } else if (part.startsWith('`') && part.endsWith('`')) {
+          runs.push(new TextRun({ text: part.slice(1, -1), bold: forceBold, font: { name: 'Courier New' } }));
+        } else {
+          runs.push(new TextRun({ text: part, bold: forceBold || undefined }));
+        }
+      }
+    });
+    return runs;
+  }
+
+  private mdToDocxParagraphs(md: string): (Paragraph | Table)[] {
+    const elements: (Paragraph | Table)[] = [];
+    const lines = md.split('\n');
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // markdown table: collect consecutive | lines
+      if (line.startsWith('|')) {
+        const tableLines: string[] = [];
+        while (i < lines.length && lines[i].startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        const dataRows = tableLines.filter(r => !/^\|[\s|:\-]+\|$/.test(r.trim()));
+        if (dataRows.length > 0) {
+          elements.push(new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: dataRows.map((row, rowIdx) => new TableRow({
+              children: row.split('|').slice(1, -1).map(cell => new TableCell({
+                children: [new Paragraph({ children: this.parseInlineRuns(cell.trim(), rowIdx === 0) })],
+                shading: rowIdx === 0 ? { type: ShadingType.SOLID, color: 'D9D9D9' } : undefined,
+              })),
+            })),
+          }));
+          elements.push(new Paragraph({}));
+        }
+        continue;
+      }
+
+      if (/^-{3,}$/.test(line.trim())) {
+        elements.push(new Paragraph({}));
+      } else if (line.startsWith('### ')) {
+        elements.push(new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 }));
+      } else if (line.startsWith('## ')) {
+        elements.push(new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 }));
+      } else if (line.startsWith('# ')) {
+        elements.push(new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 }));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        elements.push(new Paragraph({ children: this.parseInlineRuns(line.slice(2)), bullet: { level: 0 } }));
+      } else if (line.startsWith('> ')) {
+        elements.push(new Paragraph({ children: this.parseInlineRuns(line.slice(2)), indent: { left: 720 } }));
+      } else if (line.trim() === '') {
+        elements.push(new Paragraph({}));
+      } else {
+        elements.push(new Paragraph({ children: this.parseInlineRuns(line), alignment: AlignmentType.LEFT }));
+      }
+      i++;
+    }
+    return elements;
+  }
+
+  async downloadZip() {
+    try {
+    const angularFiles = this.specService.angular_code_files();
+    const javaFiles = this.specService.java_code_files();
+    const nontechArtifacts = this.specService.nontech_artifacts_md();
+    const technicalArtifacts = this.specService.technical_artifacts_md();
+    const zip = new JSZip();
+
+    if (angularFiles) {
+      const fe = zip.folder('frontend')!;
+      Object.entries(angularFiles).forEach(([path, content]) => fe.file(path, content));
+    }
+    if (javaFiles) {
+      const be = zip.folder('backend')!;
+      Object.entries(javaFiles).forEach(([path, content]) => be.file(path, content));
+    }
+
+    const allArtifacts = { ...nontechArtifacts, ...technicalArtifacts };
+    if (Object.keys(allArtifacts).length > 0) {
+      const af = zip.folder('artifacts')!;
+      for (const [filename, content] of Object.entries(allArtifacts)) {
+        if (filename.endsWith('.mmd')) {
+          const svg = await this.mmdToSvg(content);
+          if (svg) {
+            af.file(filename.replace(/\.mmd$/, '.svg'), svg);
+          } else {
+            af.file(filename, content);
+          }
+        } else {
+          const doc = new Document({ sections: [{ children: this.mdToDocxParagraphs(content) }] });
+          af.file(filename.replace(/\.md$/, '.docx'), await Packer.toBlob(doc));
+        }
+      }
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const rawName = this.wizardService.project?.title || this.wizardService.project?.id || 'project';
+    const safeName = rawName.replace(/[^a-zA-Z0-9一-鿿_-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    a.download = `${safeName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Download failed: ' + e);
+    }
   }
 
   viewPrototype() {

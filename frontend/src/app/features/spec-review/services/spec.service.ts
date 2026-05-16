@@ -7,7 +7,8 @@ export class SpecService {
   readonly spec = signal<any>({});
   readonly nontech_artifacts_md = signal<Record<string, string> | null>(null);
   readonly technical_artifacts_md = signal<Record<string, string> | null>(null);
-  readonly generated_code_files = signal<Record<string, string> | null>(null);
+  readonly angular_code_files = signal<Record<string, string> | null>(null);
+  readonly java_code_files = signal<Record<string, string> | null>(null);
 
   setSpec(spec: any): void {
     this.spec.set(spec);
@@ -29,8 +30,12 @@ export class SpecService {
     this.technical_artifacts_md.set(artifacts);
   }
 
-  setGeneratedCode(files: Record<string, string>): void {
-    this.generated_code_files.set(files);
+  setAngularCode(files: Record<string, string>): void {
+    this.angular_code_files.set(files);
+  }
+
+  setJavaCode(files: Record<string, string>): void {
+    this.java_code_files.set(files);
   }
 
   updateNontechArtifact(filename: string, content: string): void {
@@ -53,6 +58,7 @@ export class SpecService {
   }
 
   clearGeneratedCode(): void {
-    this.generated_code_files.set(null);
+    this.angular_code_files.set(null);
+    this.java_code_files.set(null);
   }
 }

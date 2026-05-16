@@ -5,6 +5,7 @@ import { Question, Response } from '../models/response.model';
 import { CONSTANTS, REQUIREMENTS_QUESTION_FLOW } from '../config/sample-questions';
 import { HttpClient } from '@angular/common/http';
 import { Project } from '../models/project.model';
+import { AuthService } from '../../../core/auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +17,7 @@ export class WizardService {
   projectDescription = '';
 
   http = inject(HttpClient);
+  private authService = inject(AuthService);
 
   private sessionSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
   session$ = this.sessionSubject.asObservable();
@@ -24,7 +26,7 @@ export class WizardService {
     return this.sessionSubject.value;
   }
   
-  private projectSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
+  private projectSubject:BehaviorSubject<Project | null> = new BehaviorSubject<Project | null>(null);
   project$ = this.projectSubject.asObservable();
 
 
@@ -43,6 +45,8 @@ export class WizardService {
   resetSession = (): void => {
     this.sessionSubject.next({ id: crypto.randomUUID() });
     this.projectSubject.next({ id: crypto.randomUUID() });
+    this.projectTitle = '';
+    this.projectDescription = '';
   }
 
 
@@ -98,12 +102,15 @@ export class WizardService {
   }
 
   loadExistingProject(project: any): void {
+    this.userId = this.authService.getCurrentUser()()?.username || '';
+
     this.sessionSubject.next({
       id: project.session_id || project.req_session_id || crypto.randomUUID(),
     });
 
     this.projectSubject.next({
       id: project.project_id,
+      title: project.project_title,
     });
 
     console.log('Loaded existing project:', project.project_id);
