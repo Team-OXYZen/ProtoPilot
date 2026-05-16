@@ -1,4 +1,4 @@
-<div class="content">
+<div class="content" [class.code-preview-active]="isCodePreview()" [class.preview-mode-active]="isPreviewMode && !isCodePreview()">
 
   <div class="spec-content">
     @if (isCodePreview()) {

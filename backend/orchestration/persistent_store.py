@@ -16,7 +16,10 @@ def init_db() -> None:
             """
             CREATE TABLE IF NOT EXISTS projects (
                 project_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
                 req_session_id TEXT NOT NULL,
+                project_title TEXT,
+                project_description TEXT,
                 stage TEXT NOT NULL,
                 spec TEXT,
                 nontech_artifacts_md TEXT,
@@ -84,7 +87,10 @@ def save_project(proj: ProjectState) -> None:
             """
             INSERT INTO projects (
                 project_id,
+                user_id,
                 req_session_id,
+                project_title,
+                project_description,
                 stage,
                 spec,
                 nontech_artifacts_md,
@@ -94,9 +100,12 @@ def save_project(proj: ProjectState) -> None:
                 artifacts_summary,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(project_id) DO UPDATE SET
+                user_id = excluded.user_id,
                 req_session_id = excluded.req_session_id,
+                project_title = excluded.project_title,
+                project_description = excluded.project_description,
                 stage = excluded.stage,
                 spec = excluded.spec,
                 nontech_artifacts_md = excluded.nontech_artifacts_md,
@@ -108,7 +117,10 @@ def save_project(proj: ProjectState) -> None:
             """,
             (
                 proj.project_id,
+                proj.user_id,
                 proj.req_session_id,
+                proj.project_title,
+                proj.project_description,
                 proj.stage.value,
                 _to_json(proj.spec),
                 _to_json(proj.nontech_artifacts_md),
@@ -129,7 +141,10 @@ def load_project(project_id: str) -> ProjectState | None:
             """
             SELECT
                 project_id,
+                user_id,
                 req_session_id,
+                project_title,
+                project_description,
                 stage,
                 spec,
                 nontech_artifacts_md,
@@ -148,14 +163,17 @@ def load_project(project_id: str) -> ProjectState | None:
 
     return ProjectState(
         project_id=row[0],
-        req_session_id=row[1],
-        stage=Stage(row[2]),
-        spec=_from_json(row[3]),
-        nontech_artifacts_md=_from_json(row[4]),
-        technical_artifacts_md=_from_json(row[5]),
-        angular_code_files=_from_json(row[6]),
-        java_code_files=_from_json(row[7]),
-        artifacts_summary=row[8],
+        user_id=row[1],
+        req_session_id=row[2],
+        project_title=row[3],
+        project_description=row[4],
+        stage=Stage(row[5]),
+        spec=_from_json(row[6]),
+        nontech_artifacts_md=_from_json(row[7]),
+        technical_artifacts_md=_from_json(row[8]),
+        angular_code_files=_from_json(row[9]),
+        java_code_files=_from_json(row[10]),
+        artifacts_summary=row[11],
     )
 
 
@@ -167,7 +185,10 @@ def list_projects() -> list[dict[str, Any]]:
             """
             SELECT
                 project_id,
+                user_id,
                 req_session_id,
+                project_title,
+                project_description,
                 stage,
                 created_at,
                 updated_at
@@ -179,10 +200,13 @@ def list_projects() -> list[dict[str, Any]]:
     return [
         {
             "project_id": row[0],
-            "req_session_id": row[1],
-            "stage": row[2],
-            "created_at": row[3],
-            "updated_at": row[4],
+            "user_id": row[1],
+            "req_session_id": row[2],
+            "project_title": row[3],
+            "project_description": row[4],
+            "stage": row[5],
+            "created_at": row[6],
+            "updated_at": row[7],
         }
         for row in rows
     ]

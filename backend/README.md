@@ -9,8 +9,6 @@ cp .env.example .env  # fill in credentials
 uvicorn api.server:app --reload --port 8000
 ```
 
-Required env vars: `CLIENT_ID`, `CLIENT_SECRET`, `LITELLM_API_KEY`, `LITELLM_MODEL`, `LITELLM_API_BASE`
-
 ## Completed Workflow
 
 The backend runs a stage-driven pipeline. Each user message hits `POST /chat` and the orchestrator routes it based on the current project stage.

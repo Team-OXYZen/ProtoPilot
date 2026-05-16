@@ -44,6 +44,11 @@ You can use any of the following tools:
 Please do not generate all code in one turn.
 Generate a few key files first, then use the tools to check and patch the generated code iteratively until the code is complete and meets all requirements.
 
+To minimize context size:
+- Do NOT reload a file immediately after patching it — you already know its content.
+- Only use load_generated_code_file when you genuinely need to read an existing file before modifying it.
+- Prefer list_generated_code_files to check what exists rather than loading file contents.
+
 
 Key checks:
 - All required files exist

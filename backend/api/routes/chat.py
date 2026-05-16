@@ -11,8 +11,11 @@ orch = Orchestrator()
 
 
 class ChatRequest(BaseModel):
+    user_id: str
     project_id: str
     session_id: str
+    project_title: str | None = None
+    project_description: str | None = None
     message: str
     save_to_history: bool = True
 
@@ -70,10 +73,18 @@ async def chat(req: ChatRequest):
                 content=req.message,
             )
 
-        result = await orch.handle(req.project_id, req.session_id, req.message)
+        result = await orch.handle(
+            req.project_id,
+            req.session_id,
+            req.message,
+            user_id=req.user_id,
+            project_title=req.project_title,
+            project_description=req.project_description,
+        )
 
         if req.save_to_history:
             reply = result.get("reply")
+            raw_reply = result.get("raw_reply")
             stage = _stage_to_str(result.get("stage"))
 
             save_chat_message(
@@ -83,7 +94,8 @@ async def chat(req: ChatRequest):
                 stage=stage,
                 content=_reply_to_text(reply),
                 metadata={
-                    "raw_reply": reply,
+                    "raw_reply": raw_reply,
+                    "reply": reply,
                     "has_spec": result.get("spec") is not None,
                     "has_nontech_artifacts": result.get("nontech_artifacts_md") is not None,
                     "has_technical_artifacts": result.get("technical_artifacts_md") is not None,
@@ -107,7 +119,10 @@ async def chat(req: ChatRequest):
                 role="assistant",
                 stage="ERROR",
                 content=str(e),
-                metadata={"error": True},
+                metadata={
+                    "error": True,
+                    "detail": str(e),
+                },
             )
 
         raise HTTPException(status_code=500, detail=str(e))
