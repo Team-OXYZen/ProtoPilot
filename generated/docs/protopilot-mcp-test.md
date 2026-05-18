@@ -1,0 +1,1 @@
+This file was created by ProtoPilot GitHub MCP integration.
