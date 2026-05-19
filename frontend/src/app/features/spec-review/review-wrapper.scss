@@ -17,6 +17,48 @@
   }
 }
 
+.deploy-btn {
+  @include button-secondary;
+  font-size: $text-base;
+  padding: $space-md $space-lg;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+
+  svg { width: 20px; height: 20px; flex-shrink: 0; }
+  span { white-space: nowrap; }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .spin { animation: spin 1s linear infinite; }
+}
+
+.deploy-link {
+  @include button-secondary;
+  font-size: $text-base;
+  padding: $space-md $space-lg;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+  text-decoration: none;
+  color: #0f172a;
+
+  svg { width: 20px; height: 20px; flex-shrink: 0; }
+  span { white-space: nowrap; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .download-btn {
   @include button-primary;
   font-size: $text-base;

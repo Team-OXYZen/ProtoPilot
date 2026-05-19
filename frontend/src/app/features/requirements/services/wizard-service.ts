@@ -101,6 +101,18 @@ export class WizardService {
     return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`);
   }
 
+  deployProject(projectId: string): Observable<any> {
+    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy`, {});
+  }
+
+  getDeployStatus(projectId: string): Observable<any> {
+    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy/status`);
+  }
+
+  undeployProject(projectId: string): Observable<any> {
+    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/undeploy`, {});
+  }
+
   loadExistingProject(project: any): void {
     this.userId = this.authService.getCurrentUser()()?.username || '';
 
