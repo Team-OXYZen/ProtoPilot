@@ -14,6 +14,7 @@ class DeployManager:
     def __init__(self):
         self._port_registry: dict[str, int] = {}
         self._deploy_status: dict[str, str] = {}  # "building" | "running" | "failed"
+        self._lock = asyncio.Lock()
         PROJECTS_DIR.mkdir(exist_ok=True)
         self._load_registry()
         self._restore_running_containers()
@@ -169,7 +170,8 @@ networks:
         (project_dir / "docker-compose.yml").write_text(self._docker_compose(port))
 
     async def deploy(self, project_id: str, angular_files: dict, java_files: dict) -> int:
-        port = self._allocate_port(project_id)
+        async with self._lock:
+            port = self._allocate_port(project_id)
         self._write_project_files(project_id, angular_files, java_files)
         self._write_docker_files(project_id, port)
         self._deploy_status[project_id] = "building"
