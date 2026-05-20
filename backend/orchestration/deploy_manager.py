@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -198,9 +199,10 @@ networks:
     def get_status(self, project_id: str) -> dict:
         status = self._deploy_status.get(project_id, "idle")
         port = self._port_registry.get(project_id)
+        host = os.environ.get("DEPLOY_HOST", "localhost")
         return {
             "status": status,
-            "url": f"http://localhost:{port}" if status == "running" and port else None,
+            "url": f"http://{host}:{port}" if status == "running" and port else None,
         }
 
     async def undeploy(self, project_id: str):
