@@ -6,6 +6,7 @@ import { CONSTANTS, REQUIREMENTS_QUESTION_FLOW } from '../config/sample-question
 import { HttpClient } from '@angular/common/http';
 import { Project } from '../models/project.model';
 import { AuthService } from '../../../core/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +16,7 @@ export class WizardService {
   userId = '';
   projectTitle = '';
   projectDescription = '';
+  private baseUrl = environment.apiUrl;
 
   http = inject(HttpClient);
   private authService = inject(AuthService);
@@ -66,7 +68,7 @@ export class WizardService {
   }
 
   createProjectInDb(): Observable<any> {
-    return this.http.post<any>('http://127.0.0.1:8000/projects', {
+    return this.http.post<any>(`${this.baseUrl}/projects`, {
       user_id: this.userId,
       project_id: this.project?.id,
       session_id: this.session?.id,
@@ -90,27 +92,27 @@ export class WizardService {
   }
 
   getProjects(): Observable<any> {
-  return this.http.get<any>('http://127.0.0.1:8000/projects');
+  return this.http.get<any>(`${this.baseUrl}/projects`);
   }
 
   getProject(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}`);
   }
 
   getProjectMessages(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`);
+    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}/messages`);
   }
 
   deployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy`, {});
+    return this.http.post<any>(`${this.baseUrl}/projects/${projectId}/deploy`, {});
   }
 
   getDeployStatus(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy/status`);
+    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}/deploy/status`);
   }
 
   undeployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/undeploy`, {});
+    return this.http.post<any>(`${this.baseUrl}/projects/${projectId}/undeploy`, {});
   }
 
   loadExistingProject(project: any): void {
