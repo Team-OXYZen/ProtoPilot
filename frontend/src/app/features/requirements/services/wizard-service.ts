@@ -80,7 +80,7 @@ export class WizardService {
   sendMessage = (message: string, saveToHistory: boolean = true): Observable<Response | null> => {
     if (!this.session || !this.project) return of(null);
 
-    return this.http.post<Response>(CONSTANTS.REQUIREMENTS_AGENT_URL, {
+    return this.http.post<Response>(`${this.baseUrl}/chat`, {
       user_id: this.userId,
       project_id: this.project.id,
       session_id: this.session.id,
