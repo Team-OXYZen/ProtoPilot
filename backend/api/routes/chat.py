@@ -1,8 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from core.auth import get_current_user
 from orchestration.orchestrator import Orchestrator
 from orchestration.persistent_store import save_chat_message, list_chat_messages
 
@@ -63,8 +64,10 @@ def _reply_to_text(reply: Any) -> str:
 
 
 @router.post("/chat")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_current_user)):
     try:
+        req.user_id = current_user["username"]
+
         if req.save_to_history:
             save_chat_message(
                 project_id=req.project_id,
@@ -129,7 +132,7 @@ async def chat(req: ChatRequest):
 
 
 @router.get("/projects/{project_id}/messages")
-def get_project_messages(project_id: str):
+def get_project_messages(project_id: str, current_user: dict[str, str] = Depends(get_current_user)):
     return {
         "project_id": project_id,
         "messages": list_chat_messages(project_id),

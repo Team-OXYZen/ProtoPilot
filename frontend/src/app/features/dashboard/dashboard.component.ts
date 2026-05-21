@@ -29,7 +29,14 @@ export class DashboardComponent implements OnInit {
   private specService = inject(SpecService);
 
   ngOnInit(): void {
-    this.currentUser.set(this.authService.getCurrentUser()()?.username || '');
+    const username = this.authService.getCurrentUser()()?.username || '';
+    this.currentUser.set(username);
+
+    if (!username || !this.authService.getToken()) {
+      this.router.navigate(['/welcome']);
+      return;
+    }
+
     this.loadProjects();
   }
 

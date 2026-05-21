@@ -1,13 +1,16 @@
 from orchestration.tools import delete_angular_code_file, list_angular_code_files, load_angular_code_file, patch_angular_code_file, rename_angular_code_file
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from api.routes.auth import router as auth_router
 from api.routes.chat import router as chat_router
+from core.auth import get_current_user
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI(title="ProtoPilot API")
+app.include_router(auth_router)
 app.include_router(chat_router)
 
 app.add_middleware(
@@ -35,13 +38,13 @@ class CreateProjectRequest(BaseModel):
     project_description: str | None = None
 
 @app.post("/projects")
-def create_project(req: CreateProjectRequest):
+def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.store import get_or_create_project, persist_project
 
     proj = get_or_create_project(
         project_id=req.project_id,
         req_session_id=req.session_id,
-        user_id=req.user_id,
+        user_id=current_user["username"],
         project_title=req.project_title,
         project_description=req.project_description,
     )
@@ -59,14 +62,14 @@ def create_project(req: CreateProjectRequest):
     }
 
 @app.get("/projects")
-def projects():
+def projects(current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.persistent_store import list_projects
 
     return {"projects": list_projects()}
 
 
 @app.get("/projects/{project_id}")
-def project_detail(project_id: str):
+def project_detail(project_id: str, current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.store import get_project
 
     proj = get_project(project_id)
@@ -90,7 +93,11 @@ def project_detail(project_id: str):
 
 # update project stage
 @app.post("/projects/{project_id}/stage")
-def update_project_stage(project_id: str, stage: str):
+def update_project_stage(
+    project_id: str,
+    stage: str,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
     from orchestration.store import get_project
     from orchestration.persistent_store import Stage, set_project_stage
 

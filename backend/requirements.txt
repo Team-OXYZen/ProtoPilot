@@ -1,6 +1,9 @@
+fastapi
 google-adk
 httpx
 python-dotenv
 litellm
 aiosqlite
 greenlet
+sqlalchemy
+uvicorn
