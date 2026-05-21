@@ -3,12 +3,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from api.routes.chat import router as chat_router
+from api.routes.deploy import router as deploy_router
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI(title="ProtoPilot API")
 app.include_router(chat_router)
+app.include_router(deploy_router)
 
 app.add_middleware(
     CORSMiddleware,

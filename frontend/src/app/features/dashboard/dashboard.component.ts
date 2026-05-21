@@ -56,6 +56,7 @@ export class DashboardComponent implements OnInit {
     this.specService.clearSpec();
     this.specService.clearArtifacts();
     this.specService.clearGeneratedCode();
+    this.specService.clearDeploy();
 
     // Navigate based on stage
     const stage = project.stage;

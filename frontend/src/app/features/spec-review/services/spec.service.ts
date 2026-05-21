@@ -9,6 +9,8 @@ export class SpecService {
   readonly technical_artifacts_md = signal<Record<string, string> | null>(null);
   readonly angular_code_files = signal<Record<string, string> | null>(null);
   readonly java_code_files = signal<Record<string, string> | null>(null);
+  readonly deployStatus = signal<'idle' | 'building' | 'running' | 'failed'>('idle');
+  readonly deployUrl = signal<string | null>(null);
 
   setSpec(spec: any): void {
     this.spec.set(spec);
@@ -60,5 +62,15 @@ export class SpecService {
   clearGeneratedCode(): void {
     this.angular_code_files.set(null);
     this.java_code_files.set(null);
+  }
+
+  setDeployStatus(status: 'idle' | 'building' | 'running' | 'failed', url?: string): void {
+    this.deployStatus.set(status);
+    this.deployUrl.set(url ?? null);
+  }
+
+  clearDeploy(): void {
+    this.deployStatus.set('idle');
+    this.deployUrl.set(null);
   }
 }

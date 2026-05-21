@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, effect, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
 import mermaid from 'mermaid';
@@ -6,7 +6,7 @@ import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
 import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
-import { catchError, of } from 'rxjs';
+import { catchError, interval, of, Subscription, switchMap, takeWhile } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
 import { LoaderService } from '../../shared/services/loader.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -19,7 +19,7 @@ import { HeaderComponent } from '../../shared/components/header/header.component
   templateUrl: './review-wrapper.html',
   styleUrl: './review-wrapper.scss'
 })
-export class ReviewWrapperComponent implements OnInit {
+export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   @ViewChild(ChatboxComponent) chatbox!: ChatboxComponent;
 
@@ -27,6 +27,8 @@ export class ReviewWrapperComponent implements OnInit {
   selectedSection: string = '';
   showSpecView = signal(false);
   files = signal<string[]>([]);
+
+  private pollSub?: Subscription;
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -80,6 +82,15 @@ export class ReviewWrapperComponent implements OnInit {
     }
     if (this.hasGeneratedCode()) {
       this.selectedFile = 'code-preview';
+    }
+    const projectId = this.wizardService.project?.id;
+    if (projectId && this.hasJavaCode()) {
+      this.wizardService.getDeployStatus(projectId).subscribe({
+        next: (s) => {
+          if (s.status === 'running') this.specService.setDeployStatus('running', s.url);
+        },
+        error: () => {}
+      });
     }
   }
 
@@ -243,6 +254,17 @@ export class ReviewWrapperComponent implements OnInit {
   }
 
   async downloadZip() {
+    if (this.specService.deployStatus() === 'running') {
+      const confirmed = confirm('Preview link will be closed after download, are you sure?');
+      if (!confirmed) return;
+      const projectId = this.wizardService.project?.id;
+      if (projectId) {
+        await new Promise<void>(resolve => {
+          this.wizardService.undeployProject(projectId).subscribe({ next: () => resolve(), error: () => resolve() });
+        });
+        this.specService.clearDeploy();
+      }
+    }
     try {
     const angularFiles = this.specService.angular_code_files();
     const javaFiles = this.specService.java_code_files();
@@ -289,6 +311,30 @@ export class ReviewWrapperComponent implements OnInit {
     } catch (e) {
       alert('Download failed: ' + e);
     }
+  }
+
+  ngOnDestroy() {
+    this.pollSub?.unsubscribe();
+  }
+
+  deployProject() {
+    const projectId = this.wizardService.project?.id;
+    if (!projectId) return;
+
+    this.specService.setDeployStatus('building');
+    this.wizardService.deployProject(projectId).pipe(
+      catchError(() => { this.specService.setDeployStatus('failed'); return of(null); })
+    ).subscribe(res => {
+      if (!res) return;
+      this.pollSub = interval(3000).pipe(
+        switchMap(() => this.wizardService.getDeployStatus(projectId)),
+        takeWhile(s => s.status === 'building', true),
+        catchError(() => of({ status: 'failed', url: null }))
+      ).subscribe(s => {
+        if (s.status === 'running') this.specService.setDeployStatus('running', s.url);
+        else if (s.status === 'failed') this.specService.setDeployStatus('failed');
+      });
+    });
   }
 
   viewPrototype() {
