@@ -1,4 +1,4 @@
-google-adk
+google-adk[db]
 httpx
 python-dotenv
 litellm
