@@ -113,6 +113,21 @@ export class WizardService {
     return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/undeploy`, {});
   }
 
+  exportGeneratedCodeToGithub(projectId: string, sessionId: string): Observable<any> {
+    return this.http.post<any>('http://127.0.0.1:8000/integrations/github/export', {
+      project_id: projectId,
+      session_id: sessionId,
+      base_branch: 'main',
+    });
+  }
+
+  createJiraTasks(projectId: string, sessionId: string): Observable<any> {
+    return this.http.post<any>('http://127.0.0.1:8000/integrations/jira/create-tasks', {
+      project_id: projectId,
+      session_id: sessionId,
+    });
+  }
+
   loadExistingProject(project: any): void {
     this.userId = this.authService.getCurrentUser()()?.username || '';
 

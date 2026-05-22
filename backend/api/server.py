@@ -11,6 +11,12 @@ load_dotenv()
 app = FastAPI(title="ProtoPilot API")
 app.include_router(chat_router)
 app.include_router(deploy_router)
+try:
+    from api.routes.integrations import router as integrations_router
+
+    app.include_router(integrations_router)
+except Exception as exc:
+    print(f"[INTEGRATIONS_ROUTER_DISABLED] {exc}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,13 +46,16 @@ class CreateProjectRequest(BaseModel):
 def create_project(req: CreateProjectRequest):
     from orchestration.store import get_or_create_project, persist_project
 
-    proj = get_or_create_project(
-        project_id=req.project_id,
-        req_session_id=req.session_id,
-        user_id=req.user_id,
-        project_title=req.project_title,
-        project_description=req.project_description,
-    )
+    try:
+        proj = get_or_create_project(
+            project_id=req.project_id,
+            req_session_id=req.session_id,
+            user_id=req.user_id,
+            project_title=req.project_title,
+            project_description=req.project_description,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     persist_project(req.project_id)
 

@@ -4,6 +4,7 @@ import { MarkdownModule } from 'ngx-markdown';
 import { SpecService } from './services/spec.service';
 import mermaid from 'mermaid';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
+import { WizardService } from '../requirements/services/wizard-service';
 
 @Component({
   selector: 'app-right-panel',
@@ -21,6 +22,11 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   @ViewChild('mermaidContainer', { static: false }) mermaidContainer?: ElementRef;
 
   specService = inject(SpecService);
+  wizardService = inject(WizardService);
+  githubExportLoading = false;
+  jiraTasksLoading = false;
+  integrationError = '';
+  integrationMessage = '';
 
   constructor() {
     mermaid.initialize({ startOnLoad: false });
@@ -91,6 +97,65 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
 
   getGeneratedFiles(): Record<string, string> | null {
     return this.specService.angular_code_files();
+  }
+
+  hasGeneratedCode(): boolean {
+    const generatedCode = this.specService.angular_code_files();
+    return !!generatedCode && Object.keys(generatedCode).length > 0;
+  }
+
+  exportToGitHub(): void {
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError = 'Missing project or session id.';
+      return;
+    }
+
+    this.githubExportLoading = true;
+    this.integrationError = '';
+    this.integrationMessage = '';
+
+    this.wizardService.exportGeneratedCodeToGithub(projectId, sessionId).subscribe({
+      next: () => {
+        this.integrationMessage = 'GitHub export requested.';
+        this.githubExportLoading = false;
+      },
+      error: (error) => {
+        this.integrationError = this.formatIntegrationError(error, 'GitHub export failed.');
+        this.githubExportLoading = false;
+      },
+    });
+  }
+
+  createJiraTasks(): void {
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError = 'Missing project or session id.';
+      return;
+    }
+
+    this.jiraTasksLoading = true;
+    this.integrationError = '';
+    this.integrationMessage = '';
+
+    this.wizardService.createJiraTasks(projectId, sessionId).subscribe({
+      next: () => {
+        this.integrationMessage = 'Jira task creation requested.';
+        this.jiraTasksLoading = false;
+      },
+      error: (error) => {
+        this.integrationError = this.formatIntegrationError(error, 'Jira task creation failed.');
+        this.jiraTasksLoading = false;
+      },
+    });
+  }
+
+  private formatIntegrationError(error: any, fallback: string): string {
+    return error?.error?.detail || error?.message || fallback;
   }
 
   createStackBlitzProject(): any {

@@ -3,6 +3,22 @@
   <div class="spec-content">
     @if (isCodePreview()) {
       <div class="code-preview-container">
+        @if (hasGeneratedCode()) {
+          <div class="integration-actions">
+            <button type="button" (click)="exportToGitHub()" [disabled]="githubExportLoading || jiraTasksLoading">
+              {{ githubExportLoading ? 'Exporting...' : 'Export to GitHub' }}
+            </button>
+            <button type="button" (click)="createJiraTasks()" [disabled]="githubExportLoading || jiraTasksLoading">
+              {{ jiraTasksLoading ? 'Creating...' : 'Create Jira Tasks' }}
+            </button>
+          </div>
+          @if (integrationError) {
+            <p class="integration-error">{{ integrationError }}</p>
+          }
+          @if (integrationMessage) {
+            <p class="integration-message">{{ integrationMessage }}</p>
+          }
+        }
         <app-live-preview [generatedFiles]="specService.angular_code_files()"></app-live-preview>
       </div>
     } @else if (isPreviewMode && mdText) {

@@ -4,3 +4,4 @@ python-dotenv
 litellm
 aiosqlite
 greenlet
+mcp
