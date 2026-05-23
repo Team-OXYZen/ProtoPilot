@@ -177,7 +177,7 @@ def load_project(project_id: str) -> ProjectState | None:
     )
 
 
-def list_projects() -> list[dict[str, Any]]:
+def list_projects(user_id: str) -> list[dict[str, Any]]:
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -193,8 +193,10 @@ def list_projects() -> list[dict[str, Any]]:
                 created_at,
                 updated_at
             FROM projects
+            WHERE user_id = ?
             ORDER BY updated_at DESC
-            """
+            """,
+            (user_id,),
         ).fetchall()
 
     return [

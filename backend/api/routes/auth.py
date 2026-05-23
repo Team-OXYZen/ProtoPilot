@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from core.auth import create_access_token, get_current_user, hash_password, verify_password
+from core.user_store import create_user, ensure_user, get_password_hash
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -17,9 +18,8 @@ class AuthResponse(BaseModel):
     user: dict[str, str]
 
 
-_users: dict[str, str] = {
-    "demo": hash_password("demo123"),
-}
+def _ensure_demo_user() -> None:
+    ensure_user("demo", hash_password("demo123"))
 
 
 def _auth_response(username: str) -> AuthResponse:
@@ -31,7 +31,8 @@ def _auth_response(username: str) -> AuthResponse:
 
 @router.post("/login", response_model=AuthResponse)
 def login(req: AuthRequest):
-    password_hash = _users.get(req.username)
+    _ensure_demo_user()
+    password_hash = get_password_hash(req.username)
     if password_hash is None or not verify_password(req.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -43,13 +44,14 @@ def login(req: AuthRequest):
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def signup(req: AuthRequest):
-    if req.username in _users:
+    _ensure_demo_user()
+
+    if not create_user(req.username, hash_password(req.password)):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username already exists",
         )
 
-    _users[req.username] = hash_password(req.password)
     return _auth_response(req.username)
 
 
