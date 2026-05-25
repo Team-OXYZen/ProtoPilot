@@ -1,14 +1,18 @@
 from orchestration.tools import delete_angular_code_file, list_angular_code_files, load_angular_code_file, patch_angular_code_file, rename_angular_code_file
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from api.routes.auth import router as auth_router
 from api.routes.chat import router as chat_router
+from api.project_access import authenticated_user_id, ensure_owned_project_or_missing, get_owned_project
+from core.auth import get_current_user
 from api.routes.deploy import router as deploy_router
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI(title="ProtoPilot API")
+app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(deploy_router)
 
@@ -37,13 +41,16 @@ class CreateProjectRequest(BaseModel):
     project_description: str | None = None
 
 @app.post("/projects")
-def create_project(req: CreateProjectRequest):
+def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.store import get_or_create_project, persist_project
+
+    user_id = authenticated_user_id(current_user, req.user_id)
+    ensure_owned_project_or_missing(req.project_id, user_id)
 
     proj = get_or_create_project(
         project_id=req.project_id,
         req_session_id=req.session_id,
-        user_id=req.user_id,
+        user_id=user_id,
         project_title=req.project_title,
         project_description=req.project_description,
     )
@@ -61,20 +68,22 @@ def create_project(req: CreateProjectRequest):
     }
 
 @app.get("/projects")
-def projects():
+def projects(
+    user_id: str | None = None,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
     from orchestration.persistent_store import list_projects
 
-    return {"projects": list_projects()}
+    return {"projects": list_projects(authenticated_user_id(current_user, user_id))}
 
 
 @app.get("/projects/{project_id}")
-def project_detail(project_id: str):
-    from orchestration.store import get_project
-
-    proj = get_project(project_id)
-
-    if proj is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+def project_detail(
+    project_id: str,
+    user_id: str | None = None,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    proj = get_owned_project(project_id, authenticated_user_id(current_user, user_id))
 
     return {
         "project_id": proj.project_id,
@@ -92,14 +101,14 @@ def project_detail(project_id: str):
 
 # update project stage
 @app.post("/projects/{project_id}/stage")
-def update_project_stage(project_id: str, stage: str):
-    from orchestration.store import get_project
+def update_project_stage(
+    project_id: str,
+    stage: str,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
     from orchestration.persistent_store import Stage, set_project_stage
 
-    proj = get_project(project_id)
-
-    if proj is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+    proj = get_owned_project(project_id, authenticated_user_id(current_user))
 
     try:
         proj.stage = Stage(stage)
@@ -112,7 +121,7 @@ def update_project_stage(project_id: str, stage: str):
 
 
 @app.post("/test_tool")
-def test_tool(payload: dict):
+def test_tool(payload: dict, current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
 
     tool_mapping = {
@@ -132,6 +141,10 @@ def test_tool(payload: dict):
 
     if tool_name not in tool_mapping:
         raise HTTPException(status_code=400, detail="Invalid tool name")
+
+    project_id = tool_payload.get("project_id")
+    if project_id:
+        get_owned_project(project_id, authenticated_user_id(current_user))
 
     tool_func = tool_mapping[tool_name]
     result = tool_func(**tool_payload)
