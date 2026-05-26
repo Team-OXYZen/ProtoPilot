@@ -4,7 +4,7 @@ import sdk, { VM } from '@stackblitz/sdk';
 
 @Component({
   selector: 'app-live-preview',
-  template: `<div #previewContainer style="height:50vh"></div>`,
+  template: `<div id="previewContainer" #previewContainer style="height:50vh"></div>`,
   standalone: true
 })
 export class LivePreviewComponent implements AfterViewInit, OnChanges {
