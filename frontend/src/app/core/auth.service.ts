@@ -1,21 +1,27 @@
 import { Injectable, signal } from '@angular/core';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { catchError, map, Observable, of, tap } from 'rxjs';
 import { User } from '../shared/models/user.model';
+
+interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private platformId = inject(PLATFORM_ID);
+  private http = inject(HttpClient);
   private isAuthenticatedSignal = signal<boolean>(false);
   private currentUserSignal = signal<User | null>(null);
-
-  // Hardcoded credentials
-  private readonly VALID_CREDENTIALS = {
-    username: 'demo',
-    password: 'demo123',
-  };
+  private readonly apiUrl = 'http://127.0.0.1:8000/auth';
+  private readonly tokenKey = 'accessToken';
+  private readonly userKey = 'currentUser';
 
   constructor() {
     this.initializeAuth();
@@ -23,8 +29,9 @@ export class AuthService {
 
   private initializeAuth(): void {
     if (isPlatformBrowser(this.platformId)) {
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser) {
+      const token = localStorage.getItem(this.tokenKey);
+      const savedUser = localStorage.getItem(this.userKey);
+      if (token && savedUser) {
         const user = JSON.parse(savedUser);
         this.currentUserSignal.set(user);
         this.isAuthenticatedSignal.set(true);
@@ -32,21 +39,32 @@ export class AuthService {
     }
   }
 
-  login(username: string, password: string): boolean {
-    if (
-      username === this.VALID_CREDENTIALS.username &&
-      password === this.VALID_CREDENTIALS.password
-    ) {
-      const user: User = { username };
-      this.currentUserSignal.set(user);
-      this.isAuthenticatedSignal.set(true);
-      
-      if (isPlatformBrowser(this.platformId)) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-      }
-      return true;
+  login(username: string, password: string): Observable<boolean> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/login`, { username, password })
+      .pipe(
+        tap((response) => this.setSession(response)),
+        map(() => true),
+        catchError(() => of(false)),
+      );
+  }
+
+  signup(username: string, password: string): Observable<boolean> {
+    return this.http
+      .post<AuthResponse>(`${this.apiUrl}/signup`, { username, password })
+      .pipe(
+        tap((response) => this.setSession(response)),
+        map(() => true),
+        catchError(() => of(false)),
+      );
+  }
+
+  getToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) {
+      return null;
     }
-    return false;
+
+    return localStorage.getItem(this.tokenKey);
   }
 
   logout(): void {
@@ -54,7 +72,8 @@ export class AuthService {
     this.isAuthenticatedSignal.set(false);
     
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('currentUser');
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.userKey);
     }
   }
 
@@ -64,5 +83,15 @@ export class AuthService {
 
   getCurrentUser() {
     return this.currentUserSignal.asReadonly();
+  }
+
+  private setSession(response: AuthResponse): void {
+    this.currentUserSignal.set(response.user);
+    this.isAuthenticatedSignal.set(true);
+
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem(this.tokenKey, response.access_token);
+      localStorage.setItem(this.userKey, JSON.stringify(response.user));
+    }
   }
 }

@@ -13,14 +13,17 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     component: DashboardComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'requirements',
     component: WizardComponent,
+    canActivate: [authGuard],
   },
   {
     path: 'spec-review',
     component: ReviewWrapperComponent,
+    canActivate: [authGuard],
   },
   {
     path: '',
