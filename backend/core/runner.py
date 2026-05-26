@@ -1,13 +1,11 @@
 import os
 import uuid
-import logging
 from google.adk.runners import Runner
 from google.adk.apps.app import App, EventsCompactionConfig
 from google.adk.apps.llm_event_summarizer import LlmEventSummarizer
 from google.genai import types
+from core.logging_utils import log_event
 from core.sessions import session_service
-
-logger = logging.getLogger(__name__)
 
 
 def _is_recoverable_session_error(exc: Exception) -> bool:
@@ -39,12 +37,17 @@ async def run_turn(agent, session_id: str, message: str, use_compaction: bool = 
         session = None
 
     if session is None:
+        log_event("AGENT", "session_create", {"session_id": session_id, "app_name": app_name, "use_compaction": use_compaction})
         session = await session_service.create_session(
             app_name=app_name,
             user_id=user_id,
             session_id=session_id,
         )
 
+    else:
+        log_event("AGENT", "session_reuse", {"session_id": session_id, "app_name": app_name, "use_compaction": use_compaction})
+
+    log_event("AGENT", "turn_start", {"session_id": session.id, "message": message, "use_compaction": use_compaction})
     if use_compaction:
         compaction_config = EventsCompactionConfig(
             summarizer=LlmEventSummarizer(llm=agent.model),
@@ -72,7 +75,9 @@ async def run_turn(agent, session_id: str, message: str, use_compaction: bool = 
                 if getattr(part, "text", None):
                     chunks.append(part.text)
 
-    return "".join(chunks).strip()
+    result = "".join(chunks).strip()
+    log_event("AGENT", "turn_done", {"session_id": session.id, "reply": result}, status="ok")
+    return result
 
 
 async def run_turn_with_recovery(
@@ -91,11 +96,15 @@ async def run_turn_with_recovery(
             raise
 
         recovery_session_id = f"{session_id}-recovery-{uuid.uuid4().hex[:8]}"
-        logger.warning(
-            "Recovering failed agent turn in fresh session. original_session=%s recovery_session=%s error=%s",
-            session_id,
-            recovery_session_id,
-            exc,
+        log_event(
+            "RETRY",
+            "fresh_session_retry",
+            {
+                "original_session": session_id,
+                "recovery_session": recovery_session_id,
+                "error": str(exc),
+            },
+            status="retry",
         )
         recovery_message = (
             "The previous model call failed before completion, likely because the prior session context "

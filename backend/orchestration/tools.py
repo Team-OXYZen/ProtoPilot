@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import shutil
@@ -9,6 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from core.logging_utils import log_event
 from orchestration.store import Stage, get_or_create_project, persist_project, get_project
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,12 @@ MAX_BUILD_OUTPUT_CHARS = 20000
 
 
 def _log_tool_event(tool: str, payload: dict[str, Any]) -> None:
-    print(f"[TOOL_CALL] {tool}\n {json.dumps(payload, ensure_ascii=False)}")
+    log_event("TOOL", tool, payload, status="ok")
+
+
+def _log_tool_error(error_msg: str) -> None:
+    tool_name = error_msg.split(" failed", 1)[0]
+    log_event("TOOL", tool_name, {"error": error_msg}, status="fail")
 
 
 def _truncate_output(output: str, limit: int = MAX_BUILD_OUTPUT_CHARS) -> str:
@@ -88,6 +93,7 @@ def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
         return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
     except Exception as e:
         error_msg = f"submit_spec failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -108,6 +114,7 @@ def load_spec(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "spec": proj.spec or {}}
     except Exception as e:
         error_msg = f"load_spec failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "spec": {}}
 
@@ -134,6 +141,7 @@ def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dic
         return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
     except Exception as e:
         error_msg = f"save_nontech_artifacts failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -160,6 +168,7 @@ def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> d
         return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
     except Exception as e:
         error_msg = f"save_technical_artifacts failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -184,6 +193,7 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
         return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
     except Exception as e:
         error_msg = f"set_project_stage failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -197,6 +207,7 @@ def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
         return {"ok": True, "project_id": project_id}
     except Exception as e:
         error_msg = f"save_artifacts_summary failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -208,6 +219,7 @@ def load_artifacts_summary(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "artifacts_summary": proj.artifacts_summary or ""}
     except Exception as e:
         error_msg = f"load_artifacts_summary failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "artifacts_summary": ""}
 
@@ -219,6 +231,7 @@ def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "nontech_artifacts_md": proj.nontech_artifacts_md or {}}
     except Exception as e:
         error_msg = f"load_nontech_artifacts failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "nontech_artifacts_md": {}}
 
@@ -230,6 +243,7 @@ def load_technical_artifacts(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "technical_artifacts_md": proj.technical_artifacts_md or {}}
     except Exception as e:
         error_msg = f"load_technical_artifacts failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "technical_artifacts_md": {}}
 
@@ -245,6 +259,7 @@ def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"patch_nontech_artifact failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -260,6 +275,7 @@ def patch_technical_artifact(project_id: str, filename: str, content: str) -> di
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"patch_technical_artifact failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -285,6 +301,7 @@ def load_artifacts(project_id: str) -> dict[str, Any]:
         }
     except Exception as e:
         error_msg = f"load_artifacts failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "nontech_artifacts_md": {}, "technical_artifacts_md": {}}
 
@@ -299,6 +316,7 @@ def list_angular_code_files(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "angular_code_files": file_list}
     except Exception as e:
         error_msg = f"list_angular_code_files failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "angular_code_files": []}
 
@@ -311,6 +329,7 @@ def load_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
         return {"project_id": project_id, "filename": filename, "content": file_content}
     except Exception as e:
         error_msg = f"load_angular_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename, "content": None}
 
@@ -327,6 +346,7 @@ def patch_angular_code_file(project_id: str, filename: str, new_content: str) ->
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"patch_angular_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -335,6 +355,7 @@ def delete_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
     try:
         proj = get_project(project_id)
         if not proj.angular_code_files or filename not in proj.angular_code_files:
+            log_event("TOOL", "delete_angular_code_file", {"project_id": project_id, "filename": filename, "error": "File not found"}, status="fail")
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": filename}
         del proj.angular_code_files[filename]
         persist_project(project_id)
@@ -342,6 +363,7 @@ def delete_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"delete_angular_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -350,6 +372,7 @@ def rename_angular_code_file(project_id: str, old_filename: str, new_filename: s
     try:
         proj = get_project(project_id)
         if not proj.angular_code_files or old_filename not in proj.angular_code_files:
+            log_event("TOOL", "rename_angular_code_file", {"project_id": project_id, "old_filename": old_filename, "new_filename": new_filename, "error": "File not found"}, status="fail")
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": old_filename}
         proj.angular_code_files[new_filename] = proj.angular_code_files.pop(old_filename)
         persist_project(project_id)
@@ -357,6 +380,7 @@ def rename_angular_code_file(project_id: str, old_filename: str, new_filename: s
         return {"ok": True, "project_id": project_id, "old_filename": old_filename, "new_filename": new_filename}
     except Exception as e:
         error_msg = f"rename_angular_code_file failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "old_filename": old_filename, "new_filename": new_filename}
 
@@ -365,6 +389,7 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
     try:
         proj = get_project(project_id)
         if not proj or not proj.angular_code_files:
+            log_event("BUILD", "angular_build_missing_files", {"project_id": project_id}, status="fail")
             return {
                 "ok": False,
                 "project_id": project_id,
@@ -372,6 +397,7 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
             }
 
         if "package.json" not in proj.angular_code_files:
+            log_event("BUILD", "angular_build_missing_package", {"project_id": project_id}, status="fail")
             return {
                 "ok": False,
                 "project_id": project_id,
@@ -380,6 +406,11 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
 
         with tempfile.TemporaryDirectory(prefix=f"protopilot-angular-{project_id}-") as temp_dir:
             project_root = Path(temp_dir)
+            log_event(
+                "BUILD",
+                "angular_build_start",
+                {"project_id": project_id, "files_count": len(proj.angular_code_files), "workspace": str(project_root)},
+            )
             for filename, content in proj.angular_code_files.items():
                 destination = _safe_project_file_path(project_root, filename)
                 destination.parent.mkdir(parents=True, exist_ok=True)
@@ -387,22 +418,26 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
 
             package_manager = shutil.which("npm")
             if not package_manager:
+                log_event("BUILD", "npm_missing", {"project_id": project_id}, status="fail")
                 return {
                     "ok": False,
                     "project_id": project_id,
                     "error": "npm was not found on PATH.",
                 }
 
+            log_event("BUILD", "npm_install_start", {"project_id": project_id})
             install_result = _run_command([package_manager, "install", "--no-audit", "--no-fund"], project_root, timeout_seconds=180)
             if not install_result["ok"]:
-                _log_tool_event(
+                log_event(
+                    "BUILD",
                     "run_angular_build",
                     {
                         "project_id": project_id,
                         "phase": "install",
-                        "ok": False,
                         "exit_code": install_result["exit_code"],
+                        "output": install_result["output"],
                     },
+                    status="fail",
                 )
                 return {
                     "ok": False,
@@ -413,15 +448,19 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
                     "error_output": install_result["output"],
                 }
 
+            log_event("BUILD", "npm_install_done", {"project_id": project_id, "exit_code": install_result["exit_code"]}, status="ok")
+            log_event("BUILD", "npm_build_start", {"project_id": project_id})
             build_result = _run_command([package_manager, "run", "build"], project_root, timeout_seconds=180)
-            _log_tool_event(
-                "run_angular_build",
+            log_event(
+                "BUILD",
+                "npm_build_done",
                 {
                     "project_id": project_id,
                     "phase": "build",
-                    "ok": build_result["ok"],
                     "exit_code": build_result["exit_code"],
+                    "output": "" if build_result["ok"] else build_result["output"],
                 },
+                status="ok" if build_result["ok"] else "fail",
             )
             return {
                 "ok": build_result["ok"],
@@ -433,6 +472,7 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
             }
     except Exception as e:
         error_msg = f"run_angular_build failed: {str(e)}"
+        log_event("BUILD", "angular_build_error", {"project_id": project_id, "error": error_msg}, status="fail")
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
 
@@ -447,6 +487,7 @@ def list_java_code_files(project_id: str) -> dict[str, Any]:
         return {"project_id": project_id, "java_code_files": file_list}
     except Exception as e:
         error_msg = f"list_java_code_files failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "java_code_files": []}
 
@@ -459,6 +500,7 @@ def load_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
         return {"project_id": project_id, "filename": filename, "content": file_content}
     except Exception as e:
         error_msg = f"load_java_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename, "content": None}
 
@@ -475,6 +517,7 @@ def patch_java_code_file(project_id: str, filename: str, new_content: str) -> di
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"patch_java_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -483,6 +526,7 @@ def delete_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
     try:
         proj = get_project(project_id)
         if not proj.java_code_files or filename not in proj.java_code_files:
+            log_event("TOOL", "delete_java_code_file", {"project_id": project_id, "filename": filename, "error": "File not found"}, status="fail")
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": filename}
         del proj.java_code_files[filename]
         persist_project(project_id)
@@ -490,6 +534,7 @@ def delete_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
         return {"ok": True, "project_id": project_id, "filename": filename}
     except Exception as e:
         error_msg = f"delete_java_code_file failed for {filename}: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
 
@@ -498,6 +543,7 @@ def rename_java_code_file(project_id: str, old_filename: str, new_filename: str)
     try:
         proj = get_project(project_id)
         if not proj.java_code_files or old_filename not in proj.java_code_files:
+            log_event("TOOL", "rename_java_code_file", {"project_id": project_id, "old_filename": old_filename, "new_filename": new_filename, "error": "File not found"}, status="fail")
             return {"ok": False, "error": "File not found", "project_id": project_id, "filename": old_filename}
         proj.java_code_files[new_filename] = proj.java_code_files.pop(old_filename)
         persist_project(project_id)
@@ -505,5 +551,6 @@ def rename_java_code_file(project_id: str, old_filename: str, new_filename: str)
         return {"ok": True, "project_id": project_id, "old_filename": old_filename, "new_filename": new_filename}
     except Exception as e:
         error_msg = f"rename_java_code_file failed: {str(e)}"
+        _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "old_filename": old_filename, "new_filename": new_filename}

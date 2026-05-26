@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from api.project_access import authenticated_user_id, ensure_owned_project_or_missing, get_owned_project
 from core.auth import get_current_user
+from core.logging_utils import log_event
 from orchestration.orchestrator import Orchestrator
 from orchestration.persistent_store import save_chat_message, list_chat_messages
 
@@ -68,6 +69,17 @@ def _reply_to_text(reply: Any) -> str:
 async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_current_user)):
     req.user_id = authenticated_user_id(current_user, req.user_id)
     ensure_owned_project_or_missing(req.project_id, req.user_id)
+    log_event(
+        "CHAT",
+        "incoming_user_message",
+        {
+            "project_id": req.project_id,
+            "session_id": req.session_id,
+            "user_id": req.user_id,
+            "save_to_history": req.save_to_history,
+            "message": req.message,
+        },
+    )
 
     try:
         if req.save_to_history:
@@ -85,6 +97,20 @@ async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_curr
             user_id=req.user_id,
             project_title=req.project_title,
             project_description=req.project_description,
+        )
+        log_event(
+            "CHAT",
+            "outgoing_response",
+            {
+                "project_id": req.project_id,
+                "session_id": req.session_id,
+                "stage": _stage_to_str(result.get("stage")),
+                "reply": _reply_to_text(result.get("reply")),
+                "has_spec": result.get("spec") is not None,
+                "angular_files": len(result.get("angular_code_files") or {}),
+                "java_files": len(result.get("java_code_files") or {}),
+            },
+            status="ok",
         )
 
         if req.save_to_history:
@@ -115,9 +141,15 @@ async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_curr
         }
 
     except HTTPException:
+        log_event("CHAT", "http_exception", {"project_id": req.project_id, "session_id": req.session_id}, status="fail")
         raise
     except Exception as e:
-        print("[CHAT_ERROR]", str(e))
+        log_event(
+            "ERROR",
+            "chat_failed",
+            {"project_id": req.project_id, "session_id": req.session_id, "error": str(e)},
+            status="fail",
+        )
 
         if req.save_to_history:
             save_chat_message(

@@ -1,10 +1,10 @@
 import json
 import logging
-import os
 import re
 from typing import Any
 
 from core.auth import get_oauth_token
+from core.logging_utils import log_event
 from core.runner import run_turn, run_turn_with_recovery
 from core.sessions import session_service
 from agents.registry import AGENT_FACTORIES
@@ -113,11 +113,13 @@ class Orchestrator:
 
     async def _handle_wait_approval(self, proj, normalized: str) -> dict[str, Any]:
         if normalized == "approve":
+            log_event("STAGE", "approval_received", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.TECH_ARTIFACTS.value})
             set_project_stage(proj.project_id, Stage.TECH_ARTIFACTS)
             proj.stage=Stage.TECH_ARTIFACTS
             return {}
 
         if normalized == "change":
+            log_event("STAGE", "revision_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.REQ.value})
             set_project_stage(proj.project_id, Stage.REQ)
             proj.stage=Stage.REQ
             return self._build_response(
@@ -144,7 +146,9 @@ class Orchestrator:
             f"User message:\n{user_message}"
         )
 
+        log_event("AGENT", "requirements_start", {"project_id": proj.project_id, "phase": phase, "session_id": req_session_id})
         reply = await run_turn(req_agent, req_session_id, message=req_prompt)
+        log_event("AGENT", "requirements_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": reply}, status="ok")
 
         if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
             return await self._run_artifacts_non_tech(token, proj, req_session_id)
@@ -158,6 +162,16 @@ class Orchestrator:
     async def handle(self,project_id: str,req_session_id: str,user_message: str,user_id: str,project_title: str | None = None,project_description: str | None = None,) -> dict:
         proj = get_or_create_project(project_id=project_id,req_session_id=req_session_id,user_id=user_id,project_title=project_title,project_description=project_description,)
         normalized = user_message.strip().lower()
+        log_event(
+            "ORCH",
+            "route",
+            {
+                "project_id": project_id,
+                "session_id": req_session_id,
+                "stage": proj.stage.value,
+                "message": user_message,
+            },
+        )
 
         if proj.stage == Stage.WAIT_APPROVAL:
             approval_result = await self._handle_wait_approval(proj, normalized)
@@ -176,6 +190,7 @@ class Orchestrator:
             return await self._run_angular_codegen(token, proj, req_session_id)
         if proj.stage == Stage.QA:
             if normalized == "finalize":
+                log_event("STAGE", "finalize_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.FINALIZE.value})
                 set_project_stage(proj.project_id, Stage.FINALIZE)
                 return await self._run_java_codegen(token, proj, req_session_id)
             return await self._run_qa(token, proj, req_session_id, user_message)
@@ -196,9 +211,12 @@ class Orchestrator:
             "Generate PM-facing non-technical artifacts now.\n"
             "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
+        log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-nontech"})
         _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
+        log_event("AGENT", "artifacts_nontech_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": _raw_reply}, status="ok")
 
         if proj.stage != Stage.WAIT_APPROVAL:
+            log_event("ERROR", "artifacts_nontech_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
             set_project_stage(proj.project_id, Stage.REQ)
             persist_project(proj.project_id)
             raise RuntimeError(f"Non-technical artifacts generation failed: {_raw_reply}")
@@ -225,13 +243,16 @@ class Orchestrator:
             "Use load_spec(project_id) first, then save_technical_artifacts with a dictionary (filename keys, markdown content values) at the end."
         )
 
+        log_event("AGENT", "artifacts_technical_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-tech"})
         _raw_reply = await run_turn(
             art_agent,
             session_id=f"{req_session_id}-tech",
             message=art_prompt,
         )
+        log_event("AGENT", "artifacts_technical_done", {"project_id": proj.project_id, "artifact_files": list((proj.technical_artifacts_md or {}).keys()), "reply": _raw_reply}, status="ok")
 
         if not proj.technical_artifacts_md:
+            log_event("ERROR", "artifacts_technical_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
             raise RuntimeError(f"Technical artifacts generation failed: {_raw_reply}")
 
         reply = {
@@ -255,6 +276,7 @@ class Orchestrator:
                 "Use tools to get requirements and artifacts, "
                 "generate modular Angular components and services with mocked API calls, "
             )
+            log_event("AGENT", "angular_codegen_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-codegen"})
             _raw_reply = await run_turn_with_recovery(
                 code_agent,
                 session_id=f"{req_session_id}-codegen",
@@ -263,7 +285,7 @@ class Orchestrator:
                 use_compaction=True,
                 max_retries=1,
             )
-            print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
+            log_event("AGENT", "angular_codegen_done", {"project_id": proj.project_id, "files": list((proj.angular_code_files or {}).keys()), "reply": _raw_reply}, status="ok")
 
             if proj.angular_code_files:
                 review_reply = await self._run_code_review(token, proj, req_session_id)
@@ -277,7 +299,7 @@ class Orchestrator:
                 raise RuntimeError(f"Code generation failed: {_raw_reply}")
         except Exception as e:
             error_message = f"Code generation failed with error: {str(e)}"
-            print(f"[ERROR] Angular codegen: {error_message}")
+            log_event("ERROR", "angular_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return self._build_response(proj=proj, reply={"message": error_message})
 
     async def _run_code_review(self, token, proj, req_session_id: str) -> str:
@@ -290,7 +312,7 @@ class Orchestrator:
                 "and rerun the build after each repair attempt. Stop when the build passes or after 3 repair attempts."
             )
 
-            print(f"[CODE_REVIEW] Starting generated Angular build review for project_id={proj.project_id}")
+            log_event("AGENT", "code_review_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-code-review"})
             review_reply = await run_turn_with_recovery(
                 review_agent,
                 session_id=f"{req_session_id}-code-review",
@@ -299,13 +321,14 @@ class Orchestrator:
                 use_compaction=True,
                 max_retries=1,
             )
-            print(f"[CODE_REVIEW] Raw agent reply: {review_reply}")
+            log_event("AGENT", "code_review_done", {"project_id": proj.project_id, "reply": review_reply}, status="ok")
             return review_reply
         except Exception as e:
             error_message = f"Code review failed with error: {str(e)}"
-            print(f"[ERROR] Code review: {error_message}")
+            log_event("ERROR", "code_review_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return error_message
         finally:
+            log_event("STAGE", "code_review_complete", {"project_id": proj.project_id, "to": Stage.QA.value})
             set_project_stage(proj.project_id, Stage.QA)
             proj.stage = Stage.QA
             persist_project(proj.project_id)
@@ -327,6 +350,7 @@ class Orchestrator:
                 "Generate a Java Spring Boot backend and update Angular services to use real API calls.\n"
                 "Follow the instructions step by step: analyse Angular services first, then generate Java files one at a time, then update Angular services."
             )
+            log_event("AGENT", "java_codegen_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-javacodegen"})
             _raw_reply = await run_turn_with_recovery(
                 code_agent,
                 session_id=f"{req_session_id}-javacodegen",
@@ -335,7 +359,7 @@ class Orchestrator:
                 use_compaction=True,
                 max_retries=1,
             )
-            print(f"[JAVA_CODEGEN] Raw agent reply: {_raw_reply}")
+            log_event("AGENT", "java_codegen_done", {"project_id": proj.project_id, "files": list((proj.java_code_files or {}).keys()), "reply": _raw_reply}, status="ok")
 
             if proj.java_code_files:
                 return self._build_response(
@@ -351,7 +375,7 @@ class Orchestrator:
                 )
         except Exception as e:
             error_message = f"Java code generation failed with error: {str(e)}"
-            print(f"[ERROR] Java codegen: {error_message}")
+            log_event("ERROR", "java_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return self._build_response(proj=proj, reply={"message": error_message})
 
     async def _run_qa(self, llm, proj, req_session_id: str, user_message: str) -> dict:
@@ -362,8 +386,8 @@ class Orchestrator:
             f"User feedback: {user_message}"
         )
 
-        print(f"[QA] Starting QA with prompt: {qa_prompt}")
         qa_session_id = f"{req_session_id}-qa"
+        log_event("AGENT", "qa_start", {"project_id": proj.project_id, "session_id": qa_session_id, "feedback": user_message})
         _raw_reply = await run_turn_with_recovery(
             qa_agent,
             session_id=qa_session_id,
@@ -372,7 +396,7 @@ class Orchestrator:
             use_compaction=True,
             max_retries=1,
         )
-        print(f"[QA] Raw agent reply: {_raw_reply}")
+        log_event("AGENT", "qa_done", {"project_id": proj.project_id, "reply": _raw_reply}, status="ok")
 
         reply = {"message": f"{_raw_reply}"}
         return self._build_response(

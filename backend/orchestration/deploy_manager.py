@@ -5,6 +5,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from core.logging_utils import log_event
+
 PROJECTS_DIR = Path.home() / "protopilot-projects"
 PORT_RANGE_START = 5001
 PORT_RANGE_END = 5999
@@ -44,7 +46,7 @@ class DeployManager:
             )
             if "frontend" in result.stdout:
                 self._deploy_status[project_id] = "running"
-                print(f"[DEPLOY] Restored running state for {project_id}")
+                log_event("BUILD", "deploy_restore_running", {"project_id": project_id}, status="ok")
 
     def _allocate_port(self, project_id: str) -> int:
         if project_id in self._port_registry:
@@ -172,6 +174,7 @@ networks:
     async def deploy(self, project_id: str, angular_files: dict, java_files: dict) -> int:
         async with self._lock:
             port = self._allocate_port(project_id)
+        log_event("BUILD", "deploy_start", {"project_id": project_id, "port": port, "angular_files": len(angular_files or {}), "java_files": len(java_files or {})})
         self._write_project_files(project_id, angular_files, java_files)
         self._write_docker_files(project_id, port)
         self._deploy_status[project_id] = "building"
@@ -190,13 +193,13 @@ networks:
             stdout, stderr = await proc.communicate()
             if proc.returncode == 0:
                 self._deploy_status[project_id] = "running"
-                print(f"[DEPLOY] {project_id} running on port {self._port_registry.get(project_id)}")
+                log_event("BUILD", "deploy_running", {"project_id": project_id, "port": self._port_registry.get(project_id)}, status="ok")
             else:
                 self._deploy_status[project_id] = "failed"
-                print(f"[DEPLOY] {project_id} failed:\n{stderr.decode()}")
+                log_event("BUILD", "deploy_failed", {"project_id": project_id, "exit_code": proc.returncode, "stderr": stderr.decode()}, status="fail")
         except Exception as e:
             self._deploy_status[project_id] = "failed"
-            print(f"[DEPLOY] {project_id} error: {e}")
+            log_event("BUILD", "deploy_error", {"project_id": project_id, "error": str(e)}, status="fail")
 
     def get_status(self, project_id: str) -> dict:
         status = self._deploy_status.get(project_id, "idle")
@@ -218,9 +221,9 @@ networks:
                     stderr=asyncio.subprocess.PIPE,
                 )
                 await proc.communicate()
-                print(f"[UNDEPLOY] {project_id} stopped")
+                log_event("BUILD", "undeploy_done", {"project_id": project_id}, status="ok")
             except Exception as e:
-                print(f"[UNDEPLOY] {project_id} error: {e}")
+                log_event("BUILD", "undeploy_error", {"project_id": project_id, "error": str(e)}, status="fail")
         self._deploy_status.pop(project_id, None)
         self._free_port(project_id)
 
