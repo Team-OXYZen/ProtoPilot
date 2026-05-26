@@ -83,6 +83,16 @@ class Orchestrator:
             "continue from them instead of deleting and regenerating everything."
         )
 
+    def _build_summary(self, build_result: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "ok": build_result.get("ok"),
+            "phase": build_result.get("phase"),
+            "error": build_result.get("error"),
+            "error_output": build_result.get("error_output"),
+            "install_exit_code": (build_result.get("install") or {}).get("exit_code") if isinstance(build_result.get("install"), dict) else None,
+            "build_exit_code": (build_result.get("build") or {}).get("exit_code") if isinstance(build_result.get("build"), dict) else None,
+        }
+
     def _requirements_tools(self) -> list:
         return [submit_spec]
 
@@ -109,6 +119,7 @@ class Orchestrator:
             patch_nontech_artifact, patch_technical_artifact,
             list_angular_code_files, load_angular_code_file,
             patch_angular_code_file, delete_angular_code_file, rename_angular_code_file,
+            run_angular_build,
         ]
 
     async def _handle_wait_approval(self, proj, normalized: str) -> dict[str, Any]:
@@ -288,12 +299,24 @@ class Orchestrator:
             log_event("AGENT", "angular_codegen_done", {"project_id": proj.project_id, "files": list((proj.angular_code_files or {}).keys()), "reply": _raw_reply}, status="ok")
 
             if proj.angular_code_files:
+                codegen_build_ok, codegen_verify_reply = await self._verify_angular_codegen_build(code_agent, proj, req_session_id)
+                if not codegen_build_ok:
+                    return self._build_response(
+                        proj=proj,
+                        reply={
+                            "message": "Angular code was generated, but the build still fails after repair attempts.",
+                            "codegen_verification": codegen_verify_reply,
+                        },
+                        angular_code_files=proj.angular_code_files,
+                        raw_reply=f"{_raw_reply}\n\n[CODEGEN_BUILD_VERIFICATION]\n{codegen_verify_reply}",
+                    )
+
                 review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Angular code generated and reviewed.", "review": review_reply},
+                    reply={"message": "Angular code generated, build-verified, and reviewed.", "codegen_verification": codegen_verify_reply, "review": review_reply},
                     angular_code_files=proj.angular_code_files,
-                    raw_reply=f"{_raw_reply}\n\n[CODE_REVIEW]\n{review_reply}",
+                    raw_reply=f"{_raw_reply}\n\n[CODEGEN_BUILD_VERIFICATION]\n{codegen_verify_reply}\n\n[CODE_REVIEW]\n{review_reply}",
                 )
             else:
                 raise RuntimeError(f"Code generation failed: {_raw_reply}")
@@ -302,27 +325,159 @@ class Orchestrator:
             log_event("ERROR", "angular_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return self._build_response(proj=proj, reply={"message": error_message})
 
-    async def _run_code_review(self, token, proj, req_session_id: str) -> str:
-        try:
-            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools())
-            review_prompt = (
-                f"project_id={proj.project_id}\n"
-                "Review the generated Angular project now. "
-                "Run the Angular build first, fix any install/build errors using the Angular file tools, "
-                "and rerun the build after each repair attempt. Stop when the build passes or after 3 repair attempts."
-            )
+    async def _verify_angular_codegen_build(self, code_agent, proj, req_session_id: str) -> tuple[bool, str]:
+        verification_messages: list[str] = []
+        build_result = run_angular_build(proj.project_id)
 
-            log_event("AGENT", "code_review_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-code-review"})
-            review_reply = await run_turn_with_recovery(
-                review_agent,
-                session_id=f"{req_session_id}-code-review",
-                message=review_prompt,
-                resume_context=self._resume_context(proj, "code_review"),
+        for attempt in range(1, 4):
+            if build_result.get("ok"):
+                verified_message = "Angular build verified by orchestrator after code generation."
+                log_event("AGENT", "angular_codegen_build_verified", {"project_id": proj.project_id}, status="ok")
+                verification_messages.append(verified_message)
+                return True, "\n\n".join(verification_messages)
+
+            log_event(
+                "AGENT",
+                "angular_codegen_repair_attempt",
+                {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(build_result)},
+                status="retry",
+            )
+            repair_prompt = (
+                f"project_id={proj.project_id}\n"
+                f"codegen_build_repair_attempt={attempt}/3\n"
+                "The backend orchestrator ran npm install and npm run build for the Angular project you generated, and it failed. "
+                "Inspect the generated Angular files needed to fix the error, patch the smallest safe set of files, and do not claim success. "
+                "The orchestrator will run the build again after your patch. Continue from existing saved files; do not regenerate the whole app unless unavoidable.\n\n"
+                "Latest build result:\n"
+                f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+            )
+            repair_reply = await run_turn_with_recovery(
+                code_agent,
+                session_id=f"{req_session_id}-codegen-build-repair-{attempt}",
+                message=repair_prompt,
+                resume_context=self._resume_context(proj, f"angular_codegen_build_repair_{attempt}"),
                 use_compaction=True,
                 max_retries=1,
             )
-            log_event("AGENT", "code_review_done", {"project_id": proj.project_id, "reply": review_reply}, status="ok")
-            return review_reply
+            verification_messages.append(f"Codegen build repair attempt {attempt}: {repair_reply}")
+            build_result = run_angular_build(proj.project_id)
+
+        failure_message = (
+            "Angular build still fails after 3 orchestrator-verified codegen repair attempts.\n"
+            f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+        )
+        log_event("ERROR", "angular_codegen_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(build_result)}, status="fail")
+        verification_messages.append(failure_message)
+        return False, "\n\n".join(verification_messages)
+
+    async def _run_code_review(self, token, proj, req_session_id: str) -> str:
+        review_messages: list[str] = []
+
+        try:
+            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools())
+
+            log_event("AGENT", "code_review_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-code-review"})
+            build_result = run_angular_build(proj.project_id)
+
+            for attempt in range(1, 4):
+                if build_result.get("ok"):
+                    break
+
+                log_event(
+                    "AGENT",
+                    "code_review_repair_attempt",
+                    {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(build_result)},
+                    status="retry",
+                )
+                repair_prompt = (
+                    f"project_id={proj.project_id}\n"
+                    f"repair_attempt={attempt}/3\n"
+                    "The backend orchestrator ran the Angular build and it failed. "
+                    "Inspect the generated Angular files needed to fix the error, patch the smallest safe set of files, "
+                    "and do not claim success. The orchestrator will run the build again after your patch.\n\n"
+                    "Latest build result:\n"
+                    f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+                )
+                repair_reply = await run_turn_with_recovery(
+                    review_agent,
+                    session_id=f"{req_session_id}-code-review-repair-{attempt}",
+                    message=repair_prompt,
+                    resume_context=self._resume_context(proj, f"code_review_repair_{attempt}"),
+                    use_compaction=True,
+                    max_retries=1,
+                )
+                review_messages.append(f"Repair attempt {attempt}: {repair_reply}")
+                build_result = run_angular_build(proj.project_id)
+
+            if not build_result.get("ok"):
+                failure_message = (
+                    "Angular build still fails after 3 orchestrator-verified repair attempts.\n"
+                    f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+                )
+                log_event("ERROR", "code_review_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(build_result)}, status="fail")
+                review_messages.append(failure_message)
+                return "\n\n".join(review_messages)
+
+            ux_prompt = (
+                f"project_id={proj.project_id}\n"
+                "The backend orchestrator has verified that npm install and npm run build pass. "
+                "Now perform the UX/functionality audit from your instructions. Check for one-page dumping, missing navigation, "
+                "bare styling, missing icons/charts where useful, unclickable entity rows/cards, and buttons without real handlers. "
+                "Patch any obvious UX completeness issues. If you patch anything, do not claim final build success; the orchestrator will verify again."
+            )
+            ux_reply = await run_turn_with_recovery(
+                review_agent,
+                session_id=f"{req_session_id}-code-review-ux",
+                message=ux_prompt,
+                resume_context=self._resume_context(proj, "code_review_ux"),
+                use_compaction=True,
+                max_retries=1,
+            )
+            review_messages.append(f"UX audit: {ux_reply}")
+
+            final_build_result = run_angular_build(proj.project_id)
+            for attempt in range(1, 4):
+                if final_build_result.get("ok"):
+                    break
+
+                log_event(
+                    "AGENT",
+                    "code_review_post_ux_repair_attempt",
+                    {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(final_build_result)},
+                    status="retry",
+                )
+                repair_prompt = (
+                    f"project_id={proj.project_id}\n"
+                    f"post_ux_repair_attempt={attempt}/3\n"
+                    "The UX audit introduced or left a build error. Fix the build error only, preserving the improved UI where possible. "
+                    "The orchestrator will verify the build again after your patch.\n\n"
+                    "Latest build result:\n"
+                    f"{json.dumps(self._build_summary(final_build_result), ensure_ascii=False, indent=2)}"
+                )
+                repair_reply = await run_turn_with_recovery(
+                    review_agent,
+                    session_id=f"{req_session_id}-code-review-post-ux-repair-{attempt}",
+                    message=repair_prompt,
+                    resume_context=self._resume_context(proj, f"code_review_post_ux_repair_{attempt}"),
+                    use_compaction=True,
+                    max_retries=1,
+                )
+                review_messages.append(f"Post-UX repair attempt {attempt}: {repair_reply}")
+                final_build_result = run_angular_build(proj.project_id)
+
+            if final_build_result.get("ok"):
+                verified_message = "Angular build verified by orchestrator after code review."
+                log_event("AGENT", "code_review_done", {"project_id": proj.project_id, "reply": verified_message}, status="ok")
+                review_messages.append(verified_message)
+            else:
+                failure_message = (
+                    "Angular build failed after UX audit and 3 orchestrator-verified repair attempts.\n"
+                    f"{json.dumps(self._build_summary(final_build_result), ensure_ascii=False, indent=2)}"
+                )
+                log_event("ERROR", "code_review_final_build_failed", {"project_id": proj.project_id, "build": self._build_summary(final_build_result)}, status="fail")
+                review_messages.append(failure_message)
+
+            return "\n\n".join(review_messages)
         except Exception as e:
             error_message = f"Code review failed with error: {str(e)}"
             log_event("ERROR", "code_review_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
@@ -398,9 +553,59 @@ class Orchestrator:
         )
         log_event("AGENT", "qa_done", {"project_id": proj.project_id, "reply": _raw_reply}, status="ok")
 
-        reply = {"message": f"{_raw_reply}"}
+        qa_build_ok, qa_verification_reply = await self._verify_qa_build(qa_agent, proj, req_session_id)
+        reply = {
+            "message": f"{_raw_reply}",
+            "build_verification": qa_verification_reply,
+            "build_ok": qa_build_ok,
+        }
         return self._build_response(
             proj=proj,
             reply=reply,
-            raw_reply=_raw_reply,
+            raw_reply=f"{_raw_reply}\n\n[QA_BUILD_VERIFICATION]\n{qa_verification_reply}",
         )
+
+    async def _verify_qa_build(self, qa_agent, proj, req_session_id: str) -> tuple[bool, str]:
+        verification_messages: list[str] = []
+        build_result = run_angular_build(proj.project_id)
+
+        for attempt in range(1, 4):
+            if build_result.get("ok"):
+                verified_message = "Angular build verified by orchestrator after QA changes."
+                log_event("AGENT", "qa_build_verified", {"project_id": proj.project_id}, status="ok")
+                verification_messages.append(verified_message)
+                return True, "\n\n".join(verification_messages)
+
+            log_event(
+                "AGENT",
+                "qa_build_repair_attempt",
+                {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(build_result)},
+                status="retry",
+            )
+            repair_prompt = (
+                f"project_id={proj.project_id}\n"
+                f"qa_build_repair_attempt={attempt}/3\n"
+                "The QA changes left the Angular project failing npm install or npm run build. "
+                "Inspect the generated Angular files needed to fix the error, patch the smallest safe set of files, "
+                "and preserve the user's requested QA change. Do not claim success; the orchestrator will run the build again after your patch.\n\n"
+                "Latest build result:\n"
+                f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+            )
+            repair_reply = await run_turn_with_recovery(
+                qa_agent,
+                session_id=f"{req_session_id}-qa-build-repair-{attempt}",
+                message=repair_prompt,
+                resume_context=self._resume_context(proj, f"qa_build_repair_{attempt}"),
+                use_compaction=True,
+                max_retries=1,
+            )
+            verification_messages.append(f"QA build repair attempt {attempt}: {repair_reply}")
+            build_result = run_angular_build(proj.project_id)
+
+        failure_message = (
+            "Angular build still fails after QA changes and 3 orchestrator-verified repair attempts.\n"
+            f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+        )
+        log_event("ERROR", "qa_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(build_result)}, status="fail")
+        verification_messages.append(failure_message)
+        return False, "\n\n".join(verification_messages)
