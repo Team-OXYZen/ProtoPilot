@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from core.auth import get_oauth_token
-from core.runner import run_turn
+from core.runner import run_turn, run_turn_with_recovery
 from core.sessions import session_service
 from agents.registry import AGENT_FACTORIES
 from orchestration.tools import (
@@ -20,6 +20,7 @@ from orchestration.tools import (
     patch_nontech_artifact,
     patch_technical_artifact,
     rename_angular_code_file,
+    run_angular_build,
     save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
@@ -59,6 +60,29 @@ class Orchestrator:
             "java_code_files": proj.java_code_files,
         }
 
+    def _resume_context(self, proj, phase: str) -> str:
+        spec = proj.spec or {}
+        summary = {
+            "project_id": proj.project_id,
+            "phase": phase,
+            "stage": proj.stage.value if hasattr(proj.stage, "value") else str(proj.stage),
+            "project_name": spec.get("project_name"),
+            "problem_statement": spec.get("problem_statement"),
+            "goals": spec.get("goals", [])[:5],
+            "target_users": spec.get("target_users", [])[:5],
+            "nontech_artifact_files": list((proj.nontech_artifacts_md or {}).keys()),
+            "technical_artifact_files": list((proj.technical_artifacts_md or {}).keys()),
+            "has_artifacts_summary": bool(proj.artifacts_summary),
+            "angular_code_files": list((proj.angular_code_files or {}).keys()),
+            "java_code_files": list((proj.java_code_files or {}).keys()),
+        }
+        return (
+            "Resume context from durable project state:\n"
+            f"{json.dumps(summary, ensure_ascii=False, indent=2)}\n"
+            "Use the project tools to load exact content when needed. Existing generated files may be partial; "
+            "continue from them instead of deleting and regenerating everything."
+        )
+
     def _requirements_tools(self) -> list:
         return [submit_spec]
 
@@ -67,6 +91,16 @@ class Orchestrator:
 
     def _angular_codegen_tools(self) -> list:
         return [load_spec, load_artifacts_summary, list_angular_code_files, load_angular_code_file, patch_angular_code_file, delete_angular_code_file, rename_angular_code_file]
+
+    def _code_review_tools(self) -> list:
+        return [
+            list_angular_code_files,
+            load_angular_code_file,
+            patch_angular_code_file,
+            delete_angular_code_file,
+            rename_angular_code_file,
+            run_angular_build,
+        ]
 
     def _qa_tools(self) -> list:
         return [
@@ -221,22 +255,23 @@ class Orchestrator:
                 "Use tools to get requirements and artifacts, "
                 "generate modular Angular components and services with mocked API calls, "
             )
-            _raw_reply = await run_turn(
+            _raw_reply = await run_turn_with_recovery(
                 code_agent,
                 session_id=f"{req_session_id}-codegen",
                 message=code_prompt,
+                resume_context=self._resume_context(proj, "angular_codegen"),
+                use_compaction=True,
+                max_retries=1,
             )
             print(f"[CODEGEN] Raw agent reply: {_raw_reply}")
 
             if proj.angular_code_files:
-                set_project_stage(proj.project_id, Stage.QA)
-                proj.stage = Stage.QA
-                persist_project(proj.project_id)
+                review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Angular code generated successfully."},
+                    reply={"message": "Angular code generated and reviewed.", "review": review_reply},
                     angular_code_files=proj.angular_code_files,
-                    raw_reply=_raw_reply,
+                    raw_reply=f"{_raw_reply}\n\n[CODE_REVIEW]\n{review_reply}",
                 )
             else:
                 raise RuntimeError(f"Code generation failed: {_raw_reply}")
@@ -244,6 +279,36 @@ class Orchestrator:
             error_message = f"Code generation failed with error: {str(e)}"
             print(f"[ERROR] Angular codegen: {error_message}")
             return self._build_response(proj=proj, reply={"message": error_message})
+
+    async def _run_code_review(self, token, proj, req_session_id: str) -> str:
+        try:
+            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools())
+            review_prompt = (
+                f"project_id={proj.project_id}\n"
+                "Review the generated Angular project now. "
+                "Run the Angular build first, fix any install/build errors using the Angular file tools, "
+                "and rerun the build after each repair attempt. Stop when the build passes or after 3 repair attempts."
+            )
+
+            print(f"[CODE_REVIEW] Starting generated Angular build review for project_id={proj.project_id}")
+            review_reply = await run_turn_with_recovery(
+                review_agent,
+                session_id=f"{req_session_id}-code-review",
+                message=review_prompt,
+                resume_context=self._resume_context(proj, "code_review"),
+                use_compaction=True,
+                max_retries=1,
+            )
+            print(f"[CODE_REVIEW] Raw agent reply: {review_reply}")
+            return review_reply
+        except Exception as e:
+            error_message = f"Code review failed with error: {str(e)}"
+            print(f"[ERROR] Code review: {error_message}")
+            return error_message
+        finally:
+            set_project_stage(proj.project_id, Stage.QA)
+            proj.stage = Stage.QA
+            persist_project(proj.project_id)
 
     def _java_codegen_tools(self) -> list:
         return [
@@ -262,7 +327,14 @@ class Orchestrator:
                 "Generate a Java Spring Boot backend and update Angular services to use real API calls.\n"
                 "Follow the instructions step by step: analyse Angular services first, then generate Java files one at a time, then update Angular services."
             )
-            _raw_reply = await run_turn(code_agent, session_id=f"{req_session_id}-javacodegen", message=code_prompt)
+            _raw_reply = await run_turn_with_recovery(
+                code_agent,
+                session_id=f"{req_session_id}-javacodegen",
+                message=code_prompt,
+                resume_context=self._resume_context(proj, "java_codegen"),
+                use_compaction=True,
+                max_retries=1,
+            )
             print(f"[JAVA_CODEGEN] Raw agent reply: {_raw_reply}")
 
             if proj.java_code_files:
@@ -292,7 +364,14 @@ class Orchestrator:
 
         print(f"[QA] Starting QA with prompt: {qa_prompt}")
         qa_session_id = f"{req_session_id}-qa"
-        _raw_reply = await run_turn(qa_agent, session_id=qa_session_id, message=qa_prompt, use_compaction=True)
+        _raw_reply = await run_turn_with_recovery(
+            qa_agent,
+            session_id=qa_session_id,
+            message=qa_prompt,
+            resume_context=self._resume_context(proj, "qa"),
+            use_compaction=True,
+            max_retries=1,
+        )
         print(f"[QA] Raw agent reply: {_raw_reply}")
 
         reply = {"message": f"{_raw_reply}"}

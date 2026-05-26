@@ -2,15 +2,68 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from orchestration.store import Stage, get_or_create_project, persist_project, get_project
 
 logger = logging.getLogger(__name__)
+MAX_BUILD_OUTPUT_CHARS = 20000
 
 
 def _log_tool_event(tool: str, payload: dict[str, Any]) -> None:
     print(f"[TOOL_CALL] {tool}\n {json.dumps(payload, ensure_ascii=False)}")
+
+
+def _truncate_output(output: str, limit: int = MAX_BUILD_OUTPUT_CHARS) -> str:
+    if len(output) <= limit:
+        return output
+    return output[-limit:]
+
+
+def _safe_project_file_path(root: Path, filename: str) -> Path:
+    file_path = Path(filename)
+    if file_path.is_absolute() or ".." in file_path.parts:
+        raise ValueError(f"Unsafe generated file path: {filename}")
+    resolved = (root / file_path).resolve()
+    if not resolved.is_relative_to(root.resolve()):
+        raise ValueError(f"Unsafe generated file path: {filename}")
+    return resolved
+
+
+def _run_command(command: list[str], cwd: Path, timeout_seconds: int) -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+            env={**os.environ, "CI": "true"},
+        )
+        output = (completed.stdout or "") + (completed.stderr or "")
+        return {
+            "ok": completed.returncode == 0,
+            "exit_code": completed.returncode,
+            "output": _truncate_output(output),
+        }
+    except FileNotFoundError:
+        return {
+            "ok": False,
+            "exit_code": 127,
+            "output": f"Command not found: {command[0]}",
+        }
+    except subprocess.TimeoutExpired as exc:
+        output = ((exc.stdout or "") if isinstance(exc.stdout, str) else "") + ((exc.stderr or "") if isinstance(exc.stderr, str) else "")
+        return {
+            "ok": False,
+            "exit_code": 124,
+            "output": _truncate_output(f"Command timed out after {timeout_seconds} seconds.\n{output}"),
+        }
 
 
 def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
@@ -306,6 +359,82 @@ def rename_angular_code_file(project_id: str, old_filename: str, new_filename: s
         error_msg = f"rename_angular_code_file failed: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id, "old_filename": old_filename, "new_filename": new_filename}
+
+
+def run_angular_build(project_id: str) -> dict[str, Any]:
+    try:
+        proj = get_project(project_id)
+        if not proj or not proj.angular_code_files:
+            return {
+                "ok": False,
+                "project_id": project_id,
+                "error": "No Angular code files found for this project.",
+            }
+
+        if "package.json" not in proj.angular_code_files:
+            return {
+                "ok": False,
+                "project_id": project_id,
+                "error": "package.json is missing from the generated Angular files.",
+            }
+
+        with tempfile.TemporaryDirectory(prefix=f"protopilot-angular-{project_id}-") as temp_dir:
+            project_root = Path(temp_dir)
+            for filename, content in proj.angular_code_files.items():
+                destination = _safe_project_file_path(project_root, filename)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(content or "", encoding="utf-8")
+
+            package_manager = shutil.which("npm")
+            if not package_manager:
+                return {
+                    "ok": False,
+                    "project_id": project_id,
+                    "error": "npm was not found on PATH.",
+                }
+
+            install_result = _run_command([package_manager, "install", "--no-audit", "--no-fund"], project_root, timeout_seconds=180)
+            if not install_result["ok"]:
+                _log_tool_event(
+                    "run_angular_build",
+                    {
+                        "project_id": project_id,
+                        "phase": "install",
+                        "ok": False,
+                        "exit_code": install_result["exit_code"],
+                    },
+                )
+                return {
+                    "ok": False,
+                    "project_id": project_id,
+                    "phase": "install",
+                    "install": install_result,
+                    "build": None,
+                    "error_output": install_result["output"],
+                }
+
+            build_result = _run_command([package_manager, "run", "build"], project_root, timeout_seconds=180)
+            _log_tool_event(
+                "run_angular_build",
+                {
+                    "project_id": project_id,
+                    "phase": "build",
+                    "ok": build_result["ok"],
+                    "exit_code": build_result["exit_code"],
+                },
+            )
+            return {
+                "ok": build_result["ok"],
+                "project_id": project_id,
+                "phase": "build",
+                "install": install_result,
+                "build": build_result,
+                "error_output": "" if build_result["ok"] else build_result["output"],
+            }
+    except Exception as e:
+        error_msg = f"run_angular_build failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id}
 
 
 # ── Java code file tools ───────────────────────────────────────────────────
