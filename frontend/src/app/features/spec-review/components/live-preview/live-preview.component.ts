@@ -13,6 +13,7 @@ export class LivePreviewComponent implements AfterViewInit, OnChanges {
 
   private hasInitialized = false;
   private embeddedVM: VM | null = null;
+  private lastPackageJson = '';
 
   async ngAfterViewInit() {
     this.hasInitialized = true;
@@ -23,6 +24,11 @@ export class LivePreviewComponent implements AfterViewInit, OnChanges {
     // Detect input changes and re-render StackBlitz
     if (changes['generatedFiles'] && this.hasInitialized && !changes['generatedFiles'].firstChange && this.embeddedVM) {
       console.log('[LivePreview] generatedFiles changed, re-initializing StackBlitz...');
+      const nextPackageJson = this.generatedFiles?.['package.json'] || '';
+      if (nextPackageJson !== this.lastPackageJson) {
+        this.initializePreview();
+        return;
+      }
       this.embeddedVM.applyFsDiff({
         create: this.generatedFiles || {},
         destroy: []
@@ -32,14 +38,17 @@ export class LivePreviewComponent implements AfterViewInit, OnChanges {
 
   /**
    * Extracts project dependencies from the generated files' package.json
-   * or returns default Angular dependencies
+   * Includes both dependencies and devDependencies (needed for tools like Tailwind)
    */
   private extractDependencies(files: Record<string, string>): Record<string, string> {
     try {
       // Check if package.json exists in the generated files
       if (files['package.json']) {
         const packageJson = JSON.parse(files['package.json']);
-        return packageJson.dependencies || {};
+        const deps = packageJson.dependencies || {};
+        const devDeps = packageJson.devDependencies || {};
+        // StackBlitz's SDK dependency map is flat, so include both runtime and build-time packages.
+        return { ...deps, ...devDeps };
       }
     } catch (error) {
       console.warn('[LivePreview] Failed to parse package.json from generated files:', error);
@@ -62,9 +71,11 @@ export class LivePreviewComponent implements AfterViewInit, OnChanges {
 
   private async initializePreview() {
     try {
+      this.container.nativeElement.innerHTML = '';
       let files = this.generatedFiles && Object.keys(this.generatedFiles).length > 0
         ? { ...this.generatedFiles }
         : this.getTodoMockFiles();
+      this.lastPackageJson = files['package.json'] || '';
       
       // Ensure main.ts exists
       if (!files['src/main.ts']) {
