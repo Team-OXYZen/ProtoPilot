@@ -115,7 +115,6 @@ Product structure rules:
 - Include empty, selected, active, hover, disabled, and success/error feedback states where relevant.
 
 Service and data rules:
-- Mock HTTP data only. Do not call real APIs.
 - Services should use Injectable({ providedIn: 'root' }).
 - Services may return Observable<T> using of(...).
 - Use stable IDs for mock entities.
@@ -185,7 +184,7 @@ Static self-audit before finishing:
 - no placeholder or incomplete code
 - no real API calls
 - double check for missing imports or connectivity between files
-- The app has a dashboard/overview plus separate views/tabs for major functionality
+- The app has a dashboard/overview plus separate views/tabs for major functvariaionality
 - Navigation/view switching works through real click handlers
 - List rows/cards for important entities are clickable and update selected detail state
 - Every visible button has a corresponding method or intentional disabled state

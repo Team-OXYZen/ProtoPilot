@@ -7,6 +7,14 @@ router = APIRouter()
 
 @router.post("/projects/{project_id}/deploy")
 async def deploy_project(project_id: str):
+    """Deploy Angular and Java code to running instance.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with deployment status and port number
+    """
     proj = get_project(project_id)
     if proj is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -21,10 +29,26 @@ async def deploy_project(project_id: str):
 
 @router.get("/projects/{project_id}/deploy/status")
 def get_deploy_status(project_id: str):
+    """Get deployment status of a project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with deployment status and details
+    """
     return deploy_manager.get_status(project_id)
 
 
 @router.post("/projects/{project_id}/undeploy")
 async def undeploy_project(project_id: str):
+    """Stop running deployment instance.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with status: 'stopped'
+    """
     await deploy_manager.undeploy(project_id)
     return {"status": "stopped"}

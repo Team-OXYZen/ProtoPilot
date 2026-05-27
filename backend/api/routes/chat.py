@@ -24,6 +24,14 @@ class ChatRequest(BaseModel):
 
 
 def _stage_to_str(stage: Any) -> str | None:
+    """Convert stage enum to string value.
+    
+    Args:
+        stage: Stage enum or string
+        
+    Returns:
+        String representation of stage, None if empty
+    """
     if stage is None:
         return None
     if hasattr(stage, "value"):
@@ -32,6 +40,14 @@ def _stage_to_str(stage: Any) -> str | None:
 
 
 def _reply_to_text(reply: Any) -> str:
+    """Convert agent reply (JSON or text) to displayable text.
+    
+    Args:
+        reply: Agent response (dict, string, or None)
+        
+    Returns:
+        Formatted text representation of reply
+    """
     if reply is None:
         return ""
 
@@ -67,6 +83,15 @@ def _reply_to_text(reply: Any) -> str:
 
 @router.post("/chat")
 async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_current_user)):
+    """Process user chat message and orchestrate project workflow.
+    
+    Args:
+        req: ChatRequest with project_id, message, and session info
+        current_user: Authenticated user (from JWT)
+        
+    Returns:
+        dict with orchestration result, stage, artifacts, and code files
+    """
     req.user_id = authenticated_user_id(current_user, req.user_id)
     ensure_owned_project_or_missing(req.project_id, req.user_id)
     log_event(
@@ -173,6 +198,16 @@ def get_project_messages(
     user_id: str | None = None,
     current_user: dict[str, str] = Depends(get_current_user),
 ):
+    """Retrieve all chat messages for a project.
+    
+    Args:
+        project_id: Project identifier
+        user_id: User identifier (optional, derived from JWT if not provided)
+        current_user: Authenticated user
+        
+    Returns:
+        dict with project_id and list of chat messages
+    """
     get_owned_project(project_id, authenticated_user_id(current_user, user_id))
 
     return {

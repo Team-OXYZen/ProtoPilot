@@ -72,6 +72,15 @@ def _run_command(command: list[str], cwd: Path, timeout_seconds: int) -> dict[st
 
 
 def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
+    """Store project specification and advance to non-technical artifacts stage.
+    
+    Args:
+        project_id: Project identifier
+        spec: Dictionary containing project requirements (name, goals, users, etc.)
+        
+    Returns:
+        dict with ok, project_id, and new stage value
+    """
     try:
         proj = get_project(project_id)
         before = proj.stage.value
@@ -99,6 +108,14 @@ def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_spec(project_id: str) -> dict[str, Any]:
+    """Retrieve stored project specification.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and spec (empty dict if not set)
+    """
     try:
         proj = get_project(project_id)
 
@@ -120,6 +137,15 @@ def load_spec(project_id: str) -> dict[str, Any]:
 
 
 def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
+    """Store non-technical artifacts (specs, requirements docs) and await approval.
+    
+    Args:
+        project_id: Project identifier
+        artifacts_md: Dict mapping filenames to markdown content
+        
+    Returns:
+        dict with ok, project_id, and new stage (WAIT_APPROVAL)
+    """
     try:
         proj = get_project(project_id)
         before = proj.stage.value
@@ -147,6 +173,15 @@ def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dic
 
 
 def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
+    """Store technical artifacts (architecture, design docs) and advance to code generation.
+    
+    Args:
+        project_id: Project identifier
+        artifacts_md: Dict mapping filenames to markdown content
+        
+    Returns:
+        dict with ok, project_id, and new stage (CODEGEN)
+    """
     try:
         proj = get_project(project_id)
         before = proj.stage.value
@@ -174,6 +209,15 @@ def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> d
 
 
 def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
+    """Update project workflow stage.
+    
+    Args:
+        project_id: Project identifier
+        stage: Target stage name (e.g., 'REQ', 'CODEGEN', 'QA')
+        
+    Returns:
+        dict with ok, project_id, and new stage value
+    """
     try:
         proj = get_project(project_id)
         before = proj.stage.value
@@ -199,6 +243,15 @@ def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
 
 
 def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
+    """Store executive summary of all artifacts.
+    
+    Args:
+        project_id: Project identifier
+        summary: Text summary of project artifacts
+        
+    Returns:
+        dict with ok and project_id
+    """
     try:
         proj = get_project(project_id)
         proj.artifacts_summary = summary
@@ -213,6 +266,14 @@ def save_artifacts_summary(project_id: str, summary: str) -> dict[str, Any]:
 
 
 def load_artifacts_summary(project_id: str) -> dict[str, Any]:
+    """Retrieve project artifacts summary.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and artifacts_summary (empty string if not set)
+    """
     try:
         proj = get_project(project_id)
         _log_tool_event("load_artifacts_summary", {"project_id": project_id, "has_summary": proj.artifacts_summary is not None})
@@ -225,6 +286,14 @@ def load_artifacts_summary(project_id: str) -> dict[str, Any]:
 
 
 def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
+    """Retrieve all non-technical artifacts for the project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and nontech_artifacts_md (file dict)
+    """
     try:
         proj = get_project(project_id)
         _log_tool_event("load_nontech_artifacts", {"project_id": project_id})
@@ -237,6 +306,14 @@ def load_nontech_artifacts(project_id: str) -> dict[str, Any]:
 
 
 def load_technical_artifacts(project_id: str) -> dict[str, Any]:
+    """Retrieve all technical artifacts for the project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and technical_artifacts_md (file dict)
+    """
     try:
         proj = get_project(project_id)
         _log_tool_event("load_technical_artifacts", {"project_id": project_id})
@@ -249,6 +326,16 @@ def load_technical_artifacts(project_id: str) -> dict[str, Any]:
 
 
 def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
+    """Create or update a non-technical artifact file.
+    
+    Args:
+        project_id: Project identifier
+        filename: Target file name
+        content: File content
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.nontech_artifacts_md:
@@ -265,6 +352,16 @@ def patch_nontech_artifact(project_id: str, filename: str, content: str) -> dict
 
 
 def patch_technical_artifact(project_id: str, filename: str, content: str) -> dict[str, Any]:
+    """Create or update a technical artifact file.
+    
+    Args:
+        project_id: Project identifier
+        filename: Target file name
+        content: File content
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.technical_artifacts_md:
@@ -309,6 +406,14 @@ def load_artifacts(project_id: str) -> dict[str, Any]:
 # ── Angular code file tools ────────────────────────────────────────────────
 
 def list_angular_code_files(project_id: str) -> dict[str, Any]:
+    """List all Angular source code files in the project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and angular_code_files (list of filenames)
+    """
     try:
         proj = get_project(project_id)
         file_list = list(proj.angular_code_files.keys()) if proj.angular_code_files else []
@@ -322,6 +427,15 @@ def list_angular_code_files(project_id: str) -> dict[str, Any]:
 
 
 def load_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
+    """Retrieve specific Angular source file content.
+    
+    Args:
+        project_id: Project identifier
+        filename: Source file name
+        
+    Returns:
+        dict with project_id, filename, and content (None if not found)
+    """
     try:
         proj = get_project(project_id)
         file_content = proj.angular_code_files.get(filename) if proj.angular_code_files else None
@@ -335,6 +449,16 @@ def load_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
 
 
 def patch_angular_code_file(project_id: str, filename: str, new_content: str) -> dict[str, Any]:
+    """Create or update an Angular source file.
+    
+    Args:
+        project_id: Project identifier
+        filename: Target file name
+        new_content: Source code content
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.angular_code_files:
@@ -352,6 +476,15 @@ def patch_angular_code_file(project_id: str, filename: str, new_content: str) ->
 
 
 def delete_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
+    """Remove an Angular source file from project.
+    
+    Args:
+        project_id: Project identifier
+        filename: File to delete
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.angular_code_files or filename not in proj.angular_code_files:
@@ -369,6 +502,16 @@ def delete_angular_code_file(project_id: str, filename: str) -> dict[str, Any]:
 
 
 def rename_angular_code_file(project_id: str, old_filename: str, new_filename: str) -> dict[str, Any]:
+    """Rename an Angular source file.
+    
+    Args:
+        project_id: Project identifier
+        old_filename: Current file name
+        new_filename: New file name
+        
+    Returns:
+        dict with ok, project_id, old_filename, and new_filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.angular_code_files or old_filename not in proj.angular_code_files:
@@ -386,6 +529,14 @@ def rename_angular_code_file(project_id: str, old_filename: str, new_filename: s
 
 
 def run_angular_build(project_id: str) -> dict[str, Any]:
+    """Execute npm install and build for generated Angular project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with ok, exit codes, and error_output. Stages: install, build
+    """
     try:
         proj = get_project(project_id)
         if not proj or not proj.angular_code_files:
@@ -480,6 +631,14 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
 # ── Java code file tools ───────────────────────────────────────────────────
 
 def list_java_code_files(project_id: str) -> dict[str, Any]:
+    """List all Java source code files in the project.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        dict with project_id and java_code_files (list of filenames)
+    """
     try:
         proj = get_project(project_id)
         file_list = list(proj.java_code_files.keys()) if proj.java_code_files else []
@@ -493,6 +652,15 @@ def list_java_code_files(project_id: str) -> dict[str, Any]:
 
 
 def load_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
+    """Retrieve specific Java source file content.
+    
+    Args:
+        project_id: Project identifier
+        filename: Source file name
+        
+    Returns:
+        dict with project_id, filename, and content (None if not found)
+    """
     try:
         proj = get_project(project_id)
         file_content = proj.java_code_files.get(filename) if proj.java_code_files else None
@@ -506,6 +674,16 @@ def load_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
 
 
 def patch_java_code_file(project_id: str, filename: str, new_content: str) -> dict[str, Any]:
+    """Create or update a Java source file.
+    
+    Args:
+        project_id: Project identifier
+        filename: Target file name
+        new_content: Source code content
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.java_code_files:
@@ -523,6 +701,15 @@ def patch_java_code_file(project_id: str, filename: str, new_content: str) -> di
 
 
 def delete_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
+    """Remove a Java source file from project.
+    
+    Args:
+        project_id: Project identifier
+        filename: File to delete
+        
+    Returns:
+        dict with ok, project_id, and filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.java_code_files or filename not in proj.java_code_files:
@@ -540,6 +727,16 @@ def delete_java_code_file(project_id: str, filename: str) -> dict[str, Any]:
 
 
 def rename_java_code_file(project_id: str, old_filename: str, new_filename: str) -> dict[str, Any]:
+    """Rename a Java source file.
+    
+    Args:
+        project_id: Project identifier
+        old_filename: Current file name
+        new_filename: New file name
+        
+    Returns:
+        dict with ok, project_id, old_filename, and new_filename
+    """
     try:
         proj = get_project(project_id)
         if not proj.java_code_files or old_filename not in proj.java_code_files:

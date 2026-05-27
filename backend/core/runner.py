@@ -9,10 +9,20 @@ from core.sessions import session_service
 
 
 def _is_recoverable_session_error(exc: Exception) -> bool:
+    """Check if exception indicates recoverable session error.
+    
+    Args:
+        exc: Exception to check
+        
+    Returns:
+        True if error is transient (permission, token, context, API issue)
+    """
     error_text = f"{type(exc).__name__}: {exc}"
     recoverable_markers = (
         "PermissionDeniedError",
         "GeminiException",
+        "OpenAIException",
+        "AnthropicException",
         "Incapsula",
         "_Incapsula_Resource",
         "Request unsuccessful",
@@ -23,6 +33,17 @@ def _is_recoverable_session_error(exc: Exception) -> bool:
     return any(marker.lower() in error_text.lower() for marker in recoverable_markers)
 
 async def run_turn(agent, session_id: str, message: str, use_compaction: bool = False) -> str:
+    """Execute single agent turn with message, optionally with event compaction.
+    
+    Args:
+        agent: LLM agent instance
+        session_id: Session identifier
+        message: User message for agent
+        use_compaction: Enable event compaction to reduce context
+        
+    Returns:
+        Agent response text concatenated from all chunks
+    """
     user_id = os.getenv("USER_ID", "local-user")
     app_name = os.getenv("APP_NAME", "ProtoPilot")
 
@@ -89,6 +110,19 @@ async def run_turn_with_recovery(
     use_compaction: bool = False,
     max_retries: int = 1,
 ) -> str:
+    """Execute agent turn with automatic retry on recoverable errors using fresh session.
+    
+    Args:
+        agent: LLM agent instance
+        session_id: Session identifier
+        message: User message for agent
+        resume_context: Durable context to resume from (required keyword arg)
+        use_compaction: Enable event compaction
+        max_retries: Number of retry attempts on recoverable errors
+        
+    Returns:
+        Agent response text
+    """
     try:
         return await run_turn(agent, session_id=session_id, message=message, use_compaction=use_compaction)
     except Exception as exc:

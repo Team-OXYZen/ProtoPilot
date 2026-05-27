@@ -24,12 +24,30 @@ COLORS = {
 
 
 def _color(label: str, text: str) -> str:
+    """Apply ANSI color codes to log text based on category.
+    
+    Args:
+        label: Log category (CHAT, AGENT, TOOL, etc.)
+        text: Text to colorize
+        
+    Returns:
+        Colored text if color enabled, otherwise plain text
+    """
     if not USE_COLOR:
         return text
     return f"{COLORS.get(label, '')}{text}{COLORS['RESET']}"
 
 
 def _shorten(text: str, limit: int = MAX_TEXT_CHARS) -> str:
+    """Truncate long text and replace newlines for logging.
+    
+    Args:
+        text: Text to shorten
+        limit: Maximum characters to keep
+        
+    Returns:
+        Shortened text with indication of truncation
+    """
     text = text.replace("\n", "\\n")
     if len(text) <= limit:
         return text
@@ -37,6 +55,14 @@ def _shorten(text: str, limit: int = MAX_TEXT_CHARS) -> str:
 
 
 def _summarize(value: Any) -> Any:
+    """Recursively summarize log payload values, hiding sensitive data.
+    
+    Args:
+        value: Value to summarize
+        
+    Returns:
+        Summarized value with char counts and file lists for sensitive fields
+    """
     if value is None or isinstance(value, bool | int | float):
         return value
 
@@ -68,6 +94,14 @@ def _summarize(value: Any) -> Any:
 
 
 def log_event(category: str, event: str, payload: dict[str, Any] | None = None, status: str | None = None) -> None:
+    """Log structured event with category, timestamp, and colored output.
+    
+    Args:
+        category: Event category (CHAT, AGENT, TOOL, BUILD, ERROR, etc.)
+        event: Event name/description
+        payload: Optional dict of event metadata (summarized for logging)
+        status: Optional status (ok, fail, retry) to include in output
+    """
     timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
     status_text = f" {status.upper()}" if status else ""
     prefix = _color(category, f"[{timestamp}] [{category}]{status_text} {event}")

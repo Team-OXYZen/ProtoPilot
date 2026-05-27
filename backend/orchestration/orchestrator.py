@@ -37,8 +37,19 @@ from orchestration.store import Stage, get_or_create_project, persist_project
 
 class Orchestrator:
 
-    # handle parsing of reply if it's a JSON string, otherwise return as is
     def _build_response(self, proj, reply: Any, artifacts_md: dict[str, str] | None = None, angular_code_files: dict[str, str] | None = None, raw_reply: str | None = None) -> dict[str, Any]:
+        """Package orchestration result with project state and reply.
+        
+        Args:
+            proj: Project object
+            reply: Agent response (parsed JSON or text)
+            artifacts_md: Optional artifacts dict to include
+            angular_code_files: Optional generated code dict
+            raw_reply: Raw agent response string
+            
+        Returns:
+            dict with stage, reply, artifacts, code files, and project state
+        """
 
         if reply and isinstance(reply, str):
             try:
@@ -61,6 +72,15 @@ class Orchestrator:
         }
 
     def _resume_context(self, proj, phase: str) -> str:
+        """Build resumption context summary for agent recovery from project state.
+        
+        Args:
+            proj: Project object
+            phase: Current workflow phase (e.g., 'angular_codegen')
+            
+        Returns:
+            Formatted context string with project summary for agent awareness
+        """
         spec = proj.spec or {}
         summary = {
             "project_id": proj.project_id,
@@ -84,6 +104,14 @@ class Orchestrator:
         )
 
     def _build_summary(self, build_result: dict[str, Any]) -> dict[str, Any]:
+        """Extract build summary from full build result.
+        
+        Args:
+            build_result: Full build execution result
+            
+        Returns:
+            dict with ok, phase, error, and exit codes
+        """
         return {
             "ok": build_result.get("ok"),
             "phase": build_result.get("phase"),
@@ -94,15 +122,35 @@ class Orchestrator:
         }
 
     def _requirements_tools(self) -> list:
+        """Get tools available during requirements gathering phase.
+        
+        Returns:
+            list of tool functions
+        """
         return [submit_spec]
 
     def _artifacts_tools(self) -> list:
+        """Get tools available during artifacts generation phase.
+        
+        Returns:
+            list of tool functions for artifact operations
+        """
         return [load_spec, load_nontech_artifacts, save_nontech_artifacts, save_technical_artifacts, save_artifacts_summary]
 
     def _angular_codegen_tools(self) -> list:
+        """Get tools available during Angular code generation phase.
+        
+        Returns:
+            list of tool functions for code file management
+        """
         return [load_spec, load_artifacts_summary, list_angular_code_files, load_angular_code_file, patch_angular_code_file, delete_angular_code_file, rename_angular_code_file]
 
     def _code_review_tools(self) -> list:
+        """Get tools available during code review and build verification phase.
+        
+        Returns:
+            list of tool functions including build execution
+        """
         return [
             list_angular_code_files,
             load_angular_code_file,
@@ -123,16 +171,25 @@ class Orchestrator:
         ]
 
     async def _handle_wait_approval(self, proj, normalized: str) -> dict[str, Any]:
+        """Handle user approval/revision response for non-technical artifacts.
+        
+        Args:
+            proj: Project object
+            normalized: Lowercased user response ('approve' or 'change')
+            
+        Returns:
+            dict with response message or empty dict if approval handled
+        """
         if normalized == "approve":
             log_event("STAGE", "approval_received", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.TECH_ARTIFACTS.value})
             set_project_stage(proj.project_id, Stage.TECH_ARTIFACTS)
-            proj.stage=Stage.TECH_ARTIFACTS
+            proj.stage = Stage.TECH_ARTIFACTS
             return {}
 
         if normalized == "change":
             log_event("STAGE", "revision_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.REQ.value})
             set_project_stage(proj.project_id, Stage.REQ)
-            proj.stage=Stage.REQ
+            proj.stage = Stage.REQ
             return self._build_response(
                 proj=proj,
                 reply={"message": "You have entered revision mode. Please describe the changes needed."},
@@ -146,6 +203,17 @@ class Orchestrator:
         )
 
     async def _run_requirements(self, token, proj, req_session_id: str, user_message: str) -> dict[str, Any]:
+        """Execute requirements gathering agent and advance project.
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Requirements gathering session ID
+            user_message: User input for requirements
+            
+        Returns:
+            dict with agent reply and updated project state
+        """
         req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
 
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
@@ -171,6 +239,19 @@ class Orchestrator:
         )
 
     async def handle(self,project_id: str,req_session_id: str,user_message: str,user_id: str,project_title: str | None = None,project_description: str | None = None,) -> dict:
+        """Main orchestration entry point - route user message through workflow stages.
+        
+        Args:
+            project_id: Project identifier
+            req_session_id: Session identifier
+            user_message: User input
+            user_id: User identifier
+            project_title: Optional project name
+            project_description: Optional project description
+            
+        Returns:
+            dict with stage, reply, artifacts, and generated code files
+        """
         proj = get_or_create_project(project_id=project_id,req_session_id=req_session_id,user_id=user_id,project_title=project_title,project_description=project_description,)
         normalized = user_message.strip().lower()
         log_event(
@@ -214,6 +295,16 @@ class Orchestrator:
         )
 
     async def _run_artifacts_non_tech(self, token, proj, req_session_id: str) -> dict:
+        """Generate PM-facing non-technical artifacts (specs, requirements docs).
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            dict with artifacts and project state
+        """
         art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
 
         art_prompt = (
@@ -245,6 +336,16 @@ class Orchestrator:
         )
 
     async def _run_artifacts_technical(self, token, proj, req_session_id: str) -> dict:
+        """Generate technical artifacts (architecture, design documents).
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            dict with artifacts and project state
+        """
         art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical")
 
         art_prompt = (
@@ -279,6 +380,16 @@ class Orchestrator:
         )
 
     async def _run_angular_codegen(self, token, proj, req_session_id: str) -> dict:
+        """Generate Angular frontend code with build verification and repair.
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            dict with generated code files and build status
+        """
         try:
             code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools())
             code_prompt = (
@@ -326,6 +437,16 @@ class Orchestrator:
             return self._build_response(proj=proj, reply={"message": error_message})
 
     async def _verify_angular_codegen_build(self, code_agent, proj, req_session_id: str) -> tuple[bool, str]:
+        """Verify Angular build succeeds, attempt repairs up to 3 times.
+        
+        Args:
+            code_agent: Code generation agent instance
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            tuple of (build_success: bool, verification_log: str)
+        """
         verification_messages: list[str] = []
         build_result = run_angular_build(proj.project_id)
 
@@ -371,6 +492,16 @@ class Orchestrator:
         return False, "\n\n".join(verification_messages)
 
     async def _run_code_review(self, token, proj, req_session_id: str) -> str:
+        """Audit and improve generated code UX/styling, verify builds throughout.
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            Code review summary with verification log
+        """
         review_messages: list[str] = []
 
         try:
@@ -489,6 +620,11 @@ class Orchestrator:
             persist_project(proj.project_id)
 
     def _java_codegen_tools(self) -> list:
+        """Get tools available during Java code generation phase.
+        
+        Returns:
+            list of tool functions for Java and Angular file management
+        """
         return [
             load_spec, load_artifacts_summary,
             list_angular_code_files, load_angular_code_file, patch_angular_code_file,
@@ -497,6 +633,16 @@ class Orchestrator:
         ]
 
     async def _run_java_codegen(self, token, proj, req_session_id: str) -> dict:
+        """Generate Java backend code.
+        
+        Args:
+            token: OAuth token for agent
+            proj: Project object
+            req_session_id: Session ID
+            
+        Returns:
+            dict with generated Java code files and project state
+        """
         from agents.code_generation_agent.instructions import JAVA_CODEGEN_INSTRUCTIONS
         try:
             code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS)

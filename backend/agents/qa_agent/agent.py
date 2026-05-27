@@ -5,6 +5,15 @@ from google.adk.agents import LlmAgent
 from .instructions import QA_AGENT_INSTRUCTIONS
 
 def create_agent(token: str, tools=None) -> LlmAgent:
+    """Create QA testing and validation agent.
+    
+    Args:
+        token: OAuth token for LLM
+        tools: Optional list of available tools
+        
+    Returns:
+        LlmAgent for QA testing and validation (temperature 0.3)
+    """
     llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_QA"))
     return LlmAgent(
         model=llm,

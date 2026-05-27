@@ -8,6 +8,15 @@ from .instructions import CODE_REVIEW_AGENT_INSTRUCTIONS
 
 
 def create_agent(token: str, tools=None) -> LlmAgent:
+    """Create code review and build verification agent.
+    
+    Args:
+        token: OAuth token for LLM
+        tools: Optional list of available tools
+        
+    Returns:
+        LlmAgent for code review, UX audit, and build repair (temperature 0.1)
+    """
     llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_CODE_REVIEW") or os.getenv("LITELLM_MODEL_CODEGEN"))
     return LlmAgent(
         model=llm,
