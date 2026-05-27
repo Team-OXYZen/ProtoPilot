@@ -5,6 +5,7 @@ import { SpecService } from './services/spec.service';
 import mermaid from 'mermaid';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
 import { WizardService } from '../requirements/services/wizard-service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-right-panel',
@@ -117,14 +118,18 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     this.integrationError = '';
     this.integrationMessage = '';
 
-    this.wizardService.exportGeneratedCodeToGithub(projectId, sessionId).subscribe({
-      next: () => {
-        this.integrationMessage = 'GitHub export requested.';
+    this.wizardService.exportGeneratedCodeToGithub(projectId, sessionId).pipe(
+      finalize(() => {
         this.githubExportLoading = false;
+      })
+    ).subscribe({
+      next: (result) => {
+        this.integrationMessage = result?.pull_request_url
+          ? `GitHub export complete: ${result.pull_request_url}`
+          : 'GitHub export complete.';
       },
       error: (error) => {
         this.integrationError = this.formatIntegrationError(error, 'GitHub export failed.');
-        this.githubExportLoading = false;
       },
     });
   }
@@ -142,14 +147,16 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     this.integrationError = '';
     this.integrationMessage = '';
 
-    this.wizardService.createJiraTasks(projectId, sessionId).subscribe({
+    this.wizardService.createJiraTasks(projectId, sessionId).pipe(
+      finalize(() => {
+        this.jiraTasksLoading = false;
+      })
+    ).subscribe({
       next: () => {
         this.integrationMessage = 'Jira task creation requested.';
-        this.jiraTasksLoading = false;
       },
       error: (error) => {
         this.integrationError = this.formatIntegrationError(error, 'Jira task creation failed.');
-        this.jiraTasksLoading = false;
       },
     });
   }
