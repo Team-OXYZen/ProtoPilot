@@ -1,11 +1,11 @@
-# GitHub and Jira MCP Integration
+# GitHub and Jira Integration
 
 ## Purpose
 
-ProtoPilot uses MCP integrations to move generated project output into delivery tools:
+ProtoPilot moves generated project output into delivery tools:
 
-- GitHub MCP exports ProtoPilot generated code to GitHub.
-- Jira MCP creates Jira tasks from ProtoPilot requirements.
+- GitHub export uses the GitHub REST API to transfer generated code without sending file contents through an LLM.
+- Jira task creation uses Atlassian MCP because it needs Jira workspace/tool access.
 
 GitHub export should create a branch and pull request. It should not push directly to `main`.
 
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8000/integrations/github/export \
   }'
 ```
 
-The integration agent is instructed to create a new branch, commit generated files, and open a pull request.
+The backend creates blobs, a tree, a commit, a new branch, and a pull request through the GitHub REST API. Generated file contents are not included in an LLM prompt.
 
 ## Test Jira Task Creation
 
@@ -102,7 +102,7 @@ curl -X POST http://localhost:8000/integrations/jira/create-tasks \
   }'
 ```
 
-Jira authentication is handled by `mcp-remote`; the OAuth flow may open a browser on first use.
+Jira authentication is handled by `mcp-remote`; the OAuth flow may open a browser on first use. Jira uses a Jira-only integration agent session so it does not initialize GitHub tooling.
 
 ## Notes
 

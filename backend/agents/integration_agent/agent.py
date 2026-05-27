@@ -36,14 +36,16 @@ def create_atlassian_mcp_toolset() -> McpToolset:
         ),
     )
 
-def create_agent(token: str, tools=None) -> LlmAgent:
+def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", "atlassian")) -> LlmAgent:
     llm = create_litellm(
         token,
         model=os.getenv("LITELLM_MODEL_INTEGRATION") or os.getenv("LITELLM_MODEL"),
     )
     agent_tools = list(tools or [])
-    agent_tools.append(create_github_mcp_toolset())
-    agent_tools.append(create_atlassian_mcp_toolset())
+    if "github" in toolsets:
+        agent_tools.append(create_github_mcp_toolset())
+    if "atlassian" in toolsets:
+        agent_tools.append(create_atlassian_mcp_toolset())
 
     return LlmAgent(
         model=llm,
@@ -56,3 +58,7 @@ def create_agent(token: str, tools=None) -> LlmAgent:
             max_output_tokens=8192,
         ),
     )
+
+
+def create_jira_agent(token: str, tools=None) -> LlmAgent:
+    return create_agent(token, tools=tools, toolsets=("atlassian",))
