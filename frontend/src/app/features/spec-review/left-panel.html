@@ -2,16 +2,62 @@
 
   <h3>{{ files.length > 0 ? 'Files' : 'Specifications' }}</h3>
 
-  <ul>
-    @if (files.length > 0) {
-      @for (file of files; track file) {
-        <li [class.active]="file === selectedFile" (click)="selectFile(file)">{{ file }}</li>
+  @if (files.length > 0) {
+    <div class="file-groups">
+      @if (productFiles.length > 0) {
+        <section class="file-group">
+          <button class="group-toggle" type="button" (click)="toggleGroup('product')" [class.collapsed]="collapsedGroups['product']">
+            <span>Product Docs</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          @if (!collapsedGroups['product']) {
+            <ul>
+              @for (file of productFiles; track file) {
+                <li [class.active]="file === selectedFile" (click)="selectFile(file)">{{ displayFileName(file) }}</li>
+              }
+            </ul>
+          }
+        </section>
       }
-    } @else {
+
+      @if (technicalFiles.length > 0) {
+        <section class="file-group">
+          <button class="group-toggle" type="button" (click)="toggleGroup('technical')" [class.collapsed]="collapsedGroups['technical']">
+            <span>Technical Docs</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          @if (!collapsedGroups['technical']) {
+            <ul>
+              @for (file of technicalFiles; track file) {
+                <li [class.active]="file === selectedFile" (click)="selectFile(file)">{{ displayFileName(file) }}</li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      @if (otherFiles.length > 0) {
+        <section class="file-group">
+          <button class="group-toggle" type="button" (click)="toggleGroup('other')" [class.collapsed]="collapsedGroups['other']">
+            <span>Other Files</span>
+            <span class="chevron" aria-hidden="true"></span>
+          </button>
+          @if (!collapsedGroups['other']) {
+            <ul>
+              @for (file of otherFiles; track file) {
+                <li [class.active]="file === selectedFile" (click)="selectFile(file)">{{ displayFileName(file) }}</li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </div>
+  } @else {
+    <ul>
       @for (section of sections; track section) {
         <li [class.active]="section === selectedSection" (click)="selectSection(section)">{{ toTitleCase(section) }}</li>
       }
-    }
-  </ul>
+    </ul>
+  }
 
 </div>

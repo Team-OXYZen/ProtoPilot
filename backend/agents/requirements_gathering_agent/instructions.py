@@ -26,6 +26,8 @@ Ensure you clarify:
 - Functional requirements (key features and workflows)
 - Important screens, views, dashboard sections, and layout preferences
 - Primary user actions and what should happen when users click/select/create/update items
+- Main epics or feature groups that should become Jira-ready user stories
+- Acceptance criteria for important user actions when the user has specific expectations
 - Core entities or data objects
 - Any important reports, charts, metrics, or status summaries for the demo
 - Constraints (technology, timeline, etc.)
@@ -46,6 +48,7 @@ POC/demo guidance:
   - navigation/layout style
   - forms and actions
   - clickable records and detail views
+  - user story priorities or must-have workflows
   - charts or summaries
   - important sample data
 

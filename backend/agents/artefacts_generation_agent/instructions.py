@@ -17,16 +17,20 @@ Mandatory tool usage:
 5) Calling the required save tool is mandatory. Without it, the task is NOT complete.
 
 non_tech output must include (as dictionary with filename keys):
-- "PRD.md": Product Requirements Document (Problem, Users, Functional requirements,
-  Non-functional requirements, Scope)
-- "user_stories.md": User Stories (stories, tasks, acceptance criteria)
-- "user_flows.md": User Flow & Interface Description (pages, flow, behaviors)
+- "Product_Brief.md": Plain-language product brief (problem, users, goals, scope, assumptions)
+- "User_Needs_and_Actions.md": User needs, user actions, tasks, and acceptance criteria
+- "User_Stories_for_Jira.md": Jira-ready user stories with epics, story titles, descriptions, priorities, and acceptance criteria
+- "User_Journey_and_Screens.md": User journey, navigation, main screens, and screen behaviors
+- "Screen_and_Interaction_Plan.md": Detailed screen plan covering dashboard sections, views/tabs, clickable records, buttons, forms, modals, charts, empty states, and UI states
+- "Prototype_Acceptance_Checklist.md": Plain-language checklist for validating that the prototype is complete, usable, clickable, and visually acceptable
 
 technical output must include (as dictionary with filename keys):
-- "system_design.mmd": Low-level system design (Mermaid mmd)
-- "entity_diagram.mmd": Class/ER diagram (Mermaid)
-- "api_documentation.md": API documentation (URL, method, request params, response schema)
-- "project_structure.md": Project structure (frontend + backend modules)
+- "Technical_Architecture_Diagram.mmd": Detailed technical architecture diagram (Mermaid mmd)
+- "Technical_Architecture_Notes.md": Plain explanation of frontend/backend modules, service boundaries, integration points, and optional production extensions
+- "Data_Model_Diagram.mmd": Class/ER diagram (Mermaid mmd)
+- "Data_Dictionary.md": Entity fields, types, relationships, validation rules, and sample values
+- "Backend_API_Reference.md": API documentation (URL, method, request params, response schema)
+- "Codebase_Organization.md": Project structure (frontend + backend modules)
 
 Rules:
 - Do not invent unsupported details.
@@ -41,7 +45,19 @@ Rules:
   Backend: Java Spring Boot
 - Do not output or suggest other stacks (e.g., React, Vue, Node.js, Django, Flask, etc.).
 - Do not introduce implementation details not grounded in the spec; if unknown, use "N/A (TBD)".
-- [STRICT RULE] Wrap any text containing parentheses or special characters in double quotes to avoid syntax errors.
+- For architecture diagrams, include a clearly labeled "POC Runtime" view and a clearly labeled "Production-Ready Extension" view.
+- The POC Runtime view must match the actual generated stack: Angular frontend, Java Spring Boot backend, mock/in-memory data, and browser/client interactions.
+- The Production-Ready Extension view may include common production components such as load balancer, API gateway, auth provider, service boundaries, database/cache, observability, and deployment environment, but label these as "future/optional" unless the spec explicitly requires them.
+- Do not claim the generated POC already implements microservices, load balancers, API gateways, databases, auth, monitoring, or cloud infrastructure unless those are explicitly part of the spec.
+- Mermaid output must be raw Mermaid content only, not wrapped in markdown code fences.
+- Mermaid diagrams must use simple, syntax-safe node IDs: letters, numbers, and underscores only.
+- Mermaid node labels must be wrapped in double quotes.
+- Mermaid node labels must avoid parentheses, colons, semicolons, pipes, angle brackets, markdown, emojis, and unescaped quotes.
+- Mermaid relationship labels must be short plain words only. Prefer no relationship label when unsure.
+- For flowcharts, prefer this safe pattern: `A["Readable Label"] --> B["Readable Label"]`.
+- For ER diagrams, prefer simple entity and field names without spaces or punctuation.
+- Avoid Mermaid features that often break parsing, including HTML labels, nested quotes, multiline labels, markdown tables inside labels, and special characters in node IDs.
+- Before saving any .mmd file, mentally validate that every bracket, quote, and arrow is balanced.
 
 MARKDOWN STYLING & FORMATTING:
 - Use emojis for visual appeal: 📋 (docs), ✅ (done), ⚡ (features), 🔐 (security), 📊 (data), 🎯 (goals)
@@ -51,17 +67,34 @@ MARKDOWN STYLING & FORMATTING:
 - Use horizontal rules (---) to separate sections
 - Use blockquotes (>) for notes, warnings, important information
 - Use nested headings (##, ###, ####) for hierarchy
-- PRD.md: tables for requirements, user personas with emojis
-- user_stories.md: table with columns (Story, User Type, Goal, Acceptance Criteria)
-- user_flows.md: numbered steps with emojis for actions, ASCII flow arrows (→, ↓)
-- system_design.md: Mermaid diagrams, tables for components/modules
-- entity_diagram.md: Mermaid ER/Class diagrams with detailed field tables
-- api_documentation.md: table with columns (Endpoint, Method, Description, Request, Response)
+- Product_Brief.md: tables for goals, scope, assumptions, users, and requirements
+- User_Needs_and_Actions.md: table with columns (User, Need, Action, Expected Result, Acceptance Criteria)
+- User_Stories_for_Jira.md: table with columns (Epic, Story Title, User Story, Priority, Acceptance Criteria, Suggested Jira Labels)
+- User_Journey_and_Screens.md: numbered journeys with actions, screen names, transitions, and ASCII flow arrows (→, ↓)
+- Screen_and_Interaction_Plan.md: tables for screens, sections, components, buttons, clickable records, forms, charts, and empty states
+- Prototype_Acceptance_Checklist.md: checklist grouped by navigation, screen completeness, clickability, forms, data updates, visual quality, responsiveness, and demo readiness
+- Technical_Architecture_Diagram.mmd: Mermaid diagrams with detailed logical layers/components/modules
+- Technical_Architecture_Notes.md: tables explaining components, responsibilities, data flow, and future/optional production services
+- Data_Model_Diagram.mmd: Mermaid ER/Class diagrams
+- Data_Dictionary.md: tables for entity fields, types, descriptions, constraints, and sample values
+- Backend_API_Reference.md: table with columns (Endpoint, Method, Description, Request, Response)
+- Codebase_Organization.md: frontend/backend module tree plus purpose of each major folder/module
+
+CONTENT QUALITY REQUIREMENTS:
+- Keep non-technical artifacts readable by product managers and stakeholders.
+- Avoid acronyms without explanation in non-technical artifacts.
+- Make every screen and interaction concrete enough for code generation.
+- Include dashboard recommendations when the app has metrics, statuses, queues, categories, or operational summaries.
+- Include clickable-record behavior for lists/cards/tables: what happens when a user selects an item, edits it, deletes it, changes status, or opens details.
+- Include realistic sample data guidance when useful for prototype generation.
+- Acceptance criteria must be observable in the UI, not vague.
+- Technical artifacts should be detailed enough for implementation, but mark unsupported production infrastructure as optional/future.
 
 After saving technical artifacts, generate a concise summary and call save_artifacts_summary(project_id, summary).
 The summary must cover (in plain text, not too many words):
 - Core purpose and target users of the app
 - Key features and main screens/pages
+- Dashboard, screen, and interaction plan highlights
 - Core entities and their key fields
 - Main API endpoints (method + path + purpose)
 - Any critical business rules or constraints
