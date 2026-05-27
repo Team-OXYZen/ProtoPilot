@@ -5,6 +5,15 @@ from core.llm import create_litellm
 from .instructions import REQUIREMENTS_GATHERING_AGENT_INSTRUCTIONS
 
 def create_agent(token: str, tools=None) -> LlmAgent:
+    """Create requirements gathering agent.
+    
+    Args:
+        token: OAuth token for LLM
+        tools: Optional list of available tools
+        
+    Returns:
+        LlmAgent for requirements gathering (temperature 0.7)
+    """
     llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_REQUIREMENTS"))
     return LlmAgent(
         model=llm,

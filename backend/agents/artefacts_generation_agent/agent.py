@@ -5,6 +5,16 @@ from core.llm import create_litellm
 from .instructions import ARTEFACTS_GENERATION_AGENT_INSTRUCTIONS
 
 def create_agent(token: str, tools=None, phase: str = "non_tech") -> LlmAgent:
+    """Create artifacts generation agent for non-technical or technical artifacts.
+    
+    Args:
+        token: OAuth token for LLM
+        tools: Optional list of available tools
+        phase: Artifact type - 'non_tech' (specs) or 'technical' (architecture)
+        
+    Returns:
+        LlmAgent for artifact generation (temperature 0.2)
+    """
     llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_ARTIFACTS"))
     phase_instruction = (
         f"\n\nCurrent phase: {phase}\n"

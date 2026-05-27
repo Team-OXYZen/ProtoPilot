@@ -8,6 +8,7 @@ USER_DB_PATH = Path(os.getenv("USERS_DB_PATH", "./users.db"))
 
 
 def init_user_db() -> None:
+    """Create users table in SQLite database if it doesn't exist."""
     with sqlite3.connect(USER_DB_PATH) as conn:
         conn.execute(
             """
@@ -38,6 +39,14 @@ def init_user_db() -> None:
 
 
 def get_password_hash(username: str) -> str | None:
+    """Retrieve password hash for user.
+    
+    Args:
+        username: User identifier
+        
+    Returns:
+        Password hash string or None if user not found
+    """
     init_user_db()
 
     with sqlite3.connect(USER_DB_PATH) as conn:
@@ -54,6 +63,15 @@ def get_password_hash(username: str) -> str | None:
 
 
 def create_user(username: str, password_hash: str) -> bool:
+    """Create new user account.
+    
+    Args:
+        username: Unique username
+        password_hash: Hashed password
+        
+    Returns:
+        True if successful, False if username already exists
+    """
     init_user_db()
 
     try:
@@ -73,6 +91,12 @@ def create_user(username: str, password_hash: str) -> bool:
 
 
 def ensure_user(username: str, password_hash: str) -> None:
+    """Create user account if not exists, otherwise do nothing.
+    
+    Args:
+        username: User identifier
+        password_hash: Hashed password
+    """
     init_user_db()
 
     with sqlite3.connect(USER_DB_PATH) as conn:

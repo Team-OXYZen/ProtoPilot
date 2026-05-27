@@ -17,7 +17,7 @@ import { HeaderComponent } from '../../../../shared/components/header/header.com
 })
 export class WizardComponent implements OnInit {
 
-  currentQuestion: Question = { summary: CONSTANTS.REQUIREMENTS_INITIAL_PROMPT, question: "", suggestions: [] };
+  currentQuestion: Question = { summary: "", question: CONSTANTS.REQUIREMENTS_INITIAL_PROMPT, suggestions: [] };
   answer: string = '';
   sessionId: string = '';
   isLoading = signal(false);
@@ -27,6 +27,10 @@ export class WizardComponent implements OnInit {
   router = inject(Router);
 
   ngOnInit() {
+    if (!this.wizardService.project?.id) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
     this.wizardService.startSession();
     this.wizardService.session$.subscribe((session) => {
       this.sessionId = session?.id || "";

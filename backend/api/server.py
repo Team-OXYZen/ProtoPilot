@@ -48,6 +48,15 @@ class CreateProjectRequest(BaseModel):
 
 @app.post("/projects")
 def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Depends(get_current_user)):
+    """Create new project for authenticated user.
+    
+    Args:
+        req: CreateProjectRequest with project details
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with project_id, stage, user_id, and metadata
+    """
     from orchestration.store import get_or_create_project, persist_project
 
     user_id = authenticated_user_id(current_user, req.user_id)
@@ -81,6 +90,15 @@ def projects(
     user_id: str | None = None,
     current_user: dict[str, str] = Depends(get_current_user),
 ):
+    """List all projects owned by user.
+    
+    Args:
+        user_id: Optional user identifier (defaults to current user)
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with projects list
+    """
     from orchestration.persistent_store import list_projects
 
     return {"projects": list_projects(authenticated_user_id(current_user, user_id))}
@@ -92,6 +110,16 @@ def project_detail(
     user_id: str | None = None,
     current_user: dict[str, str] = Depends(get_current_user),
 ):
+    """Get detailed project information including all artifacts and generated code.
+    
+    Args:
+        project_id: Project identifier
+        user_id: Optional user identifier (defaults to current user)
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with full project state: stage, spec, artifacts, code files
+    """
     proj = get_owned_project(project_id, authenticated_user_id(current_user, user_id))
 
     return {

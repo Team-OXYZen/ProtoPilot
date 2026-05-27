@@ -20,15 +20,39 @@ JWT_EXPIRES_SECONDS = 60 * 60 * 24
 
 
 def _b64url_encode(data: bytes) -> str:
+    """Encode bytes to URL-safe base64 string.
+    
+    Args:
+        data: Bytes to encode
+        
+    Returns:
+        URL-safe base64 string
+    """
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
 def _b64url_decode(data: str) -> bytes:
+    """Decode URL-safe base64 string to bytes.
+    
+    Args:
+        data: URL-safe base64 string
+        
+    Returns:
+        Decoded bytes
+    """
     padding = "=" * (-len(data) % 4)
     return base64.urlsafe_b64decode(data + padding)
 
 
 def _jwt_secret() -> str:
+    """Get JWT signing secret from environment or use development default.
+    
+    Returns:
+        JWT secret string
+        
+    Raises:
+        RuntimeError: In production if JWT_SECRET not set
+    """
     secret = os.getenv("JWT_SECRET")
     if secret:
         return secret
@@ -40,18 +64,45 @@ def _jwt_secret() -> str:
 
 
 def hash_password(password: str, salt: str | None = None) -> str:
+    """Hash password with PBKDF2 and salt.
+    
+    Args:
+        password: Plain text password
+        salt: Optional salt (generated if not provided)
+        
+    Returns:
+        Hashed password with salt: 'salt$hash'
+    """
     salt = salt or _b64url_encode(os.urandom(16))
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000)
     return f"{salt}${_b64url_encode(digest)}"
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    """Verify plain password against hashed password.
+    
+    Args:
+        password: Plain text password to verify
+        password_hash: Stored hash in 'salt$hash' format
+        
+    Returns:
+        True if password matches, False otherwise
+    """
     salt, expected = password_hash.split("$", 1)
     candidate = hash_password(password, salt).split("$", 1)[1]
     return hmac.compare_digest(candidate, expected)
 
 
 def create_access_token(subject: str, expires_seconds: int = JWT_EXPIRES_SECONDS) -> str:
+    """Generate JWT access token with HS256 signature.
+    
+    Args:
+        subject: Token subject (username)
+        expires_seconds: Token lifetime
+        
+    Returns:
+        Signed JWT token string
+    """
     now = int(time.time())
     header = {"alg": JWT_ALGORITHM, "typ": "JWT"}
     payload = {"sub": subject, "iat": now, "exp": now + expires_seconds}
@@ -67,6 +118,17 @@ def create_access_token(subject: str, expires_seconds: int = JWT_EXPIRES_SECONDS
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
+    """Decode and verify JWT token signature and expiration.
+    
+    Args:
+        token: JWT token string
+        
+    Returns:
+        Token payload dict with subject, issue time, expiration
+        
+    Raises:
+        HTTPException: If token invalid, expired, or signature mismatch
+    """
     try:
         header_raw, payload_raw, signature_raw = token.split(".")
         signing_input = f"{header_raw}.{payload_raw}"
@@ -101,7 +163,18 @@ def decode_access_token(token: str) -> dict[str, Any]:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
-) -> dict[str, str]:
+) -> dict[str, str]:    
+    """Extract authenticated user from JWT bearer token.
+    
+    Args:
+        credentials: HTTP bearer token from Authorization header
+        
+    Returns:
+        dict with username from token subject
+        
+    Raises:
+        HTTPException: If token missing, invalid, or expired
+    """    
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -113,6 +186,11 @@ def get_current_user(
     return {"username": payload["sub"]}
 
 async def get_oauth_token() -> str:
+    """Get cached OAuth token from external service, refresh if expired.
+    
+    Returns:
+        Valid OAuth access token for LLM API calls
+    """
     now = time.time()
     if _cache["token"] and now < _cache["expires_at"]:
         return _cache["token"]
@@ -139,7 +217,7 @@ async def get_oauth_token() -> str:
         response.raise_for_status()
         token = response.json()["access_token"]
 
-    # keep 55 mins
+    # keep 120 mins
     _cache["token"] = token
-    _cache["expires_at"] = now + 55 * 60
+    _cache["expires_at"] = now + 120 * 60
     return token

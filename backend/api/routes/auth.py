@@ -31,6 +31,14 @@ def _auth_response(username: str) -> AuthResponse:
 
 @router.post("/login", response_model=AuthResponse)
 def login(req: AuthRequest):
+    """Authenticate user with username and password.
+    
+    Args:
+        req: Username and password credentials
+        
+    Returns:
+        AuthResponse with JWT access token and user info
+    """
     _ensure_demo_user()
     password_hash = get_password_hash(req.username)
     if password_hash is None or not verify_password(req.password, password_hash):
@@ -44,6 +52,14 @@ def login(req: AuthRequest):
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def signup(req: AuthRequest):
+    """Create new user account.
+    
+    Args:
+        req: Username and password for new account
+        
+    Returns:
+        AuthResponse with JWT access token and user info
+    """
     _ensure_demo_user()
 
     if not create_user(req.username, hash_password(req.password)):
@@ -57,4 +73,12 @@ def signup(req: AuthRequest):
 
 @router.get("/me")
 def me(current_user: dict[str, str] = Depends(get_current_user)):
+    """Get current authenticated user info.
+    
+    Args:
+        current_user: Current authenticated user from JWT
+        
+    Returns:
+        dict with user object containing username
+    """
     return {"user": current_user}

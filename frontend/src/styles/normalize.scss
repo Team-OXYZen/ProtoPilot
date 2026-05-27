@@ -34,6 +34,11 @@ body {
   transition: background-color $transition-base, color $transition-base;
 }
 
+iframe {
+  border: none !important;
+  background: white;
+}
+
 // -------------------------------------------------------------------
 // TYPOGRAPHY
 // -------------------------------------------------------------------
