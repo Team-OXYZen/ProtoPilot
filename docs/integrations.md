@@ -14,11 +14,13 @@ GitHub export should create a branch and pull request. It should not push direct
 Set these in `backend/.env`:
 
 ```env
-GITHUB_TOKEN=
-GITHUB_OWNER=Team-OXYZen
-GITHUB_REPO=ProtoPilot
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_OAUTH_REDIRECT_URI=http://127.0.0.1:8000/integrations/github/oauth/callback
+GITHUB_OAUTH_SCOPE=repo
 JIRA_PROJECT_KEY=PROTO
 LITELLM_MODEL_INTEGRATION=
+FRONTEND_URL=http://127.0.0.1:4200
 ```
 
 Do not commit real secrets.
@@ -34,6 +36,8 @@ uvicorn api.server:app --reload --port 8000
 
 Use `POST /integrations/github/export`.
 
+Before exporting, the user must connect their own GitHub account through `GET /integrations/github/oauth/start`. The backend stores the resulting user-scoped GitHub token and uses it for export. This is intentionally not a server-wide token, because generated code should be pushed to the user's account or an organization/repo they can access.
+
 Example using generated project files:
 
 ```bash
@@ -41,7 +45,9 @@ curl -X POST http://localhost:8000/integrations/github/export \
   -H "Content-Type: application/json" \
   -d '{
     "project_id": "demo-project",
-    "session_id": "demo-integration-session"
+    "session_id": "demo-integration-session",
+    "owner": "github-owner-or-org",
+    "repo": "target-repo"
   }'
 ```
 

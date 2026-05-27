@@ -1,14 +1,22 @@
 import json
 import os
 import uuid
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 import httpx
 from pydantic import BaseModel
 
 from agents.registry import AGENT_FACTORIES
-from core.auth import get_oauth_token
+from core.auth import get_current_user, get_oauth_token
 from core.runner import run_turn
+from core.user_store import (
+    consume_github_oauth_state,
+    get_github_connection,
+    save_github_connection,
+    save_github_oauth_state,
+)
 from orchestration.integration_payloads import (
     build_github_files_from_project,
     build_jira_tasks_from_project,
@@ -16,6 +24,8 @@ from orchestration.integration_payloads import (
 
 router = APIRouter(prefix="/integrations")
 GITHUB_API_BASE = "https://api.github.com"
+GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
+GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 
 
 class GitHubFile(BaseModel):
@@ -34,6 +44,15 @@ class GitHubExportRequest(BaseModel):
     pull_request_title: str | None = None
     pull_request_body: str | None = None
     files: list[GitHubFile] | None = None
+
+
+class GitHubOAuthStartResponse(BaseModel):
+    authorization_url: str
+
+
+class GitHubConnectionStatus(BaseModel):
+    connected: bool
+    github_username: str | None = None
 
 
 class JiraTask(BaseModel):
@@ -75,6 +94,15 @@ def _github_headers(token: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+
+
+def _github_oauth_config() -> tuple[str, str, str]:
+    client_id = os.getenv("GITHUB_CLIENT_ID")
+    client_secret = os.getenv("GITHUB_CLIENT_SECRET")
+    redirect_uri = os.getenv("GITHUB_OAUTH_REDIRECT_URI", "http://127.0.0.1:8000/integrations/github/oauth/callback")
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="GitHub OAuth client id and secret are required.")
+    return client_id, client_secret, redirect_uri
 
 
 async def _github_request(
@@ -122,6 +150,7 @@ def _resolve_github_branch(req: GitHubExportRequest) -> str:
 
 async def _export_files_to_github(
     *,
+    github_token: str,
     owner: str,
     repo: str,
     base_branch: str,
@@ -131,10 +160,6 @@ async def _export_files_to_github(
     pull_request_body: str | None,
     files: list[dict],
 ) -> dict:
-    github_token = os.getenv("GITHUB_TOKEN")
-    if not github_token:
-        raise HTTPException(status_code=400, detail="GITHUB_TOKEN is required.")
-
     async with httpx.AsyncClient(headers=_github_headers(github_token), timeout=60) as client:
         if await _github_ref_exists(client, owner, repo, new_branch):
             raise HTTPException(status_code=409, detail=f"GitHub branch '{new_branch}' already exists.")
@@ -229,8 +254,71 @@ async def _export_files_to_github(
     }
 
 
+@router.get("/github/oauth/start", response_model=GitHubOAuthStartResponse)
+def start_github_oauth(current_user: dict[str, str] = Depends(get_current_user)):
+    client_id, _client_secret, redirect_uri = _github_oauth_config()
+    state = uuid.uuid4().hex
+    save_github_oauth_state(state, current_user["username"])
+
+    query = urlencode({
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "scope": os.getenv("GITHUB_OAUTH_SCOPE", "repo"),
+        "state": state,
+    })
+    return {"authorization_url": f"{GITHUB_AUTHORIZE_URL}?{query}"}
+
+
+@router.get("/github/oauth/status", response_model=GitHubConnectionStatus)
+def github_oauth_status(current_user: dict[str, str] = Depends(get_current_user)):
+    connection = get_github_connection(current_user["username"])
+    if not connection:
+        return {"connected": False, "github_username": None}
+    return {
+        "connected": True,
+        "github_username": connection.get("github_username"),
+    }
+
+
+@router.get("/github/oauth/callback")
+async def github_oauth_callback(code: str, state: str):
+    username = consume_github_oauth_state(state)
+    if not username:
+        raise HTTPException(status_code=400, detail="Invalid or expired GitHub OAuth state.")
+
+    client_id, client_secret, redirect_uri = _github_oauth_config()
+    async with httpx.AsyncClient(timeout=30) as client:
+        token_response = await client.post(
+            GITHUB_TOKEN_URL,
+            headers={"Accept": "application/json"},
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+            },
+        )
+        token_response.raise_for_status()
+        token_payload = token_response.json()
+
+        access_token = token_payload.get("access_token")
+        if not access_token:
+            raise HTTPException(status_code=400, detail="GitHub OAuth did not return an access token.")
+
+        user_response = await client.get(
+            f"{GITHUB_API_BASE}/user",
+            headers=_github_headers(access_token),
+        )
+        user_response.raise_for_status()
+        github_username = user_response.json().get("login")
+
+    save_github_connection(username, access_token, github_username)
+    frontend_url = os.getenv("FRONTEND_URL", "http://127.0.0.1:4200")
+    return RedirectResponse(f"{frontend_url}/spec-review?github_connected=1")
+
+
 @router.post("/github/export")
-async def export_github(req: GitHubExportRequest):
+async def export_github(req: GitHubExportRequest, current_user: dict[str, str] = Depends(get_current_user)):
     try:
         if req.files is not None:
             files = [_model_to_dict(file) for file in req.files]
@@ -239,12 +327,20 @@ async def export_github(req: GitHubExportRequest):
         else:
             raise HTTPException(status_code=400, detail="Either files or project_id is required.")
 
-        owner = req.owner or os.getenv("GITHUB_OWNER")
-        repo = req.repo or os.getenv("GITHUB_REPO")
+        owner = req.owner
+        repo = req.repo
         if not owner or not repo:
             raise HTTPException(status_code=400, detail="GitHub owner and repo are required.")
 
+        connection = get_github_connection(current_user["username"])
+        if not connection:
+            raise HTTPException(status_code=400, detail="Connect your GitHub account before exporting.")
+        github_token = connection.get("access_token")
+        if not github_token:
+            raise HTTPException(status_code=400, detail="Connect your GitHub account before exporting.")
+
         result = await _export_files_to_github(
+            github_token=github_token,
             owner=owner,
             repo=repo,
             base_branch=req.base_branch,
@@ -267,7 +363,7 @@ async def export_github(req: GitHubExportRequest):
 
 
 @router.post("/jira/create-tasks")
-async def create_jira_tasks(req: JiraCreateTasksRequest):
+async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str, str] = Depends(get_current_user)):
     try:
         if req.tasks is not None:
             tasks = [_model_to_dict(task) for task in req.tasks]

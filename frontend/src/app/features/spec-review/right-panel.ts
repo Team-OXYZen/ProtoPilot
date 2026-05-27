@@ -1,5 +1,6 @@
 import { JsonPipe, CommonModule } from '@angular/common';
 import { Component, inject, Input, OnChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
 import { SpecService } from './services/spec.service';
 import mermaid from 'mermaid';
@@ -10,7 +11,7 @@ import { finalize } from 'rxjs';
 @Component({
   selector: 'app-right-panel',
   standalone: true,
-  imports: [JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
+  imports: [JsonPipe, MarkdownModule, CommonModule, FormsModule, LivePreviewComponent],
   templateUrl: './right-panel.html',
   styleUrl: './right-panel.scss'
 })
@@ -25,6 +26,11 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   specService = inject(SpecService);
   wizardService = inject(WizardService);
   githubExportLoading = false;
+  githubConnectLoading = false;
+  githubConnected = false;
+  githubUsername = '';
+  githubOwner = '';
+  githubRepo = '';
   jiraTasksLoading = false;
   integrationError = '';
   integrationMessage = '';
@@ -37,6 +43,7 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     if (this.isMermaidDiagram(this.mdText)) {
       this.renderMermaid();
     }
+    this.loadGitHubConnectionStatus();
   }
 
   ngOnChanges() {
@@ -114,11 +121,26 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
       return;
     }
 
+    if (!this.githubOwner.trim() || !this.githubRepo.trim()) {
+      this.integrationError = 'Enter a GitHub owner and repository.';
+      return;
+    }
+
+    if (!this.githubConnected) {
+      this.integrationError = 'Connect your GitHub account before exporting.';
+      return;
+    }
+
     this.githubExportLoading = true;
     this.integrationError = '';
     this.integrationMessage = '';
 
-    this.wizardService.exportGeneratedCodeToGithub(projectId, sessionId).pipe(
+    this.wizardService.exportGeneratedCodeToGithub(
+      projectId,
+      sessionId,
+      this.githubOwner.trim(),
+      this.githubRepo.trim()
+    ).pipe(
       finalize(() => {
         this.githubExportLoading = false;
       })
@@ -130,6 +152,42 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
       },
       error: (error) => {
         this.integrationError = this.formatIntegrationError(error, 'GitHub export failed.');
+      },
+    });
+  }
+
+  connectGitHub(): void {
+    this.githubConnectLoading = true;
+    this.integrationError = '';
+    this.integrationMessage = '';
+
+    this.wizardService.startGitHubOAuth().pipe(
+      finalize(() => {
+        this.githubConnectLoading = false;
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result?.authorization_url) {
+          window.location.href = result.authorization_url;
+          return;
+        }
+        this.integrationError = 'GitHub authorization URL was not returned.';
+      },
+      error: (error) => {
+        this.integrationError = this.formatIntegrationError(error, 'GitHub connection failed.');
+      },
+    });
+  }
+
+  private loadGitHubConnectionStatus(): void {
+    this.wizardService.getGitHubConnectionStatus().subscribe({
+      next: (result) => {
+        this.githubConnected = !!result?.connected;
+        this.githubUsername = result?.github_username || '';
+      },
+      error: () => {
+        this.githubConnected = false;
+        this.githubUsername = '';
       },
     });
   }

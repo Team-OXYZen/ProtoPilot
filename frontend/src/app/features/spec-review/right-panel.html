@@ -5,6 +5,21 @@
       <div class="code-preview-container">
         @if (hasGeneratedCode()) {
           <div class="integration-actions">
+            <button type="button" (click)="connectGitHub()" [disabled]="githubConnectLoading || githubExportLoading || jiraTasksLoading">
+              {{ githubConnected ? ('GitHub: ' + (githubUsername || 'Connected')) : (githubConnectLoading ? 'Connecting...' : 'Connect GitHub') }}
+            </button>
+            <input
+              type="text"
+              [(ngModel)]="githubOwner"
+              placeholder="GitHub owner"
+              [disabled]="githubExportLoading || jiraTasksLoading"
+            />
+            <input
+              type="text"
+              [(ngModel)]="githubRepo"
+              placeholder="Repository"
+              [disabled]="githubExportLoading || jiraTasksLoading"
+            />
             <button type="button" (click)="exportToGitHub()" [disabled]="githubExportLoading || jiraTasksLoading">
               {{ githubExportLoading ? 'Exporting...' : 'Export to GitHub' }}
             </button>

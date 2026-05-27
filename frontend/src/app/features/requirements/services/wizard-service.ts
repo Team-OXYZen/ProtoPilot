@@ -119,10 +119,20 @@ export class WizardService {
     return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/undeploy`, {});
   }
 
-  exportGeneratedCodeToGithub(projectId: string, sessionId: string): Observable<any> {
+  getGitHubConnectionStatus(): Observable<any> {
+    return this.http.get<any>('http://127.0.0.1:8000/integrations/github/oauth/status');
+  }
+
+  startGitHubOAuth(): Observable<any> {
+    return this.http.get<any>('http://127.0.0.1:8000/integrations/github/oauth/start');
+  }
+
+  exportGeneratedCodeToGithub(projectId: string, sessionId: string, owner: string, repo: string): Observable<any> {
     return this.http.post<any>('http://127.0.0.1:8000/integrations/github/export', {
       project_id: projectId,
       session_id: sessionId,
+      owner,
+      repo,
       base_branch: 'main',
     });
   }

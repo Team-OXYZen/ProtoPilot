@@ -166,6 +166,12 @@ app-live-preview {
       cursor: not-allowed;
     }
   }
+
+  input {
+    width: 160px;
+    min-width: 140px;
+    margin: 0;
+  }
 }
 
 .integration-error,
