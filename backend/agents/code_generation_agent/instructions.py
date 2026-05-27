@@ -58,8 +58,9 @@ package.json requirements:
 - Do not use ng2-charts or other Angular chart wrappers; use Chart.js directly with canvas and chart.js/auto.
 
 Angular config requirements:
-- angular.json must reference "src/styles.scss" in build.options.styles.
+- angular.json build target MUST use builder "@angular-devkit/build-angular:browser" (webpack), NOT "@angular-devkit/build-angular:application" (esbuild). Esbuild requires native binaries incompatible with StackBlitz.
 - angular.json must point build.options.main to "src/main.ts".
+- angular.json must reference "src/styles.scss" in build.options.styles.
 - tsconfig.json must have strict true and target ES2022.
 - tsconfig.app.json must extend tsconfig.json and include src/**/*.ts.
 - If the user explicitly requested Tailwind:
