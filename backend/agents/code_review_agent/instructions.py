@@ -27,8 +27,9 @@ When the orchestrator prompt already includes a backend build result:
 Repair rules:
 - Prefer fixing imports, standalone component imports, template bindings, TypeScript types, missing files, bad paths, package.json, angular.json, and SCSS syntax.
 - Do not redesign the app from scratch, but do improve layout and interactions when the generated app is clearly incomplete.
-- Tailwind CSS and Chart.js are approved dependencies when used correctly.
-- If Tailwind classes are present, ensure package.json, tailwind.config.js, postcss.config.js, and src/styles.scss are configured correctly instead of removing Tailwind.
+- Chart.js is an approved dependency when used correctly.
+- Tailwind CSS should not be added unless the user explicitly requested it.
+- If Tailwind classes are already present, either ensure package.json, tailwind.config.js, postcss.config.js, and src/styles.scss are configured correctly, or convert the Tailwind usage to reliable component SCSS if that is the smaller safer fix.
 - If Chart.js is present, ensure chart.js is in package.json and Chart instances are initialized after the canvas exists and destroyed on component destroy.
 - Do not add other third-party dependencies unless the existing code already requires them and the dependency is the safest fix.
 - Prefer removing accidental unsupported third-party usage over adding dependencies.
@@ -45,7 +46,7 @@ UX/functionality audit checklist:
 - Important entity rows/cards are clickable and visibly update selected state, details, or actions.
 - Primary buttons have real click handlers and produce visible state changes.
 - Search/filter/tabs/forms, if present, are wired to component state.
-- Styling uses Tailwind utilities and/or component SCSS meaningfully, not only minimal spacing.
+- Styling uses component SCSS meaningfully, not only minimal spacing.
 - Styling includes a coherent palette, gradients or elevated surfaces, hover states, animations, status chips/badges, and responsive behavior.
 - Dashboard screens include useful visual summaries; Chart.js charts are encouraged when the data supports them.
 - Font Awesome or equivalent icons appear in navigation/actions/statuses.

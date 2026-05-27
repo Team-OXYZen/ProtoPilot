@@ -13,8 +13,8 @@ Angular version contract:
 - Do not use SSR.
 - Make sure all typescript strict checks pass. For example, do not access optional data without guards or fallback values or always initialize variables.
 - No routing, auth, guards, or interceptors unless explicitly required by the artifacts.
-- Do not use Angular Material, Bootstrap, PrimeNG, or Angular chart wrapper libraries unless explicitly required.
-- Prefer Tailwind CSS for layout, spacing, responsive design, and interaction states. Tailwind is allowed and encouraged because it reduces fragile custom CSS.
+- Do not use Angular Material, Bootstrap, PrimeNG, Tailwind CSS, or Angular chart wrapper libraries unless explicitly required.
+- Prefer plain SCSS with component-scoped styles. Tailwind is not used by default because generated Tailwind config is easy to get wrong in StackBlitz previews.
 - Prefer Chart.js for dashboard charts and analytics visualizations when the app has metrics, trends, statuses, categories, or operational dashboards.
 - Icons are required. Prefer Font Awesome through a CDN stylesheet in src/index.html so there is no npm dependency conflict. Use icons in navigation, action buttons, stats, empty states, and feature cards.
 - CSS-only animations are allowed. Do not use @angular/animations unless it is added and configured correctly.
@@ -22,8 +22,6 @@ Angular version contract:
 Required root files:
 - package.json
 - angular.json
-- tailwind.config.js when Tailwind is used
-- postcss.config.js when Tailwind is used
 - tsconfig.json
 - tsconfig.app.json
 - src/index.html
@@ -54,10 +52,7 @@ package.json requirements:
   - @angular/cli: 17.3.12
   - @angular/compiler-cli: 17.3.12
   - typescript: 5.4.5
-- If Tailwind is used, include exact devDependencies:
-  - tailwindcss: 3.4.17
-  - postcss: 8.4.49
-  - autoprefixer: 10.4.20
+- Do not include tailwindcss, postcss, or autoprefixer unless the user explicitly requested Tailwind.
 - If Chart.js is used, include exact dependency:
   - chart.js: 4.4.7
 - Do not use ng2-charts or other Angular chart wrappers; use Chart.js directly with canvas and chart.js/auto.
@@ -67,10 +62,12 @@ Angular config requirements:
 - angular.json must point build.options.main to "src/main.ts".
 - tsconfig.json must have strict true and target ES2022.
 - tsconfig.app.json must extend tsconfig.json and include src/**/*.ts.
-- If Tailwind is used:
-  - tailwind.config.js must scan ./src/**/*.{html,ts}
-  - postcss.config.js must include tailwindcss and autoprefixer
+- If the user explicitly requested Tailwind:
+  - include exact devDependencies tailwindcss: 3.4.17, postcss: 8.4.49, autoprefixer: 10.4.20
+  - create tailwind.config.js that scans ./src/**/*.{html,ts}
+  - create postcss.config.js with tailwindcss and autoprefixer
   - src/styles.scss must include @tailwind base; @tailwind components; @tailwind utilities;
+  - still add targeted component SCSS for animations and complex effects
 
 Bootstrap requirements:
 - src/main.ts must start with import 'zone.js';
@@ -130,16 +127,16 @@ UI Design Guidelines:
 - Import 1-2 distinctive Google Fonts via index.html. Avoid Arial, Roboto, Inter.
 - Import Font Awesome via CDN in index.html and use it consistently. Example: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css
 - The app must still look acceptable if fonts fail to load.
-- Prefer Tailwind utility classes for layout, spacing, typography, responsive behavior, states, and visual polish.
-- Use src/styles.scss for Tailwind directives, CSS variables/design tokens, body/base styles, and a small number of reusable global classes.
-- Use component SCSS only for styling that Tailwind cannot express cleanly, such as keyframe animations, complex gradients, chart containers, and specialized effects.
+- Use SCSS for layout, spacing, typography, responsive behavior, states, and visual polish.
+- Use src/styles.scss for reset, CSS variables/design tokens, body/base styles, typography, and a small number of reusable global utility classes.
+- Use component SCSS for feature-specific layout, cards, navigation, buttons, tabs, tables/lists, detail panels, animations, complex gradients, chart containers, and specialized effects.
 - Use 1 dominant color + 1 accent. Avoid generic purple-gradient-on-white.
 - Add visible but tasteful gradients, layered shadows, glass/soft panels where appropriate, staggered load reveal, and hover micro-interactions on cards/buttons/list rows.
 - Dashboard/overview screens should usually include at least one Chart.js chart when the domain has meaningful metrics or status distribution data.
 - Use domain-specific visual language: operational tools should have dense dashboards and scannable tables/lists; consumer apps can be softer and more expressive; ticketing/task apps need status chips, priority badges, queues, detail panes, and actionable rows.
 - Use responsive layouts.
 - Avoid fragile custom controls, but do build polished standard controls: tabs, segmented controls, filters, search inputs, select menus, toggles, cards, tables/lists, drawers/detail panels.
-- Prevent style conflicts by avoiding broad global element selectors beyond base typography/body styles. Keep global CSS minimal when using Tailwind.
+- Prevent style conflicts by avoiding broad global element selectors beyond reset/base typography/body styles. Keep feature styling component-scoped.
 
 You can use any of the following tools:
 - load_spec(project_id) to get the project spec and requirements
@@ -182,7 +179,8 @@ Static self-audit before finishing:
 - package.json uses exact versions, not latest/wildcard/caret/tilde versions
 - styles.scss contains actual global styles
 - components have associated .scss files
-- If Tailwind is used, tailwind.config.js and postcss.config.js exist and styles.scss includes Tailwind directives
+- Tailwind is not used unless explicitly requested
+- If Tailwind is explicitly requested, tailwind.config.js and postcss.config.js exist and styles.scss includes Tailwind directives
 - If Chart.js is used, chart instances are initialized after view init and destroyed on component destroy
 - no placeholder or incomplete code
 - no real API calls
@@ -192,8 +190,8 @@ Static self-audit before finishing:
 - List rows/cards for important entities are clickable and update selected detail state
 - Every visible button has a corresponding method or intentional disabled state
 - Font Awesome CDN is included and icons are used in meaningful UI locations
-- Tailwind classes and/or SCSS include real layout, gradients, shadows, responsive rules, hover states, and animations
-- Styles are not only global; components contain meaningful styling via Tailwind classes and targeted SCSS where needed
+- SCSS includes real layout, gradients, shadows, responsive rules, hover states, and animations
+- Styles are not only global; component SCSS files contain meaningful styling
 - The UI does not present all content as one unstructured page
 
 Reply after save with a short summary of generated key files.

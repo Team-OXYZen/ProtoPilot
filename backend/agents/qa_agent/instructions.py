@@ -62,7 +62,9 @@ Product QA checklist:
 - Clicking a todo, ticket, task, customer, order, or similar record updates selection/details/actions visibly.
 - Every visible primary button either works, changes state, submits/clears/filters/selects data, or is intentionally disabled.
 - Styling is substantial: component SCSS includes layout, responsive behavior, hover states, status styles, gradients/elevation/animation where appropriate.
-- Tailwind CSS is allowed and preferred for layout, spacing, responsive behavior, and interaction states when already present or when broad UI polish is requested.
+- Prefer reliable component SCSS for layout, spacing, responsive behavior, and interaction states.
+- Do not add Tailwind CSS for broad UI polish unless the user explicitly requests Tailwind.
+- If Tailwind is already present and broken, either fix its package/config files or convert the affected styling to SCSS, choosing the smaller safer change.
 - Chart.js is allowed and encouraged for dashboard/analytics/status visualizations when the app has meaningful metrics.
 - If Tailwind or Chart.js is used, keep dependency/config changes minimal and make sure the Angular project still builds.
 - Icons are present in navigation, actions, and status/summary UI. Font Awesome via CDN is acceptable.
