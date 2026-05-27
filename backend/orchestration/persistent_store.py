@@ -11,6 +11,7 @@ DB_PATH = Path(os.getenv("APP_DB_PATH", "./app.db"))
 
 
 def init_db() -> None:
+    """Initialize database schema with projects and chat_messages tables."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
@@ -68,18 +69,39 @@ def init_db() -> None:
 
 
 def _to_json(value: Any) -> str | None:
+    """Serialize value to JSON string, return None for null values.
+    
+    Args:
+        value: Any JSON-serializable value
+        
+    Returns:
+        JSON string or None
+    """
     if value is None:
         return None
     return json.dumps(value, ensure_ascii=False)
 
 
 def _from_json(value: str | None) -> Any:
+    """Deserialize JSON string, return None for empty values.
+    
+    Args:
+        value: JSON string or None
+        
+    Returns:
+        Deserialized value or None
+    """
     if not value:
         return None
     return json.loads(value)
 
 
 def save_project(proj: ProjectState) -> None:
+    """Insert or update project in database.
+    
+    Args:
+        proj: ProjectState object to persist
+    """
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -134,6 +156,14 @@ def save_project(proj: ProjectState) -> None:
 
 
 def load_project(project_id: str) -> ProjectState | None:
+    """Load project from database by ID.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        ProjectState or None if not found
+    """
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -178,6 +208,14 @@ def load_project(project_id: str) -> ProjectState | None:
 
 
 def list_projects(user_id: str) -> list[dict[str, Any]]:
+    """List all projects owned by user, sorted by recent update.
+    
+    Args:
+        user_id: User identifier
+        
+    Returns:
+        List of project dicts with metadata (without large content fields)
+    """
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -214,6 +252,12 @@ def list_projects(user_id: str) -> list[dict[str, Any]]:
     ]
 
 def set_project_stage(project_id: str, stage: Stage) -> None:
+    """Update project workflow stage and timestamp.
+    
+    Args:
+        project_id: Project identifier
+        stage: New stage value
+    """
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -236,6 +280,16 @@ def save_chat_message(
     stage: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> None:
+    """Store chat message in history.
+    
+    Args:
+        project_id: Project identifier
+        session_id: Session identifier
+        role: Message role (user, assistant)
+        content: Message content (auto-converted to JSON if dict)
+        stage: Optional workflow stage at message time
+        metadata: Optional message metadata dict
+    """
     init_db()
 
     if not isinstance(content, str):
@@ -267,6 +321,14 @@ def save_chat_message(
 
 
 def list_chat_messages(project_id: str) -> list[dict[str, Any]]:
+    """Retrieve all chat messages for project, chronologically ordered.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        List of message dicts with id, role, content, stage, metadata, and timestamp
+    """
     init_db()
 
     with sqlite3.connect(DB_PATH) as conn:

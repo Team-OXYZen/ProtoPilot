@@ -39,6 +39,21 @@ def get_or_create_project(
     project_title: str | None = None,
     project_description: str | None = None,
 ) -> ProjectState:
+    """Get or create project, loading from persistent store if exists.
+    
+    Args:
+        project_id: Project identifier
+        req_session_id: Requirements gathering session ID
+        user_id: Owner user ID
+        project_title: Optional project name
+        project_description: Optional project description
+        
+    Returns:
+        ProjectState object at REQ stage
+        
+    Raises:
+        ValueError: If user_id empty
+    """
     if not user_id:
         raise ValueError("user_id is required and cannot be empty")
 
@@ -71,6 +86,11 @@ def get_or_create_project(
 
 
 def persist_project(project_id: str) -> None:
+    """Save project to persistent store.
+    
+    Args:
+        project_id: Project identifier
+    """
     from orchestration.persistent_store import save_project
 
     proj = _PROJECTS.get(project_id)
@@ -79,6 +99,14 @@ def persist_project(project_id: str) -> None:
 
 
 def get_project(project_id: str) -> ProjectState | None:
+    """Get project from memory cache or persistent store.
+    
+    Args:
+        project_id: Project identifier
+        
+    Returns:
+        ProjectState or None if not found
+    """
     from orchestration.persistent_store import load_project
 
     proj = _PROJECTS.get(project_id)

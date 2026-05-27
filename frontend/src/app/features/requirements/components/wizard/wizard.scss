@@ -17,11 +17,11 @@
 }
 
 .wizard-container:has(.thinking) {
-  border: 2px solid transparent;
+  border: 4px solid transparent;
   background: linear-gradient(var(--color-wizard-card-bg), var(--color-wizard-card-bg)) padding-box,
-              linear-gradient(135deg, var(--color-primary), var(--color-secondary)) border-box;
+              linear-gradient(135deg, var(--color-tertiary), var(--color-secondary)) border-box;
   background-size: 200% 200%;
-  animation: gradientBorder 3s ease infinite;
+  animation: gradientBorder 1s ease infinite;
 }
 
 .wizard-card {
@@ -72,14 +72,16 @@
 }
 
 .question-title {
-  @include heading($text-2xl, $font-semibold);
+  @include heading($text-lg, $font-normal);
+  font-size: 1rem;
+  font-weight: $font-semibold;
   color: var(--color-text-secondary);
   margin-bottom: $space-md;
   text-align: center;
 }
 
 .question-subtitle {
-  @include heading($text-xl, $font-normal);
+  @include heading($text-2xl, $font-semibold);
   color: var(--color-question-subtitle);
   margin: $space-lg 0;
   text-align: center;

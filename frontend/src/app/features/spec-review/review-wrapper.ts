@@ -1,4 +1,5 @@
 import { Component, effect, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
 import mermaid from 'mermaid';
@@ -23,7 +24,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   @ViewChild(ChatboxComponent) chatbox!: ChatboxComponent;
 
-  selectedFile: string = 'requirements.md';
+  selectedFile: string = '';
   selectedSection: string = '';
   showSpecView = signal(false);
   files = signal<string[]>([]);
@@ -33,6 +34,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   wizardService = inject(WizardService);
   specService = inject(SpecService);
   loaderService = inject(LoaderService);
+  router = inject(Router);
 
   constructor() {
     // Auto-refresh file list when non-tech artifacts change (e.g. after chatbox modification)
@@ -71,6 +73,11 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    if (!this.hasReviewContext()) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
     const spec = this.specService.spec();
     if (spec && Object.keys(spec).length > 0) {
       this.selectedSection = Object.keys(spec).sort()[0];
@@ -78,7 +85,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     if (this.hasNonTechArtifacts()) {
       const allFiles = Object.keys(this.specService.nontech_artifacts_md() as any).sort();
       this.files.set(allFiles);
-      this.selectedFile = allFiles[0] || 'requirements.md';
+      this.selectedFile = allFiles[0] || '';
     }
     if (this.hasGeneratedCode()) {
       this.selectedFile = 'code-preview';
@@ -92,6 +99,18 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
+  }
+
+  private hasReviewContext(): boolean {
+    const spec = this.specService.spec();
+    return Boolean(
+      this.wizardService.project?.id ||
+      (spec && Object.keys(spec).length > 0) ||
+      this.hasNonTechArtifacts() ||
+      this.hasTechnicalArtifacts() ||
+      this.hasGeneratedCode() ||
+      this.hasJavaCode()
+    );
   }
 
   onSectionSelect(section: string) {
@@ -127,7 +146,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     const techArtifacts = this.specService.technical_artifacts_md();
     if (techArtifacts) allFiles.push(...Object.keys(techArtifacts));
     this.files.set(allFiles.sort());
-    this.selectedFile = allFiles[0] || 'requirements.md';
+    this.selectedFile = allFiles[0] || '';
   }
 
   generateCode() {
