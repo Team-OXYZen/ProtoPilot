@@ -90,15 +90,21 @@ export class WizardService {
   }
 
   getProjects(): Observable<any> {
-  return this.http.get<any>('http://127.0.0.1:8000/projects');
+    return this.http.get<any>('http://127.0.0.1:8000/projects', {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   getProject(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`, {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   getProjectMessages(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`);
+    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`, {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   deployProject(projectId: string): Observable<any> {
@@ -141,6 +147,10 @@ export class WizardService {
     });
 
     console.log('Loaded existing project:', project.project_id);
+  }
+
+  private get requestUserId(): string {
+    return this.authService.getCurrentUser()()?.username || this.userId;
   }
 
 

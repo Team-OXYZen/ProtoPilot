@@ -59,7 +59,9 @@ def get_or_create_project(
         )
         save_project(proj)
     else:
-        proj.user_id = user_id or proj.user_id
+        if proj.user_id != user_id:
+            raise PermissionError("Project is owned by a different user")
+
         proj.project_title = project_title or proj.project_title
         proj.project_description = project_description or proj.project_description
         save_project(proj)
