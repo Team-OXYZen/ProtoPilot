@@ -72,14 +72,16 @@
 }
 
 .question-title {
-  @include heading($text-2xl, $font-semibold);
+  @include heading($text-lg, $font-normal);
+  font-size: 1rem;
+  font-weight: $font-semibold;
   color: var(--color-text-secondary);
   margin-bottom: $space-md;
   text-align: center;
 }
 
 .question-subtitle {
-  @include heading($text-xl, $font-normal);
+  @include heading($text-2xl, $font-semibold);
   color: var(--color-question-subtitle);
   margin: $space-lg 0;
   text-align: center;
