@@ -98,6 +98,11 @@ def persist_project(project_id: str) -> None:
         save_project(proj)
 
 
+def evict_project(project_id: str) -> None:
+    """Remove project from memory cache, forcing next access to reload from DB."""
+    _PROJECTS.pop(project_id, None)
+
+
 def get_project(project_id: str) -> ProjectState | None:
     """Get project from memory cache or persistent store.
     

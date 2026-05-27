@@ -302,6 +302,51 @@
   }
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  .project-card:hover & {
+    opacity: 1;
+  }
+}
+
+.card-action-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+
+  &.edit-btn {
+    color: rgba(241, 245, 249, 0.7);
+
+    .project-card:hover &:hover {
+      color: var(--color-secondary);
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.4);
+    }
+  }
+
+  &.delete-btn {
+    color: rgba(241, 245, 249, 0.7);
+
+    .project-card:hover &:hover {
+      color: #fc8181;
+      background: rgba(229, 62, 62, 0.15);
+      border-color: rgba(229, 62, 62, 0.4);
+    }
+  }
+}
+
 .project-input {
   @include input-base;
 }
@@ -343,6 +388,37 @@
     border-color: var(--color-border) !important;
     box-shadow: $shadow-md !important;
   }
+}
+
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.edit-modal {
+  background: var(--color-sidebar-bg);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $space-xl;
+  width: 420px;
+  max-width: calc(100vw - 2 * #{$space-xl});
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  box-shadow: $shadow-lg;
+}
+
+.edit-modal-title {
+  margin: 0 0 $space-xs;
+  font-size: $text-xl;
+  font-weight: $font-semibold;
+  color: var(--color-sidebar-text);
 }
 
 .loading-placeholder,

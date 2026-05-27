@@ -251,6 +251,42 @@ def list_projects(user_id: str) -> list[dict[str, Any]]:
         for row in rows
     ]
 
+def update_project_info(project_id: str, title: str, description: str | None) -> None:
+    """Update project title and description.
+
+    Args:
+        project_id: Project identifier
+        title: New project title
+        description: New project description
+    """
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE projects
+            SET project_title = ?, project_description = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE project_id = ?
+            """,
+            (title, description, project_id),
+        )
+        conn.commit()
+
+
+def delete_project(project_id: str) -> None:
+    """Delete project and all associated chat messages from database.
+
+    Args:
+        project_id: Project identifier
+    """
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM chat_messages WHERE project_id = ?", (project_id,))
+        conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+        conn.commit()
+
+
 def set_project_stage(project_id: str, stage: Stage) -> None:
     """Update project workflow stage and timestamp.
     

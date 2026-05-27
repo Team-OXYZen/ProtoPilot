@@ -22,6 +22,9 @@ export class DashboardComponent implements OnInit {
   showCreateForm = signal(false);
   projectTitle = '';
   projectDescription = '';
+  editingProject = signal<ProjectCard | null>(null);
+  editTitle = '';
+  editDescription = '';
 
   private wizardService = inject(WizardService);
   private authService = inject(AuthService);
@@ -105,6 +108,52 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load project:', err);
+      },
+    });
+  }
+
+  onEditProject(event: MouseEvent, project: ProjectCard): void {
+    event.stopPropagation();
+    this.editTitle = project.project_title || '';
+    this.editDescription = project.project_description || '';
+    this.editingProject.set(project);
+  }
+
+  confirmEditProject(): void {
+    const project = this.editingProject();
+    if (!project || !this.editTitle.trim()) return;
+
+    this.wizardService.updateProject(project.project_id, this.editTitle.trim(), this.editDescription.trim()).subscribe({
+      next: () => {
+        this.projects.update(list => list.map(p =>
+          p.project_id === project.project_id
+            ? { ...p, project_title: this.editTitle.trim(), project_description: this.editDescription.trim() }
+            : p
+        ));
+        this.editingProject.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to update project:', err);
+        alert('Failed to update project. Please try again.');
+      },
+    });
+  }
+
+  cancelEditProject(): void {
+    this.editingProject.set(null);
+  }
+
+  onDeleteProject(event: MouseEvent, project: ProjectCard): void {
+    event.stopPropagation();
+    if (!confirm(`Delete "${project.project_title || project.project_id}"? This cannot be undone.`)) return;
+
+    this.wizardService.deleteProject(project.project_id).subscribe({
+      next: () => {
+        this.projects.update(list => list.filter(p => p.project_id !== project.project_id));
+      },
+      error: (err) => {
+        console.error('Failed to delete project:', err);
+        alert('Failed to delete project. Please try again.');
       },
     });
   }
