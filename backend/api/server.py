@@ -125,6 +125,7 @@ def project_detail(
         "technical_artifacts_md": proj.technical_artifacts_md,
         "angular_code_files": proj.angular_code_files,
         "java_code_files": proj.java_code_files,
+        "needs_redeploy": proj.needs_redeploy,
     }
 
 class UpdateProjectRequest(BaseModel):

@@ -11,6 +11,7 @@ export class SpecService {
   readonly java_code_files = signal<Record<string, string> | null>(null);
   readonly deployStatus = signal<'idle' | 'building' | 'running' | 'failed'>('idle');
   readonly deployUrl = signal<string | null>(null);
+  readonly needsRedeploy = signal<boolean>(false);
 
   setSpec(spec: any): void {
     this.spec.set(spec);
@@ -38,6 +39,7 @@ export class SpecService {
 
   setJavaCode(files: Record<string, string>): void {
     this.java_code_files.set(files);
+    this.needsRedeploy.set(false);
   }
 
   updateNontechArtifact(filename: string, content: string): void {

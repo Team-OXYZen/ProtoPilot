@@ -103,7 +103,8 @@ export class DashboardComponent implements OnInit {
         if (proj.java_code_files) {
           this.specService.setJavaCode(proj.java_code_files);
         }
-        
+        this.specService.needsRedeploy.set(!!proj.needs_redeploy);
+
         this.router.navigate([route]);
       },
       error: (err) => {
@@ -206,6 +207,7 @@ confirmCreateProject(): void {
   this.specService.clearSpec();
   this.specService.clearArtifacts();
   this.specService.clearGeneratedCode();
+  this.specService.clearDeploy();
 
   this.wizardService.createProject(
     userId,

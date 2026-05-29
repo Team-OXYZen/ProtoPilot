@@ -168,6 +168,19 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     });
   }
 
+  confirmRedeploy() {
+    const projectId = this.wizardService.project?.id;
+    if (this.specService.deployStatus() === 'running') {
+      const confirmed = confirm('Re-finalizing will regenerate the backend and stop the current deployment link. Continue?');
+      if (!confirmed) return;
+      if (projectId) {
+        this.wizardService.undeployProject(projectId).subscribe({ next: () => {}, error: () => {} });
+        this.specService.clearDeploy();
+      }
+    }
+    this.finalizeProject();
+  }
+
   finalizeProject() {
     this.loaderService.startWithMessages(['Analysing Angular services...', 'Generating Spring Boot code...', 'Updating Angular services...', 'Almost there...']);
     this.wizardService.sendMessage('finalize').pipe(catchError(err => {
@@ -181,6 +194,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         next: (proj) => {
           if (proj.angular_code_files) this.specService.setAngularCode(proj.angular_code_files);
           if (proj.java_code_files) this.specService.setJavaCode(proj.java_code_files);
+          this.specService.needsRedeploy.set(!!proj.needs_redeploy);
           this.loaderService.stop();
         },
         error: () => this.loaderService.stop(),
@@ -273,15 +287,27 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   async downloadZip() {
-    if (this.specService.deployStatus() === 'running') {
-      const confirmed = confirm('Preview link will be closed after download, are you sure?');
+    const stale = this.specService.needsRedeploy();
+    const running = this.specService.deployStatus() === 'running';
+    if (stale || running) {
+      let msg: string;
+      if (stale && running) {
+        msg = 'The backend code is not up to date with your latest changes — re-finalize first if you want the latest version. The current preview link will also be closed. Download anyway?';
+      } else if (stale) {
+        msg = 'The backend code is not up to date with your latest changes. Re-finalize first if you want to download the latest version. Download anyway?';
+      } else {
+        msg = 'The current preview link will be closed after download. Continue?';
+      }
+      const confirmed = confirm(msg);
       if (!confirmed) return;
-      const projectId = this.wizardService.project?.id;
-      if (projectId) {
-        await new Promise<void>(resolve => {
-          this.wizardService.undeployProject(projectId).subscribe({ next: () => resolve(), error: () => resolve() });
-        });
-        this.specService.clearDeploy();
+      if (running) {
+        const projectId = this.wizardService.project?.id;
+        if (projectId) {
+          await new Promise<void>(resolve => {
+            this.wizardService.undeployProject(projectId).subscribe({ next: () => resolve(), error: () => resolve() });
+          });
+          this.specService.clearDeploy();
+        }
       }
     }
     try {
@@ -354,6 +380,15 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         else if (s.status === 'failed') this.specService.setDeployStatus('failed');
       });
     });
+  }
+
+  openStaleDeployLink(): void {
+    const confirmed = confirm(
+      'This preview link is from a previous version. Re-finalize the project and re-deploy to sync the backend with your latest changes. Open the outdated link anyway?'
+    );
+    if (confirmed) {
+      window.open(this.specService.deployUrl()!, '_blank', 'noopener');
+    }
   }
 
   viewPrototype() {

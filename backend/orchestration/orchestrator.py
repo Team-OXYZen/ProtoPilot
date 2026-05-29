@@ -69,6 +69,7 @@ class Orchestrator:
             "artifacts_md": artifacts_md or proj.technical_artifacts_md or proj.nontech_artifacts_md,
             "angular_code_files": angular_code_files or proj.angular_code_files,
             "java_code_files": proj.java_code_files,
+            "needs_redeploy": proj.needs_redeploy,
         }
 
     def _resume_context(self, proj, phase: str) -> str:
@@ -313,11 +314,15 @@ class Orchestrator:
             "Generate PM-facing non-technical artifacts now.\n"
             "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
         )
-        log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-nontech"})
-        _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
-        log_event("AGENT", "artifacts_nontech_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": _raw_reply}, status="ok")
-
-        if proj.stage != Stage.WAIT_APPROVAL:
+        _raw_reply = ""
+        for attempt in range(2):
+            log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-nontech", "attempt": attempt + 1})
+            _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
+            log_event("AGENT", "artifacts_nontech_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": _raw_reply}, status="ok")
+            if proj.stage == Stage.WAIT_APPROVAL:
+                break
+            log_event("RETRY", "artifacts_nontech_retry", {"project_id": proj.project_id, "attempt": attempt + 1, "reply": _raw_reply}, status="fail")
+        else:
             log_event("ERROR", "artifacts_nontech_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
             set_project_stage(proj.project_id, Stage.REQ)
             persist_project(proj.project_id)
@@ -663,10 +668,13 @@ class Orchestrator:
             log_event("AGENT", "java_codegen_done", {"project_id": proj.project_id, "files": list((proj.java_code_files or {}).keys()), "reply": _raw_reply}, status="ok")
 
             if proj.java_code_files:
+                proj.needs_redeploy = False
+                set_project_stage(proj.project_id, Stage.QA)
+                review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Java Spring Boot code generated successfully."},
-                    raw_reply=_raw_reply,
+                    reply={"message": "Java Spring Boot code generated successfully. You can continue refining the app or type 'finalize' again to regenerate the backend."},
+                    raw_reply=f"{_raw_reply}\n\n[POST_FINALIZE_CODE_REVIEW]\n{review_reply}",
                 )
             else:
                 return self._build_response(
@@ -700,6 +708,11 @@ class Orchestrator:
         log_event("AGENT", "qa_done", {"project_id": proj.project_id, "reply": _raw_reply}, status="ok")
 
         qa_build_ok, qa_verification_reply = await self._verify_qa_build(qa_agent, proj, req_session_id)
+
+        if proj.java_code_files:
+            proj.needs_redeploy = True
+            persist_project(proj.project_id)
+
         reply = {
             "message": f"{_raw_reply}",
             "build_verification": qa_verification_reply,

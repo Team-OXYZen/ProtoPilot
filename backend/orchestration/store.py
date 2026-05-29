@@ -23,6 +23,7 @@ class ProjectState:
     technical_artifacts_md: Optional[dict[str, str]] = None
     angular_code_files: Optional[dict[str, str]] = None
     java_code_files: Optional[dict[str, str]] = None
+    needs_redeploy: bool = False
     user_id: str = ""
     project_title: str | None = None
     project_description: str | None = None

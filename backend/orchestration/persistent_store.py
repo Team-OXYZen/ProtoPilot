@@ -33,7 +33,7 @@ def init_db() -> None:
             )
             """
         )
-        for col in ("artifacts_summary TEXT", "angular_code_files TEXT", "java_code_files TEXT"):
+        for col in ("artifacts_summary TEXT", "angular_code_files TEXT", "java_code_files TEXT", "needs_redeploy INTEGER DEFAULT 0"):
             try:
                 conn.execute(f"ALTER TABLE projects ADD COLUMN {col}")
             except sqlite3.OperationalError:
@@ -120,9 +120,10 @@ def save_project(proj: ProjectState) -> None:
                 angular_code_files,
                 java_code_files,
                 artifacts_summary,
+                needs_redeploy,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(project_id) DO UPDATE SET
                 user_id = excluded.user_id,
                 req_session_id = excluded.req_session_id,
@@ -135,6 +136,7 @@ def save_project(proj: ProjectState) -> None:
                 angular_code_files = excluded.angular_code_files,
                 java_code_files = excluded.java_code_files,
                 artifacts_summary = excluded.artifacts_summary,
+                needs_redeploy = excluded.needs_redeploy,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -150,6 +152,7 @@ def save_project(proj: ProjectState) -> None:
                 _to_json(proj.angular_code_files),
                 _to_json(proj.java_code_files),
                 proj.artifacts_summary,
+                int(proj.needs_redeploy),
             ),
         )
         conn.commit()
@@ -181,7 +184,8 @@ def load_project(project_id: str) -> ProjectState | None:
                 technical_artifacts_md,
                 angular_code_files,
                 java_code_files,
-                artifacts_summary
+                artifacts_summary,
+                needs_redeploy
             FROM projects
             WHERE project_id = ?
             """,
@@ -204,6 +208,7 @@ def load_project(project_id: str) -> ProjectState | None:
         angular_code_files=_from_json(row[9]),
         java_code_files=_from_json(row[10]),
         artifacts_summary=row[11],
+        needs_redeploy=bool(row[12]) if row[12] is not None else False,
     )
 
 
