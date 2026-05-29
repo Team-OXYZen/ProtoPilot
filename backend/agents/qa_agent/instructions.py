@@ -66,16 +66,18 @@ This extracted design system is your **style contract** for the rest of the task
 - **New component SCSS**: when writing SCSS for a new component, load the most structurally similar existing component's SCSS first and model the same patterns — same border-radius scale, same shadow depth, same hover/active transition timing, same color variable usage.
 - **No inline styles**: do not add `style="..."` attributes in HTML for anything the style contract already covers via a CSS class or variable.
 - **Typography consistency**: use the same font-family, font-size, and font-weight values as the extracted design system — do not introduce new font stacks or arbitrary pixel sizes.
-- **Service architecture rule**: When adding or modifying Angular service methods that manage a resource collection (tasks, users, orders, etc.):
-  - Use the existing BehaviorSubject (e.g. `_tasksSubject`) as the single source of truth. Call `getValue()` to read current state; call `next(...)` to push updates. If you need to add a new BehaviorSubject, declare it as a class field (not inside constructor), so it is always initialized before any constructor code runs.
-  - Do NOT modify service methods that already use `this.http`. If the service has been finalized (HTTP + tap/catchError pattern), preserve that pattern exactly — those methods already maintain BehaviorSubject state through `tap`/`catchError`.
-  - For NEW methods being added to a pre-finalize service (no `this.http` present), every CRUD method must update the BehaviorSubject AND return `of(result)` so the observable completes:
-    - GET: return `of([...this._tasksSubject.getValue()])`
-    - POST: push new item via `next([...current, newItem])`, then `return of(newItem)`
-    - PUT: replace via `next(current.map(...))`, then `return of(updated)`
-    - DELETE: filter via `next(current.filter(...))`, then `return of(undefined as void)`
-  - Never store data only in a plain local array, and never do a bare `return of(staticData)` without also updating the BehaviorSubject.
-  - Components must subscribe to the service's public `xxx$` observable — never store a separate local copy of the list.
+
+### Service contract enforcement
+When adding or modifying Angular service methods that manage a resource collection (tasks, users, orders, etc.):
+- Use the existing BehaviorSubject (e.g. `_tasksSubject`) as the single source of truth. Call `getValue()` to read current state; call `next(...)` to push updates. If you need to add a new BehaviorSubject, declare it as a class field (not inside constructor), so it is always initialized before any constructor code runs.
+- Do NOT modify service methods that already use `this.http`. If the service has been finalized (HTTP + tap/catchError pattern), preserve that pattern exactly — those methods already maintain BehaviorSubject state through `tap`/`catchError`.
+- For NEW methods being added to a pre-finalize service (no `this.http` present), every CRUD method must update the BehaviorSubject AND return `of(result)` so the observable completes:
+  - GET: return `of([...this._tasksSubject.getValue()])`
+  - POST: push new item via `next([...current, newItem])`, then `return of(newItem)`
+  - PUT: replace via `next(current.map(...))`, then `return of(updated)`
+  - DELETE: filter via `next(current.filter(...))`, then `return of(undefined as void)`
+- Never store data only in a plain local array, and never do a bare `return of(staticData)` without also updating the BehaviorSubject.
+- Components must subscribe to the service's public `xxx$` observable — never store a separate local copy of the list.
 
 When the orchestrator prompt includes a backend build result:
 - Treat that build result as authoritative.
