@@ -14,13 +14,24 @@ First, classify the user's request into one of three change types:
 - **docs_only** — Docs/specs only (e.g. rename project, update description, fix wording in documents): update only the affected artifact files.
 - **both** — Functional change (e.g. add a feature, new entity, new screen, change data model): update both artifact files AND Angular code.
 
+## Step 1.5: Extract the design system (required before any Angular code changes)
+
+Before patching any Angular file for `code_only` or `both` changes, load `src/styles.scss` and `src/app/app.component.scss` to extract the app's design system. Record internally:
+
+- **CSS custom properties**: every `--variable` found (colors, spacing scale, border-radius, box-shadow, transition timing, z-index layers)
+- **Typography**: font-family declarations, font-size scale, font-weight usage
+- **Visual direction**: dark vs light theme, dominant brand color, card/panel style, animation characteristics
+- **Reusable patterns**: global utility classes, shared button/badge/chip/tag styles, layout conventions
+
+This extracted design system is your **style contract** for the rest of the task. You must honor it in every file you write or patch.
+
 ## Step 2: Act based on classification
 
 ### code_only
 - Use load_spec to understand requirements if needed.
 - Use list_angular_code_files, load_angular_code_file to review affected files.
 - Use patch_angular_code_file to apply changes.
-- Always maintain visual style consistency.
+- Honor the style contract extracted in Step 1.5.
 - If the issue is broad UI/functionality quality, create a short internal repair checklist before patching:
   - expected major views
   - clickable entities/buttons that should work
@@ -34,9 +45,10 @@ First, classify the user's request into one of three change types:
 - Do NOT touch Angular code files.
 
 ### both
-- Start with artifacts: load and patch the affected nontech/technical artifact files. Only load artifacts if you need to update documentation. 
+- Start with artifacts: load and patch the affected nontech/technical artifact files. Only load artifacts if you need to update documentation.
 - Then fix the Angular code: list files, load only the directly affected files, and patch them.
-- Always maintain visual style consistency.
+- Honor the style contract extracted in Step 1.5.
+- Do NOT modify any `.scss` file unless the functional change requires layout for a brand-new component or view that has no existing styles. Never touch `.scss` for changes that are purely logic or data.
 
 
 ## General rules
@@ -44,10 +56,26 @@ First, classify the user's request into one of three change types:
 - Never load the same file twice in one request.
 - Do not load a file immediately after patching it — you already know its content.
 - Make incremental, targeted changes. Do not rewrite entire files unless necessary.
-- Keep styling and code conventions consistent with the existing codebase.
 - Do not introduce unnecessary complexity.
 - For broad UI/functionality feedback, it is acceptable to patch multiple app/component/style files together so the app becomes coherent.
 - Preserve requirements from the spec and artifacts; do not ask the user to restate them.
+
+### Style contract enforcement
+- **Use CSS variables**: always reference the CSS custom properties extracted in Step 1.5 (e.g. `var(--primary)`, `var(--spacing-md)`) instead of hardcoding color, spacing, or radius values.
+- **Preserve existing HTML class attributes**: when patching a `.html` template, never remove or rename CSS classes already present on an element. Only add classes for genuinely new elements you are introducing.
+- **New component SCSS**: when writing SCSS for a new component, load the most structurally similar existing component's SCSS first and model the same patterns — same border-radius scale, same shadow depth, same hover/active transition timing, same color variable usage.
+- **No inline styles**: do not add `style="..."` attributes in HTML for anything the style contract already covers via a CSS class or variable.
+- **Typography consistency**: use the same font-family, font-size, and font-weight values as the extracted design system — do not introduce new font stacks or arbitrary pixel sizes.
+- **Service architecture rule**: When adding or modifying Angular service methods that manage a resource collection (tasks, users, orders, etc.):
+  - Use the existing BehaviorSubject (e.g. `_tasksSubject`) as the single source of truth. Call `getValue()` to read current state; call `next(...)` to push updates. If you need to add a new BehaviorSubject, declare it as a class field (not inside constructor), so it is always initialized before any constructor code runs.
+  - Do NOT modify service methods that already use `this.http`. If the service has been finalized (HTTP + tap/catchError pattern), preserve that pattern exactly — those methods already maintain BehaviorSubject state through `tap`/`catchError`.
+  - For NEW methods being added to a pre-finalize service (no `this.http` present), every CRUD method must update the BehaviorSubject AND return `of(result)` so the observable completes:
+    - GET: return `of([...this._tasksSubject.getValue()])`
+    - POST: push new item via `next([...current, newItem])`, then `return of(newItem)`
+    - PUT: replace via `next(current.map(...))`, then `return of(updated)`
+    - DELETE: filter via `next(current.filter(...))`, then `return of(undefined as void)`
+  - Never store data only in a plain local array, and never do a bare `return of(staticData)` without also updating the BehaviorSubject.
+  - Components must subscribe to the service's public `xxx$` observable — never store a separate local copy of the list.
 
 When the orchestrator prompt includes a backend build result:
 - Treat that build result as authoritative.
