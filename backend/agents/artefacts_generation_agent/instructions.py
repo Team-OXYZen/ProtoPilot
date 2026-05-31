@@ -17,9 +17,9 @@ Mandatory tool usage:
 5) Calling the required save tool is mandatory. Without it, the task is NOT complete.
 
 non_tech output must include (as dictionary with filename keys):
-- "Product_Brief.md": Plain-language product brief (problem, users, goals, scope, assumptions)
+- "Product_Brief.md": Plain-language product brief (problem, users, goals, functional requirements, non-functional requirements, scope, assumptions)
 - "User_Needs_and_Actions.md": User needs, user actions, tasks, and acceptance criteria
-- "User_Stories_for_Jira.md": Jira-ready user stories with epics, story titles, descriptions, priorities, and acceptance criteria
+- "Jira_Plan.md": Detailed Jira Backlog Plan (epics, stories, sprints, tasks/sub-tasks, due dates, labels, priorities, severity, story points, acceptance criteria, dependencies, QA notes, demo notes in tables)
 - "User_Journey_and_Screens.md": User journey, navigation, main screens, and screen behaviors
 - "Screen_and_Interaction_Plan.md": Detailed screen plan covering dashboard sections, views/tabs, clickable records, buttons, forms, modals, charts, empty states, and UI states
 - "Prototype_Acceptance_Checklist.md": Plain-language checklist for validating that the prototype is complete, usable, clickable, and visually acceptable
@@ -69,7 +69,15 @@ MARKDOWN STYLING & FORMATTING:
 - Use nested headings (##, ###, ####) for hierarchy
 - Product_Brief.md: tables for goals, scope, assumptions, users, and requirements
 - User_Needs_and_Actions.md: table with columns (User, Need, Action, Expected Result, Acceptance Criteria)
-- User_Stories_for_Jira.md: table with columns (Epic, Story Title, User Story, Priority, Acceptance Criteria, Suggested Jira Labels)
+- Jira_Plan.md: detailed Jira import blueprint. This file must be rich enough that a Jira integration agent can create populated tickets without re-inferring the backlog from other documents. Use markdown tables for every section below:
+  - Planning assumptions table: Sprint Length, Sprint Naming Pattern, Start Date Assumption, Due Date Rule, Story Point Scale, Default Labels, Release/Version, Calendar Visibility Rule
+  - Epics table columns: Epic ID, Epic Name, Summary, Business Value, Target Users, Priority, Severity, Labels, Components, Target Release, Dependencies, Acceptance Criteria, Demo Notes
+  - Stories table columns: Story ID, Parent Epic ID, Story Summary, User Story, Detailed Description, Acceptance Criteria, Priority, Severity, T-Shirt Size, Story Points, Sprint, Sprint Goal, Start Date, Due Date, Labels, Components, Dependencies, Assumptions, QA Notes, Demo Notes
+  - Sprints table columns: Sprint, Sprint Goal, Start Date, End Date, Story IDs, Capacity Notes, Demo Outcome
+  - Tasks/Sub-tasks table columns: Task ID, Parent Story ID, Task Type (Design/Frontend/Backend/QA/Review), Summary, Detailed Description, Owner Role, Estimate Days, Priority, Severity, Start Date, Due Date, Labels, Dependencies, Definition of Done
+  - Field mapping table columns: Jira Field, Applies To, Preferred Value, Fallback If Field Missing
+  - Risks/dependencies table columns: ID, Related Epic/Story, Risk or Dependency, Impact, Mitigation, Owner Role
+  Use relative dates when exact calendar dates are unknown, such as "Sprint 1 Day 1", "Sprint 1 Day 5", and "Sprint 2 Day 3". Do not leave important cells blank; use "N/A (TBD)" only when truly unsupported by the spec.
 - User_Journey_and_Screens.md: numbered journeys with actions, screen names, transitions, and ASCII flow arrows (→, ↓)
 - Screen_and_Interaction_Plan.md: tables for screens, sections, components, buttons, clickable records, forms, charts, and empty states
 - Prototype_Acceptance_Checklist.md: checklist grouped by navigation, screen completeness, clickability, forms, data updates, visual quality, responsiveness, and demo readiness
@@ -89,6 +97,7 @@ CONTENT QUALITY REQUIREMENTS:
 - Include realistic sample data guidance when useful for prototype generation.
 - Acceptance criteria must be observable in the UI, not vague.
 - Technical artifacts should be detailed enough for implementation, but mark unsupported production infrastructure as optional/future.
+
 
 After saving technical artifacts, generate a concise summary and call save_artifacts_summary(project_id, summary).
 The summary must cover (in plain text, not too many words):

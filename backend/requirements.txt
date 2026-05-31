@@ -1,3 +1,4 @@
 google-adk[db]
 litellm
 greenlet
+mcp

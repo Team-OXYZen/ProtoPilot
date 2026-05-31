@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, effect, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
@@ -7,7 +7,7 @@ import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
 import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
-import { catchError, interval, of, Subscription, switchMap, takeWhile } from 'rxjs';
+import { catchError, finalize, interval, of, Subscription, switchMap, takeWhile } from 'rxjs';
 import { ChatboxComponent } from './chatbox';
 import { LoaderService } from '../../shared/services/loader.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -28,6 +28,15 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   selectedSection: string = '';
   showSpecView = signal(false);
   files = signal<string[]>([]);
+  showExportMenu = signal(false);
+  githubExportLoading = signal(false);
+  githubConnectLoading = signal(false);
+  githubConnected = signal(false);
+  githubUsername = signal('');
+  jiraTasksLoading = signal(false);
+  confluenceExportLoading = signal(false);
+  integrationError = signal('');
+  integrationMessage = signal('');
 
   private pollSub?: Subscription;
   private readonly artifactOrder = [
@@ -113,6 +122,14 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
+    if (this.hasGeneratedCode()) {
+      this.loadGitHubConnectionStatus();
+    }
+  }
+
+  @HostListener('document:click')
+  closeExportMenu(): void {
+    this.showExportMenu.set(false);
   }
 
   private hasReviewContext(): boolean {
@@ -137,6 +154,147 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   isStackblitzActive() {
     return this.selectedFile === 'code-preview';
+  }
+
+  toggleExportMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showExportMenu.update((value) => !value);
+  }
+
+  connectGitHub(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.githubConnectLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+
+    this.wizardService.startGitHubOAuth().pipe(
+      finalize(() => {
+        this.githubConnectLoading.set(false);
+        this.showExportMenu.set(false);
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result?.authorization_url) {
+          window.location.href = result.authorization_url;
+          return;
+        }
+        this.integrationError.set('GitHub authorization URL was not returned.');
+      },
+      error: (error) => {
+        this.integrationError.set(this.formatIntegrationError(error, 'GitHub connection failed.'));
+      },
+    });
+  }
+
+  exportToGitHub(event?: MouseEvent): void {
+    event?.stopPropagation();
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError.set('Missing project or session id.');
+      return;
+    }
+
+    if (!this.githubConnected()) {
+      this.integrationError.set('Connect your GitHub account before exporting.');
+      return;
+    }
+
+    this.githubExportLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+    this.showExportMenu.set(false);
+
+    this.wizardService.exportGeneratedCodeToGithub(projectId, sessionId, '', '').pipe(
+      finalize(() => {
+        this.githubExportLoading.set(false);
+      })
+    ).subscribe({
+      next: (result) => {
+        this.integrationMessage.set(result?.pull_request_url
+          ? `GitHub export complete: ${result.pull_request_url}`
+          : 'GitHub export complete.');
+      },
+      error: (error) => {
+        this.integrationError.set(this.formatIntegrationError(error, 'GitHub export failed.'));
+      },
+    });
+  }
+
+  createJiraTasks(event?: MouseEvent): void {
+    event?.stopPropagation();
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError.set('Missing project or session id.');
+      return;
+    }
+
+    this.jiraTasksLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+    this.showExportMenu.set(false);
+
+    this.wizardService.createJiraTasks(projectId, sessionId).pipe(
+      finalize(() => {
+        this.jiraTasksLoading.set(false);
+      })
+    ).subscribe({
+      next: () => {
+        this.integrationMessage.set('Jira product plan creation requested.');
+      },
+      error: (error) => {
+        this.integrationError.set(this.formatIntegrationError(error, 'Jira product plan creation failed.'));
+      },
+    });
+  }
+
+  exportArtifactsToConfluence(event?: MouseEvent): void {
+    event?.stopPropagation();
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError.set('Missing project or session id.');
+      return;
+    }
+
+    this.confluenceExportLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+    this.showExportMenu.set(false);
+
+    this.wizardService.exportArtifactsToConfluence(projectId, sessionId, '').pipe(
+      finalize(() => {
+        this.confluenceExportLoading.set(false);
+      })
+    ).subscribe({
+      next: () => {
+        this.integrationMessage.set('Confluence artifact export requested.');
+      },
+      error: (error) => {
+        this.integrationError.set(this.formatIntegrationError(error, 'Confluence artifact export failed.'));
+      },
+    });
+  }
+
+  private loadGitHubConnectionStatus(): void {
+    this.wizardService.getGitHubConnectionStatus().subscribe({
+      next: (result) => {
+        this.githubConnected.set(!!result?.connected);
+        this.githubUsername.set(result?.github_username || '');
+      },
+      error: () => {
+        this.githubConnected.set(false);
+        this.githubUsername.set('');
+      },
+    });
+  }
+
+  private formatIntegrationError(error: any, fallback: string): string {
+    return error?.error?.detail || error?.message || fallback;
   }
 
   approveSpec() {
@@ -186,6 +344,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         this.specService.setAngularCode((reply as any).angular_code_files);
         this.files.set([]);
         this.selectedFile = 'code-preview';
+        this.loadGitHubConnectionStatus();
         this.loaderService.stop();
       } else {
         this.loaderService.stop();
@@ -298,7 +457,9 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     return elements;
   }
 
-  async downloadZip() {
+  async downloadZip(event?: MouseEvent) {
+    event?.stopPropagation();
+    this.showExportMenu.set(false);
     if (this.specService.deployStatus() === 'running') {
       const confirmed = confirm('Preview link will be closed after download, are you sure?');
       if (!confirmed) return;
