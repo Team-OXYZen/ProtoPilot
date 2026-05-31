@@ -150,7 +150,10 @@
 
 @if (integrationError() || integrationMessage()) {
   <div class="integration-status" [class.error]="integrationError()">
-    {{ integrationError() || integrationMessage() }}
+    <span>{{ integrationError() || integrationMessage() }}</span>
+    <button type="button" class="integration-status__close" aria-label="Close integration message" (click)="clearIntegrationMessage()">
+      &times;
+    </button>
   </div>
 }
 

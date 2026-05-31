@@ -24,7 +24,6 @@ from orchestration.tools import (
     save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
-    set_project_stage,
     submit_spec,
     list_java_code_files,
     load_java_code_file,
@@ -36,6 +35,21 @@ from orchestration.store import Stage, get_or_create_project, persist_project
 
 
 class Orchestrator:
+
+    def _set_stage(self, proj, stage: Stage, event: str, **extra: Any) -> None:
+        before = proj.stage
+        proj.stage = stage
+        persist_project(proj.project_id)
+        log_event(
+            "STAGE",
+            event,
+            {
+                "project_id": proj.project_id,
+                "from": before.value if hasattr(before, "value") else str(before),
+                "to": stage.value,
+                **extra,
+            },
+        )
 
     def _build_response(self, proj, reply: Any, artifacts_md: dict[str, str] | None = None, angular_code_files: dict[str, str] | None = None, raw_reply: str | None = None) -> dict[str, Any]:
         """Package orchestration result with project state and reply.
@@ -182,15 +196,11 @@ class Orchestrator:
             dict with response message or empty dict if approval handled
         """
         if normalized == "approve":
-            log_event("STAGE", "approval_received", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.TECH_ARTIFACTS.value})
-            set_project_stage(proj.project_id, Stage.TECH_ARTIFACTS)
-            proj.stage = Stage.TECH_ARTIFACTS
+            self._set_stage(proj, Stage.TECH_ARTIFACTS, "approval_received")
             return {}
 
         if normalized == "change":
-            log_event("STAGE", "revision_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.REQ.value})
-            set_project_stage(proj.project_id, Stage.REQ)
-            proj.stage = Stage.REQ
+            self._set_stage(proj, Stage.REQ, "revision_requested")
             return self._build_response(
                 proj=proj,
                 reply={"message": "You have entered revision mode. Please describe the changes needed."},
@@ -227,10 +237,12 @@ class Orchestrator:
         )
 
         log_event("AGENT", "requirements_start", {"project_id": proj.project_id, "phase": phase, "session_id": req_session_id})
+        before_spec = proj.spec
         reply = await run_turn(req_agent, req_session_id, message=req_prompt)
         log_event("AGENT", "requirements_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": reply}, status="ok")
 
-        if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
+        if proj.spec and proj.spec is not before_spec:
+            self._set_stage(proj, Stage.ARTIFACTS_NON_TECH, "requirements_complete")
             return await self._run_artifacts_non_tech(token, proj, req_session_id)
 
         return self._build_response(
@@ -283,8 +295,7 @@ class Orchestrator:
             return await self._run_angular_codegen(token, proj, req_session_id)
         if proj.stage == Stage.QA:
             if normalized == "finalize":
-                log_event("STAGE", "finalize_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.FINALIZE.value})
-                set_project_stage(proj.project_id, Stage.FINALIZE)
+                self._set_stage(proj, Stage.FINALIZE, "finalize_requested")
                 return await self._run_java_codegen(token, proj, req_session_id)
             return await self._run_qa(token, proj, req_session_id, user_message)
         if proj.stage == Stage.FINALIZE:
@@ -317,15 +328,16 @@ class Orchestrator:
         _raw_reply = ""
         for attempt in range(2):
             log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-nontech", "attempt": attempt + 1})
+            before_nontech_artifacts = proj.nontech_artifacts_md
             _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
             log_event("AGENT", "artifacts_nontech_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": _raw_reply}, status="ok")
-            if proj.stage == Stage.WAIT_APPROVAL:
+            if proj.nontech_artifacts_md and proj.nontech_artifacts_md is not before_nontech_artifacts:
+                self._set_stage(proj, Stage.WAIT_APPROVAL, "nontech_artifacts_complete", attempt=attempt + 1)
                 break
             log_event("RETRY", "artifacts_nontech_retry", {"project_id": proj.project_id, "attempt": attempt + 1, "reply": _raw_reply}, status="fail")
         else:
             log_event("ERROR", "artifacts_nontech_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
-            set_project_stage(proj.project_id, Stage.REQ)
-            persist_project(proj.project_id)
+            self._set_stage(proj, Stage.REQ, "nontech_artifacts_failed")
             raise RuntimeError(f"Non-technical artifacts generation failed: {_raw_reply}")
 
         reply = {
@@ -361,6 +373,7 @@ class Orchestrator:
         )
 
         log_event("AGENT", "artifacts_technical_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-tech"})
+        before_technical_artifacts = proj.technical_artifacts_md
         _raw_reply = await run_turn(
             art_agent,
             session_id=f"{req_session_id}-tech",
@@ -368,9 +381,11 @@ class Orchestrator:
         )
         log_event("AGENT", "artifacts_technical_done", {"project_id": proj.project_id, "artifact_files": list((proj.technical_artifacts_md or {}).keys()), "reply": _raw_reply}, status="ok")
 
-        if not proj.technical_artifacts_md:
+        if not proj.technical_artifacts_md or proj.technical_artifacts_md is before_technical_artifacts:
             log_event("ERROR", "artifacts_technical_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
             raise RuntimeError(f"Technical artifacts generation failed: {_raw_reply}")
+
+        self._set_stage(proj, Stage.CODEGEN, "technical_artifacts_complete")
 
         reply = {
             "message": _raw_reply,
@@ -619,10 +634,7 @@ class Orchestrator:
             log_event("ERROR", "code_review_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return error_message
         finally:
-            log_event("STAGE", "code_review_complete", {"project_id": proj.project_id, "to": Stage.QA.value})
-            set_project_stage(proj.project_id, Stage.QA)
-            proj.stage = Stage.QA
-            persist_project(proj.project_id)
+            self._set_stage(proj, Stage.QA, "code_review_complete")
 
     def _java_codegen_tools(self) -> list:
         """Get tools available during Java code generation phase.
@@ -669,7 +681,7 @@ class Orchestrator:
 
             if proj.java_code_files:
                 proj.needs_redeploy = False
-                set_project_stage(proj.project_id, Stage.QA)
+                self._set_stage(proj, Stage.QA, "java_codegen_complete")
                 review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,

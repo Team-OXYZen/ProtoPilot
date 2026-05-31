@@ -136,10 +136,32 @@
   background: rgba(16, 185, 129, 0.12);
   color: var(--color-text-primary);
   font-size: $text-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
 
   &.error {
     background: rgba(239, 68, 68, 0.12);
     color: var(--color-error);
+  }
+}
+
+.integration-status__close {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: $text-lg;
+  line-height: 1;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: var(--color-border);
   }
 }
 

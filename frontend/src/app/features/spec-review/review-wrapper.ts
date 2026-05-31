@@ -1,7 +1,6 @@
 import { Component, effect, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import JSZip from 'jszip';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, ShadingType } from 'docx';
 import mermaid from 'mermaid';
 import { LeftPanelComponent } from './left-panel';
 import { RightPanelComponent } from './right-panel';
@@ -11,7 +10,6 @@ import { catchError, finalize, interval, of, Subscription, switchMap, takeWhile 
 import { ChatboxComponent } from './chatbox';
 import { LoaderService } from '../../shared/services/loader.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
-
 
 @Component({
   selector: 'app-review-wrapper',
@@ -159,6 +157,11 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   toggleExportMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.showExportMenu.update((value) => !value);
+  }
+
+  clearIntegrationMessage(): void {
+    this.integrationError.set('');
+    this.integrationMessage.set('');
   }
 
   connectGitHub(event?: MouseEvent): void {
@@ -387,88 +390,52 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     });
   }
 
-  private async mmdToSvg(mmdContent: string): Promise<Blob | null> {
+  private async mmdToSvg(mmdContent: string): Promise<Blob> {
+    const mermaidCode = this.extractMermaidCode(mmdContent);
     try {
       mermaid.initialize({ startOnLoad: false, theme: 'default' });
       const id = 'mmd-render-' + Date.now();
-      const { svg } = await mermaid.render(id, mmdContent);
+      const { svg } = await mermaid.render(id, mermaidCode);
       return new Blob([svg], { type: 'image/svg+xml' });
     } catch {
-      return null;
+      return new Blob([this.mermaidSourceToSvg(mermaidCode)], { type: 'image/svg+xml' });
     }
   }
 
-  private parseInlineRuns(text: string, forceBold = false): TextRun[] {
-    const runs: TextRun[] = [];
-    const segments = text.split(/<br\s*\/?>/gi);
-    segments.forEach((segment, idx) => {
-      if (idx > 0) runs.push(new TextRun({ break: 1 }));
-      for (const part of segment.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)) {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          runs.push(new TextRun({ text: part.slice(2, -2), bold: true }));
-        } else if (part.startsWith('*') && part.endsWith('*')) {
-          runs.push(new TextRun({ text: part.slice(1, -1), italics: !forceBold, bold: forceBold }));
-        } else if (part.startsWith('`') && part.endsWith('`')) {
-          runs.push(new TextRun({ text: part.slice(1, -1), bold: forceBold, font: { name: 'Courier New' } }));
-        } else {
-          runs.push(new TextRun({ text: part, bold: forceBold || undefined }));
-        }
-      }
-    });
-    return runs;
+  private extractMermaidCode(content: string): string {
+    const codeBlockMatch = content.match(/```mermaid\s*([\s\S]*?)```/);
+    const rawCode = codeBlockMatch?.[1] || content;
+    return rawCode
+      .trim()
+      .replace(/ \(/g, ' &lpar;')
+      .replace(/\)\)/g, '&rpar;)')
+      .replace(/\) /g, '&rpar; ');
   }
 
-  private mdToDocxParagraphs(md: string): (Paragraph | Table)[] {
-    const elements: (Paragraph | Table)[] = [];
-    const lines = md.split('\n');
-    let i = 0;
+  private mermaidSourceToSvg(source: string): string {
+    const escapedLines = source
+      .split('\n')
+      .map(line => this.escapeSvgText(line || ' '))
+      .slice(0, 80);
+    const lineHeight = 18;
+    const height = Math.max(180, 76 + escapedLines.length * lineHeight);
+    const textLines = escapedLines
+      .map((line, index) => `<text x="24" y="${72 + index * lineHeight}">${line}</text>`)
+      .join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
+  <rect width="1200" height="${height}" fill="#f8fafc"/>
+  <rect x="16" y="16" width="1168" height="${height - 32}" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="24" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">Mermaid source could not be rendered</text>
+  <g font-family="Courier New, monospace" font-size="13" fill="#334155">${textLines}</g>
+</svg>`;
+  }
 
-    while (i < lines.length) {
-      const line = lines[i];
-
-      // markdown table: collect consecutive | lines
-      if (line.startsWith('|')) {
-        const tableLines: string[] = [];
-        while (i < lines.length && lines[i].startsWith('|')) {
-          tableLines.push(lines[i]);
-          i++;
-        }
-        const dataRows = tableLines.filter(r => !/^\|[\s|:\-]+\|$/.test(r.trim()));
-        if (dataRows.length > 0) {
-          elements.push(new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: dataRows.map((row, rowIdx) => new TableRow({
-              children: row.split('|').slice(1, -1).map(cell => new TableCell({
-                children: [new Paragraph({ children: this.parseInlineRuns(cell.trim(), rowIdx === 0) })],
-                shading: rowIdx === 0 ? { type: ShadingType.SOLID, color: 'D9D9D9' } : undefined,
-              })),
-            })),
-          }));
-          elements.push(new Paragraph({}));
-        }
-        continue;
-      }
-
-      if (/^-{3,}$/.test(line.trim())) {
-        elements.push(new Paragraph({}));
-      } else if (line.startsWith('### ')) {
-        elements.push(new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 }));
-      } else if (line.startsWith('## ')) {
-        elements.push(new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 }));
-      } else if (line.startsWith('# ')) {
-        elements.push(new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 }));
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        elements.push(new Paragraph({ children: this.parseInlineRuns(line.slice(2)), bullet: { level: 0 } }));
-      } else if (line.startsWith('> ')) {
-        elements.push(new Paragraph({ children: this.parseInlineRuns(line.slice(2)), indent: { left: 720 } }));
-      } else if (line.trim() === '') {
-        elements.push(new Paragraph({}));
-      } else {
-        elements.push(new Paragraph({ children: this.parseInlineRuns(line), alignment: AlignmentType.LEFT }));
-      }
-      i++;
-    }
-    return elements;
+  private escapeSvgText(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   async downloadZip(event?: MouseEvent) {
@@ -518,16 +485,11 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     if (Object.keys(allArtifacts).length > 0) {
       const af = zip.folder('artifacts')!;
       for (const [filename, content] of Object.entries(allArtifacts)) {
-        if (filename.endsWith('.mmd')) {
+        if (filename.toLowerCase().endsWith('.mmd')) {
           const svg = await this.mmdToSvg(content);
-          if (svg) {
-            af.file(filename.replace(/\.mmd$/, '.svg'), svg);
-          } else {
-            af.file(filename, content);
-          }
+          af.file(filename.replace(/\.mmd$/i, '.svg'), svg);
         } else {
-          const doc = new Document({ sections: [{ children: this.mdToDocxParagraphs(content) }] });
-          af.file(filename.replace(/\.md$/, '.docx'), await Packer.toBlob(doc));
+          af.file(filename, content);
         }
       }
     }
