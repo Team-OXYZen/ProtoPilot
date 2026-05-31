@@ -9,6 +9,20 @@ cp .env.example .env  # fill in credentials
 uvicorn api.server:app --reload --port 8000
 ```
 
+Key environment variables are documented in `.env.example`. Integration-related values include:
+
+| Variable | Purpose |
+|---|---|
+| `BACKEND_URL` | Public/local backend base URL used for generated callbacks. |
+| `FRONTEND_URL` | Public/local frontend URL used after GitHub OAuth returns. |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | GitHub OAuth app credentials for user-scoped code export. |
+| `GITHUB_OAUTH_REDIRECT_URI` | Optional explicit GitHub callback URL. Defaults from `BACKEND_URL`. |
+| `GITHUB_OAUTH_SCOPE` | GitHub OAuth scope, defaults to `repo`. |
+| `GITHUB_TOKEN` | Optional server token used only when initializing GitHub MCP tooling. |
+| `JIRA_PROJECT_KEY` | Optional default Jira project key. If omitted, the Atlassian agent discovers or creates a suitable Scrum software project. |
+| `CONFLUENCE_SPACE_KEY` | Optional default Confluence space key. If omitted, the Atlassian agent discovers or creates a suitable space. |
+| `LITELLM_MODEL_INTEGRATION` | Optional model override for GitHub/Jira/Confluence integration work. |
+
 ## Completed Workflow
 
 The backend runs a stage-driven pipeline. Each user message hits `POST /chat` and the orchestrator routes it based on the current project stage.

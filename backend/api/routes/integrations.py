@@ -109,7 +109,8 @@ def _github_oauth_config() -> tuple[str, str, str]:
     """Read GitHub OAuth configuration and fail fast when it is incomplete."""
     client_id = os.getenv("GITHUB_CLIENT_ID")
     client_secret = os.getenv("GITHUB_CLIENT_SECRET")
-    redirect_uri = os.getenv("GITHUB_OAUTH_REDIRECT_URI", "http://127.0.0.1:8000/integrations/github/oauth/callback")
+    backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+    redirect_uri = os.getenv("GITHUB_OAUTH_REDIRECT_URI", f"{backend_url}/integrations/github/oauth/callback")
     if not client_id or not client_secret:
         raise HTTPException(status_code=400, detail="GitHub OAuth client id and secret are required.")
     return client_id, client_secret, redirect_uri
@@ -483,7 +484,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str
         )
 
         token = await get_oauth_token()
-        agent = AGENT_FACTORIES["jira_integration"](token)
+        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",))
         session_id = _safe_session_id(req.session_id, req.project_id, "jira-create-backlog")
         log_event(
             "AGENT",
@@ -557,7 +558,7 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, _current_use
         )
 
         token = await get_oauth_token()
-        agent = AGENT_FACTORIES["jira_integration"](token)
+        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",))
         session_id = _safe_session_id(req.session_id, req.project_id, "confluence-export-artifacts")
         log_event(
             "AGENT",

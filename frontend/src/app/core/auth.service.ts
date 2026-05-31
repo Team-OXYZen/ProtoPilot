@@ -4,6 +4,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { catchError, map, Observable, of, tap } from 'rxjs';
 import { User } from '../shared/models/user.model';
+import { environment } from '../../environments/environment';
 
 interface AuthResponse {
   access_token: string;
@@ -19,7 +20,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private isAuthenticatedSignal = signal<boolean>(false);
   private currentUserSignal = signal<User | null>(null);
-  private readonly apiUrl = 'http://127.0.0.1:8000/auth';
+  private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
   private readonly tokenKey = 'accessToken';
   private readonly userKey = 'currentUser';
 

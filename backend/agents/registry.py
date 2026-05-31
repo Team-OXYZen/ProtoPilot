@@ -3,7 +3,6 @@ from agents.requirements_gathering_agent.agent import create_agent as create_req
 from agents.artefacts_generation_agent.agent import create_agent as create_art_agent
 from agents.code_generation_agent.agent import create_agent as create_code_agent
 from agents.integration_agent.agent import create_agent as create_integration_agent
-from agents.integration_agent.agent import create_jira_agent
 from agents.code_review_agent.agent import create_agent as create_code_review_agent
 from agents.qa_agent.agent import create_agent as create_qa_agent
 
@@ -14,7 +13,6 @@ AGENT_FACTORIES: dict[str, AgentFactory] = {
     "artifacts": create_art_agent,
     "code_generation": create_code_agent,
     "integration": create_integration_agent,
-    "jira_integration": create_jira_agent,
     "code_review": create_code_review_agent,
     "qa": create_qa_agent,
 }

@@ -1,11 +1,12 @@
-# GitHub and Jira Integration
+# GitHub, Jira, and Confluence Integration
 
 ## Purpose
 
 ProtoPilot moves generated project output into delivery tools:
 
 - GitHub export uses the GitHub REST API to transfer generated code without sending file contents through an LLM.
-- Jira task creation uses Atlassian MCP because it needs Jira workspace/tool access.
+- Jira backlog creation uses Atlassian MCP because it needs Jira workspace/tool access.
+- Confluence artifact export uses Atlassian MCP to publish generated markdown artifacts as pages.
 
 GitHub export should create a branch and pull request. It should not push directly to `main`.
 
@@ -16,11 +17,14 @@ Set these in `backend/.env`:
 ```env
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
-GITHUB_OAUTH_REDIRECT_URI=http://127.0.0.1:8000/integrations/github/oauth/callback
-GITHUB_OAUTH_SCOPE=repo
-JIRA_PROJECT_KEY=PROTO
-LITELLM_MODEL_INTEGRATION=
+BACKEND_URL=http://127.0.0.1:8000
 FRONTEND_URL=http://127.0.0.1:4200
+GITHUB_OAUTH_REDIRECT_URI=
+GITHUB_OAUTH_SCOPE=repo
+GITHUB_TOKEN=
+JIRA_PROJECT_KEY=PROTO
+CONFLUENCE_SPACE_KEY=
+LITELLM_MODEL_INTEGRATION=
 ```
 
 Do not commit real secrets.
@@ -108,7 +112,25 @@ curl -X POST http://localhost:8000/integrations/jira/create-tasks \
   }'
 ```
 
-Jira authentication is handled by `mcp-remote`; the OAuth flow may open a browser on first use. Jira uses a Jira-only integration agent session so it does not initialize GitHub tooling.
+Jira and Confluence authentication are handled by `mcp-remote`; the OAuth flow may open a browser on first use. Atlassian operations use an Atlassian-scoped integration agent session so GitHub tooling is not initialized.
+
+## Test Confluence Artifact Export
+
+Use `POST /integrations/confluence/export-artifacts`.
+
+Example using generated project artifacts:
+
+```bash
+curl -X POST http://localhost:8000/integrations/confluence/export-artifacts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "demo-project",
+    "session_id": "demo-confluence-session",
+    "confluence_space_key": "PROTO"
+  }'
+```
+
+The `confluence_space_key` can be omitted. When omitted, the integration agent will look for a suitable Confluence space or create one if the MCP tools and account permissions allow it.
 
 ## Notes
 

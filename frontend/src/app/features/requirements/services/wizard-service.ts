@@ -6,6 +6,7 @@ import { CONSTANTS, REQUIREMENTS_QUESTION_FLOW } from '../config/sample-question
 import { HttpClient } from '@angular/common/http';
 import { Project } from '../models/project.model';
 import { AuthService } from '../../../core/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +19,7 @@ export class WizardService {
 
   http = inject(HttpClient);
   private authService = inject(AuthService);
+  private readonly apiBaseUrl = environment.apiBaseUrl;
 
   private sessionSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
   session$ = this.sessionSubject.asObservable();
@@ -66,7 +68,7 @@ export class WizardService {
   }
 
   createProjectInDb(): Observable<any> {
-    return this.http.post<any>('http://127.0.0.1:8000/projects', {
+    return this.http.post<any>(`${this.apiBaseUrl}/projects`, {
       user_id: this.userId,
       project_id: this.project?.id,
       session_id: this.session?.id,
@@ -90,45 +92,45 @@ export class WizardService {
   }
 
   getProjects(): Observable<any> {
-    return this.http.get<any>('http://127.0.0.1:8000/projects', {
+    return this.http.get<any>(`${this.apiBaseUrl}/projects`, {
       params: { user_id: this.requestUserId },
     });
   }
 
   getProject(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}`, {
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}`, {
       params: { user_id: this.requestUserId },
     });
   }
 
   getProjectMessages(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/messages`, {
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}/messages`, {
       params: { user_id: this.requestUserId },
     });
   }
 
   deployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy`, {});
+    return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/deploy`, {});
   }
 
   getDeployStatus(projectId: string): Observable<any> {
-    return this.http.get<any>(`http://127.0.0.1:8000/projects/${projectId}/deploy/status`);
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}/deploy/status`);
   }
 
   undeployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`http://127.0.0.1:8000/projects/${projectId}/undeploy`, {});
+    return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/undeploy`, {});
   }
 
   getGitHubConnectionStatus(): Observable<any> {
-    return this.http.get<any>('http://127.0.0.1:8000/integrations/github/oauth/status');
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/github/oauth/status`);
   }
 
   startGitHubOAuth(): Observable<any> {
-    return this.http.get<any>('http://127.0.0.1:8000/integrations/github/oauth/start');
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/github/oauth/start`);
   }
 
   exportGeneratedCodeToGithub(projectId: string, sessionId: string, owner: string, repo: string): Observable<any> {
-    return this.http.post<any>('http://127.0.0.1:8000/integrations/github/export', {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/github/export`, {
       project_id: projectId,
       session_id: sessionId,
       owner,
@@ -138,14 +140,14 @@ export class WizardService {
   }
 
   createJiraTasks(projectId: string, sessionId: string): Observable<any> {
-    return this.http.post<any>('http://127.0.0.1:8000/integrations/jira/create-tasks', {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/jira/create-tasks`, {
       project_id: projectId,
       session_id: sessionId,
     });
   }
 
   exportArtifactsToConfluence(projectId: string, sessionId: string, confluenceSpaceKey: string): Observable<any> {
-    return this.http.post<any>('http://127.0.0.1:8000/integrations/confluence/export-artifacts', {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/confluence/export-artifacts`, {
       project_id: projectId,
       session_id: sessionId,
       confluence_space_key: confluenceSpaceKey,

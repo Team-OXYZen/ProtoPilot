@@ -68,7 +68,7 @@ def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", 
     agent = LlmAgent(
         model=llm,
         name="integration_agent",
-        description="Export generated code to GitHub and create Jira product plans from generated requirements",
+        description="Export generated code to GitHub and coordinate Atlassian Jira/Confluence delivery work",
         instruction=INTEGRATION_AGENT_INSTRUCTIONS,
         tools=agent_tools,
         generate_content_config=types.GenerateContentConfig(
@@ -78,9 +78,3 @@ def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", 
     )
     log_event("AGENT", "integration_agent_ready", {"tools_count": len(agent_tools), "toolsets": list(toolsets)}, status="ok")
     return agent
-
-
-def create_jira_agent(token: str, tools=None) -> LlmAgent:
-    """Create a Jira-only integration agent for Atlassian MCP workflows."""
-    log_event("AGENT", "jira_agent_create", {"extra_tools_count": len(tools or [])})
-    return create_agent(token, tools=tools, toolsets=("atlassian",))
