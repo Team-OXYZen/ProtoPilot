@@ -1,33 +1,30 @@
-from typing import Any
-
+from core.logging_utils import log_event
 from orchestration.store import get_project
 
 
-TASK_SOURCE_FIELDS = (
-    "features",
-    "requirements",
-    "functional_requirements",
-    "user_stories",
-)
-
-
 def _load_project(project_id: str):
+    """Load a project or raise a validation error for integration payload creation."""
     if not project_id:
         raise ValueError("project_id is required to build integration payloads.")
 
+    log_event("TOOL", "integration_project_load", {"project_id": project_id})
     proj = get_project(project_id)
     if proj is None:
+        log_event("ERROR", "integration_project_missing", {"project_id": project_id}, status="fail")
         raise ValueError(f"Project not found for project_id '{project_id}'.")
 
     return proj
 
 
 def _safe_github_path(path: str) -> str:
+    """Normalize generated file paths and keep GitHub exports under generated/."""
     if not isinstance(path, str) or not path.strip():
+        log_event("ERROR", "github_payload_invalid_path", {"path_type": type(path).__name__}, status="fail")
         raise ValueError("Generated code file path must be a non-empty string.")
 
     safe_path = path.replace("\\", "/").strip()
     if safe_path.startswith("/") or safe_path.startswith("\\") or ".." in safe_path:
+        log_event("ERROR", "github_payload_unsafe_path", {"path": path}, status="fail")
         raise ValueError(f"Unsafe generated code file path rejected: {path}")
 
     if not safe_path.startswith("generated/"):
@@ -37,7 +34,17 @@ def _safe_github_path(path: str) -> str:
 
 
 def build_github_files_from_project(project_id: str) -> list[dict]:
+    """Build sanitized GitHub file payloads from generated Angular and Java files."""
     proj = _load_project(project_id)
+    log_event(
+        "TOOL",
+        "github_payload_build_start",
+        {
+            "project_id": project_id,
+            "angular_files_count": len(proj.angular_code_files or {}),
+            "java_files_count": len(proj.java_code_files or {}),
+        },
+    )
     generated_code_files = {}
     if proj.angular_code_files:
         generated_code_files.update(proj.angular_code_files)
@@ -45,6 +52,7 @@ def build_github_files_from_project(project_id: str) -> list[dict]:
         generated_code_files.update(proj.java_code_files)
 
     if not generated_code_files:
+        log_event("ERROR", "github_payload_no_files", {"project_id": project_id}, status="fail")
         raise ValueError(f"No generated code files found for project_id '{project_id}'.")
 
     if not isinstance(generated_code_files, dict):
@@ -53,6 +61,7 @@ def build_github_files_from_project(project_id: str) -> list[dict]:
     files = []
     for path, content in generated_code_files.items():
         if not isinstance(content, str):
+            log_event("ERROR", "github_payload_invalid_content", {"project_id": project_id, "path": path}, status="fail")
             raise ValueError(f"Generated code file content must be a string for path '{path}'.")
 
         files.append({
@@ -60,145 +69,104 @@ def build_github_files_from_project(project_id: str) -> list[dict]:
             "content": content,
         })
 
+    log_event(
+        "TOOL",
+        "github_payload_built",
+        {
+            "project_id": project_id,
+            "files_count": len(files),
+            "sample_paths": [file["path"] for file in files[:8]],
+        },
+        status="ok",
+    )
     return files
 
 
-def _normalize_acceptance_criteria(value: Any) -> list[str]:
-    if value is None:
-        return []
-
-    if isinstance(value, str):
-        return [value] if value.strip() else []
-
-    if isinstance(value, list):
-        return [str(item) for item in value if str(item).strip()]
-
-    return [str(value)]
-
-
-def _stringify_task_value(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
-
-
-def _task_from_item(item: Any, source_field: str, index: int) -> dict | None:
-    if isinstance(item, str):
-        text = item.strip()
-        if not text:
-            return None
-        return {
-            "title": text,
-            "description": text,
-            "acceptance_criteria": [],
-        }
-
-    if not isinstance(item, dict):
-        text = _stringify_task_value(item)
-        if not text:
-            return None
-        return {
-            "title": f"{source_field.replace('_', ' ').title()} {index}",
-            "description": text,
-            "acceptance_criteria": [],
-        }
-
-    title = (
-        item.get("title")
-        or item.get("summary")
-        or item.get("name")
-        or item.get("feature")
-        or item.get("requirement")
-        or item.get("user_story")
-        or item.get("story")
-        or f"{source_field.replace('_', ' ').title()} {index}"
-    )
-    description = (
-        item.get("description")
-        or item.get("details")
-        or item.get("body")
-        or item.get("text")
-        or item.get("value")
-        or title
-    )
-    acceptance_criteria = (
-        item.get("acceptance_criteria")
-        or item.get("acceptanceCriteria")
-        or item.get("criteria")
-        or item.get("ac")
-    )
-
-    return {
-        "title": _stringify_task_value(title),
-        "description": _stringify_task_value(description),
-        "acceptance_criteria": _normalize_acceptance_criteria(acceptance_criteria),
-    }
-
-
-def _items_from_spec_field(value: Any) -> list[Any]:
-    if value is None:
-        return []
-
-    if isinstance(value, list):
-        return value
-
-    if isinstance(value, dict):
-        nested_items = []
-        for field in TASK_SOURCE_FIELDS:
-            nested_items.extend(_items_from_spec_field(value.get(field)))
-        if nested_items:
-            return nested_items
-        return list(value.values())
-
-    return [value]
-
-
-def _fallback_tasks_from_project(proj) -> list[dict]:
-    context = proj.project_description or proj.artifacts_summary or proj.project_title or "Generated ProtoPilot project."
-    return [
-        {
-            "title": "Review product requirements",
-            "description": f"Review the available ProtoPilot requirements and artifacts. Context: {context}",
-            "acceptance_criteria": [
-                "Requirements are reviewed for clarity and completeness.",
-                "Open questions or gaps are documented.",
-            ],
-        },
-        {
-            "title": "Implement generated prototype",
-            "description": "Implement or export the generated prototype code for review.",
-            "acceptance_criteria": [
-                "Generated prototype files are available for review.",
-                "Implementation follows the generated requirements and artifacts.",
-            ],
-        },
-        {
-            "title": "QA generated prototype",
-            "description": "Validate the generated prototype against the requirements and expected user flows.",
-            "acceptance_criteria": [
-                "Critical user flows are checked.",
-                "Defects and follow-up improvements are documented.",
-            ],
-        },
-    ]
-
-
-def build_jira_tasks_from_project(project_id: str) -> list[dict]:
+def build_jira_context_from_project(project_id: str) -> dict:
+    """Build Jira integration context from saved spec and artifacts without designing the backlog."""
     proj = _load_project(project_id)
-    spec = proj.spec
+    nontech_artifacts = proj.nontech_artifacts_md or {}
+    technical_artifacts = proj.technical_artifacts_md or {}
+    jira_plan_artifact = (
+        nontech_artifacts.get("jira_plan.md")
+        or nontech_artifacts.get("Jira Plan.md")
+        or nontech_artifacts.get("delivery_plan.md")
+        or technical_artifacts.get("jira_plan.md")
+    )
 
-    if spec is not None and not isinstance(spec, dict):
-        raise ValueError("Project spec must be a dictionary when present.")
+    context = {
+        "project_id": project_id,
+        "project_title": proj.project_title,
+        "project_description": proj.project_description,
+        "spec": proj.spec or {},
+        "jira_plan_artifact": jira_plan_artifact,
+        "nontech_artifacts_md": nontech_artifacts,
+        "technical_artifacts_md": technical_artifacts,
+        "artifacts_summary": proj.artifacts_summary or "",
+        "generated_code_file_counts": {
+            "angular": len(proj.angular_code_files or {}),
+            "java": len(proj.java_code_files or {}),
+        },
+    }
+    log_event(
+        "TOOL",
+        "jira_context_built",
+        {
+            "project_id": project_id,
+            "has_spec": bool(proj.spec),
+            "has_jira_plan_artifact": bool(jira_plan_artifact),
+            "nontech_artifacts_count": len(nontech_artifacts),
+            "technical_artifacts_count": len(technical_artifacts),
+        },
+        status="ok",
+    )
+    return context
 
-    tasks = []
-    if spec:
-        for field in TASK_SOURCE_FIELDS:
-            items = _items_from_spec_field(spec.get(field))
-            for index, item in enumerate(items, start=1):
-                task = _task_from_item(item, field, index)
-                if task:
-                    tasks.append(task)
 
-    return tasks or _fallback_tasks_from_project(proj)
+def _confluence_page_title(filename: str) -> str:
+    """Convert an artifact filename into a clean Confluence page title."""
+    stem = filename.rsplit(".", 1)[0]
+    known_titles = {
+        "PRD": "PRD",
+        "api_documentation": "API Documentation",
+        "jira_plan": "Jira Plan",
+    }
+    if stem in known_titles:
+        return known_titles[stem]
+    return stem.replace("_", " ").replace("-", " ").title()
+
+
+def build_confluence_pages_from_project(project_id: str) -> list[dict]:
+    """Build one Confluence page payload for each saved artifact markdown file."""
+    proj = _load_project(project_id)
+    artifacts = []
+    for artifact_group, artifact_files in (
+        ("Product Artifacts", proj.nontech_artifacts_md or {}),
+        ("Technical Artifacts", proj.technical_artifacts_md or {}),
+    ):
+        for filename, content in artifact_files.items():
+            if not isinstance(content, str) or not content.strip():
+                continue
+            title = _confluence_page_title(filename)
+            artifacts.append({
+                "title": title,
+                "filename": filename,
+                "artifact_group": artifact_group,
+                "markdown": content,
+            })
+
+    if not artifacts:
+        log_event("ERROR", "confluence_payload_no_artifacts", {"project_id": project_id}, status="fail")
+        raise ValueError(f"No artifact markdown files found for project_id '{project_id}'.")
+
+    log_event(
+        "TOOL",
+        "confluence_payload_built",
+        {
+            "project_id": project_id,
+            "pages_count": len(artifacts),
+            "page_titles": [page["title"] for page in artifacts],
+        },
+        status="ok",
+    )
+    return artifacts

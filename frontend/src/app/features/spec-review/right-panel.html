@@ -5,26 +5,35 @@
       <div class="code-preview-container">
         @if (hasGeneratedCode()) {
           <div class="integration-actions">
-            <button type="button" (click)="connectGitHub()" [disabled]="githubConnectLoading || githubExportLoading || jiraTasksLoading">
+            <button type="button" (click)="connectGitHub()" [disabled]="githubConnectLoading || githubExportLoading || jiraTasksLoading || confluenceExportLoading">
               {{ githubConnected ? ('GitHub: ' + (githubUsername || 'Connected')) : (githubConnectLoading ? 'Connecting...' : 'Connect GitHub') }}
             </button>
             <input
               type="text"
               [(ngModel)]="githubOwner"
               placeholder="GitHub owner"
-              [disabled]="githubExportLoading || jiraTasksLoading"
+              [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading"
             />
             <input
               type="text"
               [(ngModel)]="githubRepo"
               placeholder="Repository"
-              [disabled]="githubExportLoading || jiraTasksLoading"
+              [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading"
             />
-            <button type="button" (click)="exportToGitHub()" [disabled]="githubExportLoading || jiraTasksLoading">
+            <button type="button" (click)="exportToGitHub()" [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading">
               {{ githubExportLoading ? 'Exporting...' : 'Export to GitHub' }}
             </button>
-            <button type="button" (click)="createJiraTasks()" [disabled]="githubExportLoading || jiraTasksLoading">
-              {{ jiraTasksLoading ? 'Creating...' : 'Create Jira Tasks' }}
+            <button type="button" (click)="createJiraTasks()" [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading">
+              {{ jiraTasksLoading ? 'Creating...' : 'Create Jira Plan' }}
+            </button>
+            <input
+              type="text"
+              [(ngModel)]="confluenceSpaceKey"
+              placeholder="Confluence space key"
+              [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading"
+            />
+            <button type="button" (click)="exportArtifactsToConfluence()" [disabled]="githubExportLoading || jiraTasksLoading || confluenceExportLoading">
+              {{ confluenceExportLoading ? 'Exporting...' : 'Export Docs to Confluence' }}
             </button>
           </div>
           @if (integrationError) {

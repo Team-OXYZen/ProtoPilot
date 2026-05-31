@@ -31,7 +31,9 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   githubUsername = '';
   githubOwner = '';
   githubRepo = '';
+  confluenceSpaceKey = '';
   jiraTasksLoading = false;
+  confluenceExportLoading = false;
   integrationError = '';
   integrationMessage = '';
 
@@ -211,10 +213,37 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
       })
     ).subscribe({
       next: () => {
-        this.integrationMessage = 'Jira task creation requested.';
+        this.integrationMessage = 'Jira product plan creation requested.';
       },
       error: (error) => {
-        this.integrationError = this.formatIntegrationError(error, 'Jira task creation failed.');
+        this.integrationError = this.formatIntegrationError(error, 'Jira product plan creation failed.');
+      },
+    });
+  }
+
+  exportArtifactsToConfluence(): void {
+    const projectId = this.wizardService.project?.id;
+    const sessionId = this.wizardService.session?.id;
+
+    if (!projectId || !sessionId) {
+      this.integrationError = 'Missing project or session id.';
+      return;
+    }
+
+    this.confluenceExportLoading = true;
+    this.integrationError = '';
+    this.integrationMessage = '';
+
+    this.wizardService.exportArtifactsToConfluence(projectId, sessionId, this.confluenceSpaceKey.trim()).pipe(
+      finalize(() => {
+        this.confluenceExportLoading = false;
+      })
+    ).subscribe({
+      next: () => {
+        this.integrationMessage = 'Confluence artifact export requested.';
+      },
+      error: (error) => {
+        this.integrationError = this.formatIntegrationError(error, 'Confluence artifact export failed.');
       },
     });
   }

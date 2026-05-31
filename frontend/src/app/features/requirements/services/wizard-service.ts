@@ -144,6 +144,14 @@ export class WizardService {
     });
   }
 
+  exportArtifactsToConfluence(projectId: string, sessionId: string, confluenceSpaceKey: string): Observable<any> {
+    return this.http.post<any>('http://127.0.0.1:8000/integrations/confluence/export-artifacts', {
+      project_id: projectId,
+      session_id: sessionId,
+      confluence_space_key: confluenceSpaceKey,
+    });
+  }
+
   loadExistingProject(project: any): void {
     this.userId = this.authService.getCurrentUser()()?.username || '';
 
