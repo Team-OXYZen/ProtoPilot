@@ -163,6 +163,9 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
             if((response as any).angular_code_files){
               this.specService.setAngularCode((response as any).angular_code_files);
             }
+            if ((response as any).needs_redeploy !== undefined) {
+              this.specService.needsRedeploy.set(!!(response as any).needs_redeploy);
+            }
             if ((response as any).nontech_artifacts_md) {
               this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
             }

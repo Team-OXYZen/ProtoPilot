@@ -23,6 +23,7 @@ class ProjectState:
     technical_artifacts_md: Optional[dict[str, str]] = None
     angular_code_files: Optional[dict[str, str]] = None
     java_code_files: Optional[dict[str, str]] = None
+    needs_redeploy: bool = False
     user_id: str = ""
     project_title: str | None = None
     project_description: str | None = None
@@ -96,6 +97,11 @@ def persist_project(project_id: str) -> None:
     proj = _PROJECTS.get(project_id)
     if proj is not None:
         save_project(proj)
+
+
+def evict_project(project_id: str) -> None:
+    """Remove project from memory cache, forcing next access to reload from DB."""
+    _PROJECTS.pop(project_id, None)
 
 
 def get_project(project_id: str) -> ProjectState | None:

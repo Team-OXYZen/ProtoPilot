@@ -40,8 +40,9 @@ export class DashboardComponent implements OnInit {
   preferencesError = signal('');
   preferencesMessage = signal('');
   preferenceRows: PreferenceRow[] = [];
-  projectTitle = '';
-  projectDescription = '';
+  editingProject = signal<ProjectCard | null>(null);
+  editTitle = '';
+  editDescription = '';
 
   private wizardService = inject(WizardService);
   private authService = inject(AuthService);
@@ -75,7 +76,10 @@ export class DashboardComponent implements OnInit {
   }
 
   onCreateNew(): void {
-    this.showCreateForm.set(true)
+    this.editingProject.set(null);
+    this.editTitle = '';
+    this.editDescription = '';
+    this.showCreateForm.set(true);
   }
 
   openPreferences(): void {
@@ -204,11 +208,68 @@ export class DashboardComponent implements OnInit {
         if (proj.java_code_files) {
           this.specService.setJavaCode(proj.java_code_files);
         }
-        
+        this.specService.needsRedeploy.set(!!proj.needs_redeploy);
+
         this.router.navigate([route]);
       },
       error: (err) => {
         console.error('Failed to load project:', err);
+      },
+    });
+  }
+
+  onEditProject(event: MouseEvent, project: ProjectCard): void {
+    event.stopPropagation();
+    this.showCreateForm.set(false);
+    this.editTitle = project.project_title || '';
+    this.editDescription = project.project_description || '';
+    this.editingProject.set(project);
+  }
+
+  confirmEditProject(): void {
+    const project = this.editingProject();
+    if (!project || !this.editTitle.trim()) return;
+
+    this.wizardService.updateProject(project.project_id, this.editTitle.trim(), this.editDescription.trim()).subscribe({
+      next: () => {
+        this.projects.update(list => list.map(p =>
+          p.project_id === project.project_id
+            ? { ...p, project_title: this.editTitle.trim(), project_description: this.editDescription.trim() }
+            : p
+        ));
+        this.closeProjectModal();
+      },
+      error: (err) => {
+        console.error('Failed to update project:', err);
+        alert('Failed to update project. Please try again.');
+      },
+    });
+  }
+
+  cancelEditProject(): void {
+    this.editingProject.set(null);
+    this.editTitle = '';
+    this.editDescription = '';
+  }
+
+  closeProjectModal(): void {
+    this.showCreateForm.set(false);
+    this.editingProject.set(null);
+    this.editTitle = '';
+    this.editDescription = '';
+  }
+
+  onDeleteProject(event: MouseEvent, project: ProjectCard): void {
+    event.stopPropagation();
+    if (!confirm(`Delete "${project.project_title || project.project_id}"? This cannot be undone.`)) return;
+
+    this.wizardService.deleteProject(project.project_id).subscribe({
+      next: () => {
+        this.projects.update(list => list.filter(p => p.project_id !== project.project_id));
+      },
+      error: (err) => {
+        console.error('Failed to delete project:', err);
+        alert('Failed to delete project. Please try again.');
       },
     });
   }
@@ -244,45 +305,44 @@ export class DashboardComponent implements OnInit {
     return stageLabels[stage] || stage;
   }
 
-confirmCreateProject(): void {
-  const userId = this.currentUser();
+  confirmCreateProject(): void {
+    const userId = this.currentUser();
 
-  if (!userId) {
-    alert('You must be logged in to create a project.');
-    return;
+    if (!userId) {
+      alert('You must be logged in to create a project.');
+      return;
+    }
+
+    if (!this.editTitle.trim()) {
+      alert('Please enter a project title.');
+      return;
+    }
+
+    this.wizardService.resetSession();
+    this.specService.clearSpec();
+    this.specService.clearArtifacts();
+    this.specService.clearGeneratedCode();
+    this.specService.clearDeploy();
+
+    this.wizardService.createProject(
+      userId,
+      this.editTitle.trim(),
+      this.editDescription.trim()
+    );
+
+    this.wizardService.createProjectInDb().subscribe({
+      next: (res) => {
+        console.log('Project saved to database:', res);
+        this.router.navigate(['/requirements']);
+      },
+      error: (err) => {
+        console.error('Failed to create project in database:', err);
+        alert('Failed to create project. Please try again.');
+      },
+    });
   }
-
-  if (!this.projectTitle.trim()) {
-    alert('Please enter a project title.');
-    return;
-  }
-
-  this.wizardService.resetSession();
-  this.specService.clearSpec();
-  this.specService.clearArtifacts();
-  this.specService.clearGeneratedCode();
-
-  this.wizardService.createProject(
-    userId,
-    this.projectTitle.trim(),
-    this.projectDescription.trim()
-  );
-
-  this.wizardService.createProjectInDb().subscribe({
-    next: (res) => {
-      console.log('Project saved to database:', res);
-      this.router.navigate(['/requirements']);
-    },
-    error: (err) => {
-      console.error('Failed to create project in database:', err);
-      alert('Failed to create project. Please try again.');
-    },
-  });
-}
 
   cancelCreateProject(): void {
-    this.showCreateForm.set(false);
-    this.projectTitle = '';
-    this.projectDescription = '';
+    this.closeProjectModal();
   }
 }

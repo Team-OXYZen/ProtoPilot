@@ -33,6 +33,7 @@ def init_db() -> None:
             )
             """
         )
+
         for col in (
             "user_id TEXT NOT NULL DEFAULT 'local-user'",
             "project_title TEXT",
@@ -40,6 +41,7 @@ def init_db() -> None:
             "artifacts_summary TEXT",
             "angular_code_files TEXT",
             "java_code_files TEXT",
+            "needs_redeploy INTEGER DEFAULT 0"
         ):
             try:
                 conn.execute(f"ALTER TABLE projects ADD COLUMN {col}")
@@ -127,9 +129,10 @@ def save_project(proj: ProjectState) -> None:
                 angular_code_files,
                 java_code_files,
                 artifacts_summary,
+                needs_redeploy,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(project_id) DO UPDATE SET
                 user_id = excluded.user_id,
                 req_session_id = excluded.req_session_id,
@@ -142,6 +145,7 @@ def save_project(proj: ProjectState) -> None:
                 angular_code_files = excluded.angular_code_files,
                 java_code_files = excluded.java_code_files,
                 artifacts_summary = excluded.artifacts_summary,
+                needs_redeploy = excluded.needs_redeploy,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -157,6 +161,7 @@ def save_project(proj: ProjectState) -> None:
                 _to_json(proj.angular_code_files),
                 _to_json(proj.java_code_files),
                 proj.artifacts_summary,
+                int(proj.needs_redeploy),
             ),
         )
         conn.commit()
@@ -188,7 +193,8 @@ def load_project(project_id: str) -> ProjectState | None:
                 technical_artifacts_md,
                 angular_code_files,
                 java_code_files,
-                artifacts_summary
+                artifacts_summary,
+                needs_redeploy
             FROM projects
             WHERE project_id = ?
             """,
@@ -211,6 +217,7 @@ def load_project(project_id: str) -> ProjectState | None:
         angular_code_files=_from_json(row[9]),
         java_code_files=_from_json(row[10]),
         artifacts_summary=row[11],
+        needs_redeploy=bool(row[12]) if row[12] is not None else False,
     )
 
 
@@ -257,6 +264,42 @@ def list_projects(user_id: str) -> list[dict[str, Any]]:
         }
         for row in rows
     ]
+
+def update_project_info(project_id: str, title: str, description: str | None) -> None:
+    """Update project title and description.
+
+    Args:
+        project_id: Project identifier
+        title: New project title
+        description: New project description
+    """
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE projects
+            SET project_title = ?, project_description = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE project_id = ?
+            """,
+            (title, description, project_id),
+        )
+        conn.commit()
+
+
+def delete_project(project_id: str) -> None:
+    """Delete project and all associated chat messages from database.
+
+    Args:
+        project_id: Project identifier
+    """
+    init_db()
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM chat_messages WHERE project_id = ?", (project_id,))
+        conn.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+        conn.commit()
+
 
 def set_project_stage(project_id: str, stage: Stage) -> None:
     """Update project workflow stage and timestamp.

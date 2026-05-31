@@ -34,6 +34,7 @@
 
 .export-menu {
   position: relative;
+  order: 99;
 }
 
 .export-btn {
@@ -177,6 +178,35 @@
 
   svg { width: 20px; height: 20px; flex-shrink: 0; }
   span { white-space: nowrap; }
+
+  &--stale {
+    width: 44px;
+    padding: 0;
+    opacity: 0.45;
+  }
+}
+
+.icon-btn {
+  @include button-secondary;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: var(--color-text-primary);
+
+  svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  &--warning {
+    color: #d97706;
+    border-color: #d97706;
+    background: #fffbeb;
+
+    &:hover { background: #fef3c7; }
+  }
 }
 
 @keyframes spin {
@@ -216,8 +246,7 @@
 .preview-btn,
 .generate-btn,
 .view-prototype-btn,
-.finalize-btn,
-.download-btn {
+.finalize-btn {
   @include button-secondary;
   font-size: $text-base;
   padding: $space-md $space-lg;

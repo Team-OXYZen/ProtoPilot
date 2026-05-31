@@ -164,6 +164,17 @@ export class WizardService {
     });
   }
 
+  deleteProject(projectId: string): Observable<any> {
+    return this.http.delete<any>(`http://127.0.0.1:8000/projects/${projectId}`);
+  }
+
+  updateProject(projectId: string, title: string, description: string): Observable<any> {
+    return this.http.patch<any>(`http://127.0.0.1:8000/projects/${projectId}`, {
+      project_title: title,
+      project_description: description,
+    });
+  }
+
   loadExistingProject(project: any): void {
     this.userId = this.authService.getCurrentUser()()?.username || '';
 

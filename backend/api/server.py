@@ -136,7 +136,60 @@ def project_detail(
         "technical_artifacts_md": proj.technical_artifacts_md,
         "angular_code_files": proj.angular_code_files,
         "java_code_files": proj.java_code_files,
+        "needs_redeploy": proj.needs_redeploy,
     }
+
+class UpdateProjectRequest(BaseModel):
+    project_title: str
+    project_description: str | None = None
+
+@app.patch("/projects/{project_id}")
+def update_project(
+    project_id: str,
+    req: UpdateProjectRequest,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Update project title and description.
+
+    Args:
+        project_id: Project identifier
+        req: UpdateProjectRequest with new title and description
+        current_user: Authenticated user from JWT
+
+    Returns:
+        dict with ok, project_id, and updated fields
+    """
+    from orchestration.persistent_store import update_project_info
+    from orchestration.store import evict_project
+
+    get_owned_project(project_id, authenticated_user_id(current_user))
+    update_project_info(project_id, req.project_title, req.project_description)
+    evict_project(project_id)
+    return {"ok": True, "project_id": project_id, "project_title": req.project_title, "project_description": req.project_description}
+
+
+@app.delete("/projects/{project_id}")
+def delete_project(
+    project_id: str,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Delete project owned by the authenticated user.
+
+    Args:
+        project_id: Project identifier
+        current_user: Authenticated user from JWT
+
+    Returns:
+        dict with ok and project_id
+    """
+    from orchestration.persistent_store import delete_project as db_delete_project
+    from orchestration.store import evict_project
+
+    get_owned_project(project_id, authenticated_user_id(current_user))
+    db_delete_project(project_id)
+    evict_project(project_id)
+    return {"ok": True, "project_id": project_id}
+
 
 # update project stage
 @app.post("/projects/{project_id}/stage")
