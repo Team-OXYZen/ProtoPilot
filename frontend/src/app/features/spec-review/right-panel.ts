@@ -1,17 +1,14 @@
 import { JsonPipe, CommonModule } from '@angular/common';
 import { Component, inject, Input, OnChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MarkdownModule } from 'ngx-markdown';
 import { SpecService } from './services/spec.service';
 import mermaid from 'mermaid';
 import { LivePreviewComponent } from './components/live-preview/live-preview.component';
-import { WizardService } from '../requirements/services/wizard-service';
-import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-right-panel',
   standalone: true,
-  imports: [JsonPipe, MarkdownModule, CommonModule, FormsModule, LivePreviewComponent],
+  imports: [JsonPipe, MarkdownModule, CommonModule, LivePreviewComponent],
   templateUrl: './right-panel.html',
   styleUrl: './right-panel.scss'
 })
@@ -24,18 +21,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   @ViewChild('mermaidContainer', { static: false }) mermaidContainer?: ElementRef;
 
   specService = inject(SpecService);
-  wizardService = inject(WizardService);
-  githubExportLoading = false;
-  githubConnectLoading = false;
-  githubConnected = false;
-  githubUsername = '';
-  githubOwner = '';
-  githubRepo = '';
-  confluenceSpaceKey = '';
-  jiraTasksLoading = false;
-  confluenceExportLoading = false;
-  integrationError = '';
-  integrationMessage = '';
 
   constructor() {
     mermaid.initialize({ startOnLoad: false });
@@ -45,7 +30,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     if (this.isMermaidDiagram(this.mdText)) {
       this.renderMermaid();
     }
-    this.loadGitHubConnectionStatus();
   }
 
   ngOnChanges() {
@@ -112,144 +96,6 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
   hasGeneratedCode(): boolean {
     const generatedCode = this.specService.angular_code_files();
     return !!generatedCode && Object.keys(generatedCode).length > 0;
-  }
-
-  exportToGitHub(): void {
-    const projectId = this.wizardService.project?.id;
-    const sessionId = this.wizardService.session?.id;
-
-    if (!projectId || !sessionId) {
-      this.integrationError = 'Missing project or session id.';
-      return;
-    }
-
-    if (!this.githubOwner.trim() || !this.githubRepo.trim()) {
-      this.integrationError = 'Enter a GitHub owner and repository.';
-      return;
-    }
-
-    if (!this.githubConnected) {
-      this.integrationError = 'Connect your GitHub account before exporting.';
-      return;
-    }
-
-    this.githubExportLoading = true;
-    this.integrationError = '';
-    this.integrationMessage = '';
-
-    this.wizardService.exportGeneratedCodeToGithub(
-      projectId,
-      sessionId,
-      this.githubOwner.trim(),
-      this.githubRepo.trim()
-    ).pipe(
-      finalize(() => {
-        this.githubExportLoading = false;
-      })
-    ).subscribe({
-      next: (result) => {
-        this.integrationMessage = result?.pull_request_url
-          ? `GitHub export complete: ${result.pull_request_url}`
-          : 'GitHub export complete.';
-      },
-      error: (error) => {
-        this.integrationError = this.formatIntegrationError(error, 'GitHub export failed.');
-      },
-    });
-  }
-
-  connectGitHub(): void {
-    this.githubConnectLoading = true;
-    this.integrationError = '';
-    this.integrationMessage = '';
-
-    this.wizardService.startGitHubOAuth().pipe(
-      finalize(() => {
-        this.githubConnectLoading = false;
-      })
-    ).subscribe({
-      next: (result) => {
-        if (result?.authorization_url) {
-          window.location.href = result.authorization_url;
-          return;
-        }
-        this.integrationError = 'GitHub authorization URL was not returned.';
-      },
-      error: (error) => {
-        this.integrationError = this.formatIntegrationError(error, 'GitHub connection failed.');
-      },
-    });
-  }
-
-  private loadGitHubConnectionStatus(): void {
-    this.wizardService.getGitHubConnectionStatus().subscribe({
-      next: (result) => {
-        this.githubConnected = !!result?.connected;
-        this.githubUsername = result?.github_username || '';
-      },
-      error: () => {
-        this.githubConnected = false;
-        this.githubUsername = '';
-      },
-    });
-  }
-
-  createJiraTasks(): void {
-    const projectId = this.wizardService.project?.id;
-    const sessionId = this.wizardService.session?.id;
-
-    if (!projectId || !sessionId) {
-      this.integrationError = 'Missing project or session id.';
-      return;
-    }
-
-    this.jiraTasksLoading = true;
-    this.integrationError = '';
-    this.integrationMessage = '';
-
-    this.wizardService.createJiraTasks(projectId, sessionId).pipe(
-      finalize(() => {
-        this.jiraTasksLoading = false;
-      })
-    ).subscribe({
-      next: () => {
-        this.integrationMessage = 'Jira product plan creation requested.';
-      },
-      error: (error) => {
-        this.integrationError = this.formatIntegrationError(error, 'Jira product plan creation failed.');
-      },
-    });
-  }
-
-  exportArtifactsToConfluence(): void {
-    const projectId = this.wizardService.project?.id;
-    const sessionId = this.wizardService.session?.id;
-
-    if (!projectId || !sessionId) {
-      this.integrationError = 'Missing project or session id.';
-      return;
-    }
-
-    this.confluenceExportLoading = true;
-    this.integrationError = '';
-    this.integrationMessage = '';
-
-    this.wizardService.exportArtifactsToConfluence(projectId, sessionId, this.confluenceSpaceKey.trim()).pipe(
-      finalize(() => {
-        this.confluenceExportLoading = false;
-      })
-    ).subscribe({
-      next: () => {
-        this.integrationMessage = 'Confluence artifact export requested.';
-      },
-      error: (error) => {
-        this.integrationError = this.formatIntegrationError(error, 'Confluence artifact export failed.');
-      },
-    });
-  }
-
-  private formatIntegrationError(error: any, fallback: string): string {
-    return error?.error?.detail || error?.message || fallback;
   }
 
   createStackBlitzProject(): any {

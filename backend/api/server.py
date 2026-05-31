@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from api.routes.auth import router as auth_router
 from api.routes.chat import router as chat_router
+from api.routes.preferences import router as preferences_router
 from api.project_access import authenticated_user_id, ensure_owned_project_or_missing, get_owned_project
 from core.auth import get_current_user
 from api.routes.deploy import router as deploy_router
@@ -14,6 +15,7 @@ load_dotenv()
 app = FastAPI(title="ProtoPilot API")
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(preferences_router)
 app.include_router(deploy_router)
 try:
     from api.routes.integrations import router as integrations_router

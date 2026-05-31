@@ -149,46 +149,6 @@ app-live-preview {
   display: block;
 }
 
-.integration-actions {
-  display: flex;
-  gap: $space-sm;
-  padding: $space-sm $space-md;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-bg-secondary);
-  flex-wrap: wrap;
-
-  button {
-    margin: 0;
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  input {
-    width: 160px;
-    min-width: 140px;
-    margin: 0;
-  }
-}
-
-.integration-error,
-.integration-message {
-  margin: 0;
-  padding: $space-xs $space-md;
-  font-size: $text-sm;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.integration-error {
-  color: $color-error;
-}
-
-.integration-message {
-  color: var(--color-text-secondary);
-}
-
 .content.code-preview-active {
   padding: 0;
   border: none;

@@ -22,12 +22,29 @@ FRONTEND_URL=http://127.0.0.1:4200
 GITHUB_OAUTH_REDIRECT_URI=
 GITHUB_OAUTH_SCOPE=repo
 GITHUB_TOKEN=
+GITHUB_OWNER=
+GITHUB_REPO=
+GITHUB_BASE_BRANCH=main
 JIRA_PROJECT_KEY=PROTO
 CONFLUENCE_SPACE_KEY=
+CONFLUENCE_PARENT_PAGE_TITLE=
 LITELLM_MODEL_INTEGRATION=
 ```
 
 Do not commit real secrets.
+
+## User Preference Overrides
+
+Users can save non-secret preference values from the dashboard Preferences modal. These values are checked before `.env` defaults for supported integration settings such as:
+
+- `GITHUB_OWNER`
+- `GITHUB_REPO`
+- `GITHUB_BASE_BRANCH`
+- `JIRA_PROJECT_KEY`
+- `CONFLUENCE_SPACE_KEY`
+- `CONFLUENCE_PARENT_PAGE_TITLE`
+
+Secret-like keys such as tokens, passwords, client secrets, and API keys are rejected. Do not use this preferences flow for secrets.
 
 ## Run Backend
 

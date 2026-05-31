@@ -154,6 +154,16 @@ export class WizardService {
     });
   }
 
+  getUserPreferences(): Observable<{ preferences: Record<string, string> }> {
+    return this.http.get<{ preferences: Record<string, string> }>(`${this.apiBaseUrl}/preferences`);
+  }
+
+  saveUserPreferences(preferences: Record<string, string>): Observable<{ preferences: Record<string, string> }> {
+    return this.http.put<{ preferences: Record<string, string> }>(`${this.apiBaseUrl}/preferences`, {
+      preferences,
+    });
+  }
+
   loadExistingProject(project: any): void {
     this.userId = this.authService.getCurrentUser()()?.username || '';
 

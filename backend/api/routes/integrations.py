@@ -18,6 +18,7 @@ from core.user_store import (
     get_github_connection,
     save_github_connection,
     save_github_oauth_state,
+    resolve_user_preference,
 )
 from orchestration.integration_payloads import (
     build_confluence_pages_from_project,
@@ -41,7 +42,7 @@ class GitHubExportRequest(BaseModel):
     session_id: str | None = None
     owner: str | None = None
     repo: str | None = None
-    base_branch: str = "main"
+    base_branch: str | None = None
     new_branch: str | None = None
     commit_message: str | None = None
     pull_request_title: str | None = None
@@ -384,8 +385,8 @@ async def export_github(req: GitHubExportRequest, current_user: dict[str, str] =
         else:
             raise HTTPException(status_code=400, detail="Either files or project_id is required.")
 
-        owner = req.owner
-        repo = req.repo
+        owner = req.owner or resolve_user_preference(current_user["username"], "GITHUB_OWNER")
+        repo = req.repo or resolve_user_preference(current_user["username"], "GITHUB_REPO")
         if not owner or not repo:
             log_event("ERROR", "github_export_missing_repo", {"project_id": req.project_id, "owner": owner, "repo": repo}, status="fail")
             raise HTTPException(status_code=400, detail="GitHub owner and repo are required.")
@@ -403,7 +404,7 @@ async def export_github(req: GitHubExportRequest, current_user: dict[str, str] =
             github_token=github_token,
             owner=owner,
             repo=repo,
-            base_branch=req.base_branch,
+            base_branch=req.base_branch or resolve_user_preference(current_user["username"], "GITHUB_BASE_BRANCH", default="main") or "main",
             new_branch=_resolve_github_branch(req),
             commit_message=req.commit_message or "Export ProtoPilot generated code",
             pull_request_title=req.pull_request_title or "Export ProtoPilot generated code",
@@ -426,7 +427,7 @@ async def export_github(req: GitHubExportRequest, current_user: dict[str, str] =
 
 
 @router.post("/jira/create-tasks")
-async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str, str] = Depends(get_current_user)):
+async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str, str] = Depends(get_current_user)):
     """Ask the Jira integration agent to design and create an agile backlog from project context."""
     try:
         log_event(
@@ -435,7 +436,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str
             {
                 "project_id": req.project_id,
                 "session_id": req.session_id,
-                "jira_project_key": req.jira_project_key or os.getenv("JIRA_PROJECT_KEY"),
+                "jira_project_key": req.jira_project_key or resolve_user_preference(current_user["username"], "JIRA_PROJECT_KEY", "JIRA_PROJECT_KEY"),
                 "has_jira_context": req.jira_context is not None,
                 "has_product_plan": req.product_plan is not None,
                 "has_manual_tasks": req.tasks is not None,
@@ -452,7 +453,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str
         else:
             raise HTTPException(status_code=400, detail="Either jira_context, product_plan, tasks, or project_id is required.")
 
-        jira_project_key = req.jira_project_key or os.getenv("JIRA_PROJECT_KEY")
+        jira_project_key = req.jira_project_key or resolve_user_preference(current_user["username"], "JIRA_PROJECT_KEY", "JIRA_PROJECT_KEY")
 
         payload = {
             "jira_project_key": jira_project_key,
@@ -517,7 +518,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, _current_user: dict[str
 
 
 @router.post("/confluence/export-artifacts")
-async def export_confluence_artifacts(req: ConfluenceExportRequest, _current_user: dict[str, str] = Depends(get_current_user)):
+async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user: dict[str, str] = Depends(get_current_user)):
     """Export saved artifact markdown files to Confluence pages via Atlassian MCP."""
     try:
         log_event(
@@ -526,7 +527,7 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, _current_use
             {
                 "project_id": req.project_id,
                 "session_id": req.session_id,
-                "confluence_space_key": req.confluence_space_key or os.getenv("CONFLUENCE_SPACE_KEY"),
+                "confluence_space_key": req.confluence_space_key or resolve_user_preference(current_user["username"], "CONFLUENCE_SPACE_KEY", "CONFLUENCE_SPACE_KEY"),
                 "has_manual_pages": req.pages is not None,
             },
         )
@@ -537,10 +538,10 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, _current_use
         else:
             raise HTTPException(status_code=400, detail="Either pages or project_id is required.")
 
-        confluence_space_key = req.confluence_space_key or os.getenv("CONFLUENCE_SPACE_KEY")
+        confluence_space_key = req.confluence_space_key or resolve_user_preference(current_user["username"], "CONFLUENCE_SPACE_KEY", "CONFLUENCE_SPACE_KEY")
         payload = {
             "confluence_space_key": confluence_space_key,
-            "parent_page_title": req.parent_page_title,
+            "parent_page_title": req.parent_page_title or resolve_user_preference(current_user["username"], "CONFLUENCE_PARENT_PAGE_TITLE"),
             "pages": pages,
         }
 
