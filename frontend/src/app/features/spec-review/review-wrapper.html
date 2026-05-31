@@ -45,49 +45,6 @@
             <span>Preview Artifacts</span>
           </button>
         }
-        <div class="export-menu" (click)="$event.stopPropagation()">
-          <button class="export-btn" type="button" title="Export integrations" (click)="toggleExportMenu($event)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>Export</span>
-            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          @if (showExportMenu()) {
-            <div class="export-dropdown">
-              @if (!githubConnected()) {
-                <button type="button" class="export-item" (click)="connectGitHub($event)" [disabled]="githubConnectLoading()">
-                  <span>{{ githubConnectLoading() ? 'Connecting GitHub...' : 'Connect GitHub' }}</span>
-                  <small>Required before code export</small>
-                </button>
-              } @else {
-                <div class="export-status">
-                  GitHub connected as <strong>{{ githubUsername() || 'Connected' }}</strong>
-                </div>
-              }
-              <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="!githubConnected() || githubExportLoading()">
-                <span>{{ githubExportLoading() ? 'Exporting code...' : 'Export code to GitHub' }}</span>
-                <small>{{ githubConnected() ? 'Create branch and pull request' : 'Connect GitHub first' }}</small>
-              </button>
-              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="jiraTasksLoading()">
-                <span>{{ jiraTasksLoading() ? 'Creating Jira plan...' : 'Create Jira plan' }}</span>
-                <small>Publish epics, stories, and subtasks</small>
-              </button>
-              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="confluenceExportLoading()">
-                <span>{{ confluenceExportLoading() ? 'Exporting docs...' : 'Export docs to Confluence' }}</span>
-                <small>Publish generated artifacts as pages</small>
-              </button>
-              <button type="button" class="export-item" (click)="downloadZip($event)">
-                <span>Download project package</span>
-                <small>Save code and artifacts as a ZIP</small>
-              </button>
-            </div>
-          }
-        </div>
         @if (hasJavaCode()) {
           <!-- Primary action -->
           @if (specService.needsRedeploy()) {
@@ -143,14 +100,49 @@
             <span>Finalize</span>
           </button>
         }
-        <button class="download-btn" title="Download ZIP" (click)="downloadZip()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Export Package</span>
-        </button>
+        <div class="export-menu" (click)="$event.stopPropagation()">
+          <button class="export-btn" type="button" title="Export integrations" (click)="toggleExportMenu($event)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Export</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          @if (showExportMenu()) {
+            <div class="export-dropdown">
+              @if (!githubConnected()) {
+                <button type="button" class="export-item" (click)="connectGitHub($event)" [disabled]="githubConnectLoading()">
+                  <span>{{ githubConnectLoading() ? 'Connecting GitHub...' : 'Connect GitHub' }}</span>
+                  <small>Required before code export</small>
+                </button>
+              } @else {
+                <div class="export-status">
+                  GitHub connected as <strong>{{ githubUsername() || 'Connected' }}</strong>
+                </div>
+              }
+              <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="!githubConnected() || githubExportLoading()">
+                <span>{{ githubExportLoading() ? 'Exporting code...' : 'Export code to GitHub' }}</span>
+                <small>{{ githubConnected() ? 'Create branch and pull request' : 'Connect GitHub first' }}</small>
+              </button>
+              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="jiraTasksLoading()">
+                <span>{{ jiraTasksLoading() ? 'Creating Jira plan...' : 'Create Jira plan' }}</span>
+                <small>Publish epics, stories, and subtasks</small>
+              </button>
+              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="confluenceExportLoading()">
+                <span>{{ confluenceExportLoading() ? 'Exporting docs...' : 'Export docs to Confluence' }}</span>
+                <small>Publish generated artifacts as pages</small>
+              </button>
+              <button type="button" class="export-item" (click)="downloadZip($event)">
+                <span>Download project package</span>
+                <small>Save code and artifacts as a ZIP</small>
+              </button>
+            </div>
+          }
+        </div>
       }
     }
   </div>

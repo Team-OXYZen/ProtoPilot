@@ -34,6 +34,7 @@
 
 .export-menu {
   position: relative;
+  order: 99;
 }
 
 .export-btn {
@@ -245,8 +246,7 @@
 .preview-btn,
 .generate-btn,
 .view-prototype-btn,
-.finalize-btn,
-.download-btn {
+.finalize-btn {
   @include button-secondary;
   font-size: $text-base;
   padding: $space-md $space-lg;

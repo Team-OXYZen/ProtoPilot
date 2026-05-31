@@ -403,17 +403,6 @@
   flex: 1;
 }
 
-.create-form-card {
-  cursor: default;
-  overflow: hidden;
-
-  &:hover {
-    transform: none !important;
-    border-color: var(--color-border) !important;
-    box-shadow: $shadow-md !important;
-  }
-}
-
 .edit-modal-overlay {
   position: fixed;
   inset: 0;

@@ -33,41 +33,6 @@
         <p class="card-label">Create New Project</p>
       </div>
 
-      <!-- Create Project Form -->
-      @if (showCreateForm()) {
-        <div class="project-card create-form-card" (click)="$event.stopPropagation()">
-          <div class="card-header">
-            <h3 class="card-title">New Project</h3>
-          </div>
-
-          <input
-            class="project-input"
-            type="text"
-            [(ngModel)]="projectTitle"
-            placeholder="Project title"
-          />
-
-          <textarea
-            class="project-textarea"
-            [(ngModel)]="projectDescription"
-            placeholder="Project description"
-          ></textarea>
-
-          <div class="form-actions">
-            <button
-              class="btn-create"
-              (click)="confirmCreateProject()"
-              [disabled]="!projectTitle.trim()">
-              Continue
-            </button>
-
-            <button class="btn-cancel" (click)="cancelCreateProject()">
-              Cancel
-            </button>
-          </div>
-        </div>
-      }
-
       <!-- Project Cards -->
       @if (isLoading()) {
         <div class="loading-placeholder">
@@ -123,10 +88,10 @@
     </div>
   </div>
 
-  @if (editingProject()) {
-    <div class="edit-modal-overlay" (click)="cancelEditProject()" (keydown.escape)="cancelEditProject()">
+  @if (showCreateForm() || editingProject()) {
+    <div class="edit-modal-overlay" (click)="closeProjectModal()" (keydown.escape)="closeProjectModal()">
       <div class="edit-modal" (click)="$event.stopPropagation()">
-        <h3 class="edit-modal-title">Edit Project</h3>
+        <h3 class="edit-modal-title">{{ editingProject() ? 'Edit Project' : 'Create New Project' }}</h3>
 
         <input
           class="project-input"
@@ -144,10 +109,10 @@
         ></textarea>
 
         <div class="form-actions">
-          <button class="btn-create" (click)="confirmEditProject()" [disabled]="!editTitle.trim()">
-            Save
+          <button class="btn-create" (click)="editingProject() ? confirmEditProject() : confirmCreateProject()" [disabled]="!editTitle.trim()">
+            {{ editingProject() ? 'Save' : 'Continue' }}
           </button>
-          <button class="btn-cancel" (click)="cancelEditProject()">
+          <button class="btn-cancel" (click)="closeProjectModal()">
             Cancel
           </button>
         </div>
