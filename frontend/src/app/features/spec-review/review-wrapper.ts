@@ -39,6 +39,20 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   integrationMessage = signal('');
 
   private pollSub?: Subscription;
+  private readonly artifactOrder = [
+    'Product_Brief.md',
+    'User_Needs_and_Actions.md',
+    'User_Stories_for_Jira.md',
+    'User_Journey_and_Screens.md',
+    'Screen_and_Interaction_Plan.md',
+    'Prototype_Acceptance_Checklist.md',
+    'Technical_Architecture_Diagram.mmd',
+    'Technical_Architecture_Notes.md',
+    'Data_Model_Diagram.mmd',
+    'Data_Dictionary.md',
+    'Backend_API_Reference.md',
+    'Codebase_Organization.md',
+  ];
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -52,10 +66,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       const technicalArtifacts = this.specService.technical_artifacts_md();
 
       if (nontechArtifacts && this.selectedFile !== 'code-preview') {
-        const allFiles = Object.keys(nontechArtifacts).sort();
+        const allFiles = this.sortArtifactFiles(Object.keys(nontechArtifacts));
 
         if (technicalArtifacts) {
-          allFiles.push(...Object.keys(technicalArtifacts).sort());
+          allFiles.push(...this.sortArtifactFiles(Object.keys(technicalArtifacts)));
         }
         this.files.set(allFiles);
         if (allFiles.length > 0 && !allFiles.includes(this.selectedFile)) {
@@ -92,7 +106,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       this.selectedSection = Object.keys(spec).sort()[0];
     }
     if (this.hasNonTechArtifacts()) {
-      const allFiles = Object.keys(this.specService.nontech_artifacts_md() as any).sort();
+      const allFiles = this.sortArtifactFiles(Object.keys(this.specService.nontech_artifacts_md() as any));
       this.files.set(allFiles);
       this.selectedFile = allFiles[0] || '';
     }
@@ -303,8 +317,20 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     if (nontechArtifacts) allFiles.push(...Object.keys(nontechArtifacts));
     const techArtifacts = this.specService.technical_artifacts_md();
     if (techArtifacts) allFiles.push(...Object.keys(techArtifacts));
-    this.files.set(allFiles.sort());
-    this.selectedFile = allFiles[0] || '';
+    const sortedFiles = this.sortArtifactFiles(allFiles);
+    this.files.set(sortedFiles);
+    this.selectedFile = sortedFiles[0] || '';
+  }
+
+  private sortArtifactFiles(files: string[]): string[] {
+    return [...files].sort((a, b) => {
+      const indexA = this.artifactOrder.indexOf(a);
+      const indexB = this.artifactOrder.indexOf(b);
+      if (indexA !== -1 || indexB !== -1) {
+        return (indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA) - (indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB);
+      }
+      return a.localeCompare(b);
+    });
   }
 
   generateCode() {
