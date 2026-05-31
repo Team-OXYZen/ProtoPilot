@@ -126,3 +126,32 @@ class ProjectAccessTests(unittest.TestCase):
         self.assertIsNotNone(password_hash)
         self.assertTrue(verify_password("pass123", password_hash or ""))
         self.assertEqual(login_response.status_code, 200)
+
+    def test_user_preferences_are_persisted_and_reject_secret_like_keys(self) -> None:
+        alice_token = self._signup("alice")
+        headers = self._auth_headers(alice_token)
+
+        save_response = self.client.put(
+            "/preferences",
+            headers=headers,
+            json={
+                "preferences": {
+                    "jira_project_key": "PROTO",
+                    "CONFLUENCE_SPACE_KEY": "DOCS",
+                    "GITHUB_OWNER": "team",
+                    "GITHUB_REPO": "demo",
+                }
+            },
+        )
+        read_response = self.client.get("/preferences", headers=headers)
+        secret_response = self.client.put(
+            "/preferences",
+            headers=headers,
+            json={"preferences": {"LITELLM_API_KEY": "do-not-store"}},
+        )
+
+        self.assertEqual(save_response.status_code, 200)
+        self.assertEqual(read_response.status_code, 200)
+        self.assertEqual(read_response.json()["preferences"]["JIRA_PROJECT_KEY"], "PROTO")
+        self.assertEqual(read_response.json()["preferences"]["CONFLUENCE_SPACE_KEY"], "DOCS")
+        self.assertEqual(secret_response.status_code, 400)

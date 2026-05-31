@@ -139,7 +139,7 @@
 // -------------------------------------------------------------------
 
 @mixin button-base {
-  border: none;
+  border: 1px solid transparent;
   border-radius: $radius-md;
   cursor: pointer;
   font-family: $font-family-base;
@@ -155,8 +155,9 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--color-focus-border);
+    box-shadow: 0 0 0 1px var(--color-focus-border);
   }
 }
 
@@ -313,13 +314,15 @@
 // -------------------------------------------------------------------
 
 @mixin focus-outline($color: var(--color-primary), $width: 2px) {
-  outline: $width solid $color;
-  outline-offset: $width;
+  outline: none;
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 1px var(--color-focus-border);
 }
 
 @mixin focus-ring {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 1px var(--color-focus-border);
 }
 
 // -------------------------------------------------------------------

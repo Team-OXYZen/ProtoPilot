@@ -93,6 +93,11 @@ export class RightPanelComponent implements OnChanges, AfterViewInit {
     return this.specService.angular_code_files();
   }
 
+  hasGeneratedCode(): boolean {
+    const generatedCode = this.specService.angular_code_files();
+    return !!generatedCode && Object.keys(generatedCode).length > 0;
+  }
+
   createStackBlitzProject(): any {
     const generatedCode = this.specService.angular_code_files();
     if (!generatedCode) return null;

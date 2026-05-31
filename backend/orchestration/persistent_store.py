@@ -33,7 +33,16 @@ def init_db() -> None:
             )
             """
         )
-        for col in ("artifacts_summary TEXT", "angular_code_files TEXT", "java_code_files TEXT", "needs_redeploy INTEGER DEFAULT 0"):
+
+        for col in (
+            "user_id TEXT NOT NULL DEFAULT 'local-user'",
+            "project_title TEXT",
+            "project_description TEXT",
+            "artifacts_summary TEXT",
+            "angular_code_files TEXT",
+            "java_code_files TEXT",
+            "needs_redeploy INTEGER DEFAULT 0"
+        ):
             try:
                 conn.execute(f"ALTER TABLE projects ADD COLUMN {col}")
             except sqlite3.OperationalError:

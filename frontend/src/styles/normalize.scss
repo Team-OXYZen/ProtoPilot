@@ -264,7 +264,7 @@ input[type="button"],
 input[type="submit"],
 input[type="reset"] {
   padding: $space-md $space-lg;
-  border: none;
+  border: 1px solid transparent;
   border-radius: $radius-md;
   background-color: var(--color-primary);
   color: white;
@@ -273,6 +273,7 @@ input[type="reset"] {
   font-weight: $font-medium;
   cursor: pointer;
   transition: all $transition-base;
+  outline: none;
 
   &:hover:not(:disabled) {
     background-color: color.adjust(#1e3a8a, $lightness: -10%);
@@ -286,8 +287,9 @@ input[type="reset"] {
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--color-focus-border);
+    box-shadow: 0 0 0 1px var(--color-focus-border);
   }
 
   &:disabled {

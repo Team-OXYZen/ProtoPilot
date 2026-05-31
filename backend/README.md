@@ -9,6 +9,25 @@ cp .env.example .env  # fill in credentials
 uvicorn api.server:app --reload --port 8000
 ```
 
+Key environment variables are documented in `.env.example`. Integration-related values include:
+
+| Variable | Purpose |
+|---|---|
+| `BACKEND_URL` | Public/local backend base URL used for generated callbacks. |
+| `FRONTEND_URL` | Public/local frontend URL used after GitHub OAuth returns. |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | GitHub OAuth app credentials for user-scoped code export. |
+| `GITHUB_OAUTH_REDIRECT_URI` | Optional explicit GitHub callback URL. Defaults from `BACKEND_URL`. |
+| `GITHUB_OAUTH_SCOPE` | GitHub OAuth scope, defaults to `repo`. |
+| `GITHUB_TOKEN` | Optional server token used only when initializing GitHub MCP tooling. |
+| `GITHUB_OWNER`, `GITHUB_REPO` | Optional default GitHub target owner/repo for code export. |
+| `GITHUB_BASE_BRANCH` | Optional default branch for GitHub export, defaults to `main`. |
+| `JIRA_PROJECT_KEY` | Optional default Jira project key. If omitted, the Atlassian agent discovers or creates a suitable Scrum software project. |
+| `CONFLUENCE_SPACE_KEY` | Optional default Confluence space key. If omitted, the Atlassian agent discovers or creates a suitable space. |
+| `CONFLUENCE_PARENT_PAGE_TITLE` | Optional parent page title for Confluence artifact export. |
+| `LITELLM_MODEL_INTEGRATION` | Optional model override for GitHub/Jira/Confluence integration work. |
+
+User preferences can override non-secret integration defaults such as `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_BASE_BRANCH`, `JIRA_PROJECT_KEY`, `CONFLUENCE_SPACE_KEY`, and `CONFLUENCE_PARENT_PAGE_TITLE`. Secret-like keys such as tokens, passwords, client secrets, and API keys are rejected by the preferences API.
+
 ## Completed Workflow
 
 The backend runs a stage-driven pipeline. Each user message hits `POST /chat` and the orchestrator routes it based on the current project stage.

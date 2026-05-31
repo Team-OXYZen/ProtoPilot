@@ -8,6 +8,20 @@ import { ProjectCard } from '../../shared/models/project-card.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SpecService } from '../spec-review/services/spec.service';
 
+type PreferenceRow = {
+  key: string;
+  value: string;
+};
+
+const DEFAULT_PREFERENCE_KEYS = [
+  'GITHUB_OWNER',
+  'GITHUB_REPO',
+  'GITHUB_BASE_BRANCH',
+  'JIRA_PROJECT_KEY',
+  'CONFLUENCE_SPACE_KEY',
+  'CONFLUENCE_PARENT_PAGE_TITLE',
+];
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -20,6 +34,12 @@ export class DashboardComponent implements OnInit {
   isLoading = signal(false);
   currentUser = signal<string | null>(null);
   showCreateForm = signal(false);
+  showPreferences = signal(false);
+  preferencesLoading = signal(false);
+  preferencesSaving = signal(false);
+  preferencesError = signal('');
+  preferencesMessage = signal('');
+  preferenceRows: PreferenceRow[] = [];
   projectTitle = '';
   projectDescription = '';
   editingProject = signal<ProjectCard | null>(null);
@@ -59,6 +79,90 @@ export class DashboardComponent implements OnInit {
 
   onCreateNew(): void {
     this.showCreateForm.set(true)
+  }
+
+  openPreferences(): void {
+    this.showPreferences.set(true);
+    this.preferencesError.set('');
+    this.preferencesMessage.set('');
+    this.preferencesLoading.set(true);
+
+    this.wizardService.getUserPreferences().subscribe({
+      next: (res) => {
+        const preferences = res.preferences || {};
+        this.preferenceRows = this.buildPreferenceRows(preferences);
+        this.preferencesLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load preferences:', err);
+        this.preferencesError.set('Failed to load preferences.');
+        this.preferenceRows = [{ key: '', value: '' }];
+        this.preferencesLoading.set(false);
+      },
+    });
+  }
+
+  closePreferences(): void {
+    this.showPreferences.set(false);
+    this.preferencesError.set('');
+    this.preferencesMessage.set('');
+  }
+
+  addPreferenceRow(): void {
+    this.preferenceRows = [...this.preferenceRows, { key: '', value: '' }];
+  }
+
+  private buildPreferenceRows(preferences: Record<string, string>): PreferenceRow[] {
+    const rows = DEFAULT_PREFERENCE_KEYS.map((key) => ({
+      key,
+      value: preferences[key] || (key === 'GITHUB_BASE_BRANCH' ? 'main' : ''),
+    }));
+    const customRows = Object.entries(preferences)
+      .filter(([key]) => !DEFAULT_PREFERENCE_KEYS.includes(key))
+      .map(([key, value]) => ({ key, value }));
+    return [...rows, ...customRows];
+  }
+
+  removePreferenceRow(index: number): void {
+    this.preferenceRows = this.preferenceRows.filter((_, rowIndex) => rowIndex !== index);
+    if (this.preferenceRows.length === 0) {
+      this.addPreferenceRow();
+    }
+  }
+
+  savePreferences(): void {
+    const preferences: Record<string, string> = {};
+    this.preferencesError.set('');
+    this.preferencesMessage.set('');
+
+    for (const row of this.preferenceRows) {
+      const key = row.key.trim().toUpperCase();
+      const value = row.value.trim();
+      if (!key && !value) {
+        continue;
+      }
+      if (!key) {
+        this.preferencesError.set('Each preference value needs a key.');
+        return;
+      }
+      if (!value) {
+        continue;
+      }
+      preferences[key] = value;
+    }
+
+    this.preferencesSaving.set(true);
+    this.wizardService.saveUserPreferences(preferences).subscribe({
+      next: (res) => {
+        this.preferenceRows = this.buildPreferenceRows(res.preferences || {});
+        this.preferencesMessage.set('Preferences saved.');
+        this.preferencesSaving.set(false);
+      },
+      error: (err) => {
+        this.preferencesError.set(err?.error?.detail || 'Failed to save preferences.');
+        this.preferencesSaving.set(false);
+      },
+    });
   }
 
   onProjectClick(project: ProjectCard): void {

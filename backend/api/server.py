@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from api.routes.auth import router as auth_router
 from api.routes.chat import router as chat_router
+from api.routes.preferences import router as preferences_router
 from api.project_access import authenticated_user_id, ensure_owned_project_or_missing, get_owned_project
 from core.auth import get_current_user
 from api.routes.deploy import router as deploy_router
@@ -14,7 +15,14 @@ load_dotenv()
 app = FastAPI(title="ProtoPilot API")
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(preferences_router)
 app.include_router(deploy_router)
+try:
+    from api.routes.integrations import router as integrations_router
+
+    app.include_router(integrations_router)
+except Exception as exc:
+    print(f"[INTEGRATIONS_ROUTER_DISABLED] {exc}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,13 +64,16 @@ def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Dep
     user_id = authenticated_user_id(current_user, req.user_id)
     ensure_owned_project_or_missing(req.project_id, user_id)
 
-    proj = get_or_create_project(
-        project_id=req.project_id,
-        req_session_id=req.session_id,
-        user_id=user_id,
-        project_title=req.project_title,
-        project_description=req.project_description,
-    )
+    try:
+        proj = get_or_create_project(
+            project_id=req.project_id,
+            req_session_id=req.session_id,
+            user_id=user_id,
+            project_title=req.project_title,
+            project_description=req.project_description,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     persist_project(req.project_id)
 
