@@ -21,6 +21,7 @@ non_tech output must include (as dictionary with filename keys):
   Non-functional requirements, Scope)
 - "user_stories.md": User Stories (stories, tasks, acceptance criteria)
 - "user_flows.md": User Flow & Interface Description (pages, flow, behaviors)
+- "jira_plan.md": Detailed Jira Backlog Plan (epics, stories, sprints, tasks/sub-tasks, due dates, labels, priorities, severity, story points, acceptance criteria, dependencies, QA notes, demo notes in tables)
 
 technical output must include (as dictionary with filename keys):
 - "system_design.mmd": Low-level system design (Mermaid mmd)
@@ -54,6 +55,15 @@ MARKDOWN STYLING & FORMATTING:
 - PRD.md: tables for requirements, user personas with emojis
 - user_stories.md: table with columns (Story, User Type, Goal, Acceptance Criteria)
 - user_flows.md: numbered steps with emojis for actions, ASCII flow arrows (→, ↓)
+- jira_plan.md: detailed Jira import blueprint. This file must be rich enough that a Jira integration agent can create populated tickets without re-inferring the backlog from other documents. Use markdown tables for every section below:
+  - Planning assumptions table: Sprint Length, Sprint Naming Pattern, Start Date Assumption, Due Date Rule, Story Point Scale, Default Labels, Release/Version, Calendar Visibility Rule
+  - Epics table columns: Epic ID, Epic Name, Summary, Business Value, Target Users, Priority, Severity, Labels, Components, Target Release, Dependencies, Acceptance Criteria, Demo Notes
+  - Stories table columns: Story ID, Parent Epic ID, Story Summary, User Story, Detailed Description, Acceptance Criteria, Priority, Severity, T-Shirt Size, Story Points, Sprint, Sprint Goal, Start Date, Due Date, Labels, Components, Dependencies, Assumptions, QA Notes, Demo Notes
+  - Sprints table columns: Sprint, Sprint Goal, Start Date, End Date, Story IDs, Capacity Notes, Demo Outcome
+  - Tasks/Sub-tasks table columns: Task ID, Parent Story ID, Task Type (Design/Frontend/Backend/QA/Review), Summary, Detailed Description, Owner Role, Estimate Days, Priority, Severity, Start Date, Due Date, Labels, Dependencies, Definition of Done
+  - Field mapping table columns: Jira Field, Applies To, Preferred Value, Fallback If Field Missing
+  - Risks/dependencies table columns: ID, Related Epic/Story, Risk or Dependency, Impact, Mitigation, Owner Role
+  Use relative dates when exact calendar dates are unknown, such as "Sprint 1 Day 1", "Sprint 1 Day 5", and "Sprint 2 Day 3". Do not leave important cells blank; use "N/A (TBD)" only when truly unsupported by the spec.
 - system_design.md: Mermaid diagrams, tables for components/modules
 - entity_diagram.md: Mermaid ER/Class diagrams with detailed field tables
 - api_documentation.md: table with columns (Endpoint, Method, Description, Request, Response)

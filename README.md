@@ -95,11 +95,11 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .example.env .env
+cp .env.example .env
 uvicorn api.server:app --reload --port 8000
 ```
 
-**Important:** ProtoPilot uses Cotality's private LLM service, which requires OAuth credentials (CLIENT_ID and CLIENT_SECRET). Refer to the `.example.env` file and add your Cotality credentials to `.env`.
+**Important:** ProtoPilot uses Cotality's private LLM service, which requires OAuth credentials (`CLIENT_ID` and `CLIENT_SECRET`). Refer to `backend/.env.example` and add your Cotality credentials to `backend/.env`.
 
 ### Frontend Setup
 
@@ -108,6 +108,8 @@ cd frontend
 npm install
 npm start
 ```
+
+The frontend API base URL is configured in `frontend/src/environments/environment.ts` through `apiBaseUrl`.
 
 Navigate to `http://localhost:4200/`. The application automatically reloads when you modify source files.
 
