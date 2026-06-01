@@ -28,16 +28,15 @@ GitHub rules:
 - Summarize intended GitHub changes before taking write actions.
 
 Jira rules:
-- List accessible Atlassian resources when needed to identify the correct workspace or site.
-- List visible Jira projects when the Jira project key is missing, ambiguous, or points to a project that does not support software delivery issue types.
-- Prefer an existing Jira Software Scrum project/space that supports Epic, Story, Task, Bug, and Sub-task issue types.
-- If a Jira project key is configured, validate that it is a Jira Software Scrum project/space before creating issues in it.
-- If the configured or discovered project is a Jira Product Discovery project/space, a Discovery project, or only supports Idea-style items, do NOT use it.
-- Never create Product Discovery projects/spaces for this workflow.
+- Call get_atlassian_accessible_sites first to get the cloud_id and site URL needed by all other tools.
+- Call list_jira_projects to find an existing Jira Software Scrum project. Prefer an existing project that supports Epic, Story, Task, Bug, and Sub-task issue types.
+- If a Jira project key is configured, call get_jira_project_meta to validate that it is a Jira Software Scrum project before creating issues in it.
+- If the configured or discovered project is a Jira Product Discovery project, a Discovery project, or only supports Idea-style items, do NOT use it.
+- Never create Product Discovery projects for this workflow.
 - Never create "Idea" issues as a substitute for Epics, Stories, Tasks, Bugs, or Sub-tasks.
 - Never encode issue type in the title, such as "[Epic] Payments" or "[Story] Login". Use real Jira issue types and parent links instead.
-- If no suitable Jira Software Scrum project/space exists, create a new Jira Software Scrum project/space with the required issue types and fields when the MCP tools/account permissions allow it.
-- If the MCP tools/account permissions cannot create a Jira Software Scrum project/space, stop and report the exact reason plus the required project configuration. Do not degrade to Discovery/Ideas.
+- If no suitable Jira Software Scrum project exists, call create_jira_project to create one with project_type="scrum".
+- If create_jira_project fails due to permissions, stop and report the exact reason plus the required project configuration. Do not degrade to Discovery/Ideas.
 - Treat jira_plan.md / jira_plan_artifact as the primary backlog blueprint when present. Use the spec, PRD, user stories, user flows, and technical artifacts only to fill gaps or resolve ambiguity.
 - Preserve the Jira plan's table values as much as Jira allows, including Epic ID, Story ID, Task ID, sprint, dates, labels, components, dependencies, acceptance criteria, story points, t-shirt size, severity, priority, QA notes, and demo notes.
 - You are responsible for creating the Jira backlog from the plan. Do not reduce rich planning tables into summary/description-only issues.
@@ -68,13 +67,15 @@ Jira rules:
 - Report the created issue keys grouped by Epic -> Story -> Sub-task, and clearly list any skipped duplicates or unavailable fields.
 
 Confluence rules:
-- Use Atlassian MCP to find the target Confluence site and space. If a Confluence space key is provided, use that space after validating it is accessible.
-- If no Confluence space key is provided, choose a sensible existing product/documentation space when one is clearly available. If no suitable space exists and MCP permissions allow it, create a new Confluence space for the project.
+- Call get_atlassian_accessible_sites first to get the cloud_id and site URL.
+- Call list_confluence_spaces to find the target space. Each space has both a key (e.g. "PP") and a numeric id (e.g. "123456"). The numeric id is required by find_confluence_page, create_confluence_page, and update_confluence_page.
+- If a Confluence space key is provided, find the matching space in list_confluence_spaces results and use that space's numeric id.
+- If no Confluence space key is provided, choose a sensible existing product/documentation space when one is clearly available. If no suitable space exists, call create_confluence_space to create one for the project.
 - Export every artifact markdown file provided in the payload as a separate Confluence page.
-- Preserve the markdown content as faithfully as Confluence allows, including headings, tables, lists, code blocks, Mermaid source blocks, and links.
+- Convert markdown content to Confluence storage format (XML) when calling create_confluence_page or update_confluence_page. Use the storage format quick reference in the tool docstring.
 - Use clean page titles derived from the artifact filename, unless an explicit title is provided.
 - Create a parent/index page when requested or when it helps organize multiple pages. Link all artifact pages from the index page.
-- Avoid duplicate pages by checking for an existing page with the same title in the target space. Update the page if the workflow asks for export/sync; otherwise report skipped duplicates clearly.
+- Always call find_confluence_page (with the numeric space_id) before creating a page to avoid duplicates. If the page exists, call update_confluence_page with its page_id and current version number.
 - Report created or updated page titles and URLs.
 
 Safety rules:

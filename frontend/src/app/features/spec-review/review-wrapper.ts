@@ -1,7 +1,7 @@
 import { Component, effect, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IconDefinition } from '@fortawesome/fontawesome-common-types';
-import { faConfluence, faGithub, faJira } from '@fortawesome/free-brands-svg-icons';
+import { faAtlassian, faConfluence, faGithub, faJira } from '@fortawesome/free-brands-svg-icons';
 import JSZip from 'jszip';
 import mermaid from 'mermaid';
 import { LeftPanelComponent } from './left-panel';
@@ -34,12 +34,17 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   githubDisconnectLoading = signal(false);
   githubConnected = signal(false);
   githubUsername = signal('');
+  atlassianConnectLoading = signal(false);
+  atlassianDisconnectLoading = signal(false);
+  atlassianConnected = signal(false);
+  atlassianUsername = signal('');
   jiraTasksLoading = signal(false);
   confluenceExportLoading = signal(false);
   integrationError = signal('');
   integrationMessage = signal('');
   exportIcons = {
     github: this.toSvgIcon(faGithub),
+    atlassian: this.toSvgIcon(faAtlassian),
     jira: this.toSvgIcon(faJira),
     confluence: this.toSvgIcon(faConfluence),
   };
@@ -47,6 +52,8 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   private pollSub?: Subscription;
   private oauthPoll?: ReturnType<typeof setInterval>;
   private oauthMessageHandler?: (e: MessageEvent) => void;
+  private atlassianOauthPoll?: ReturnType<typeof setInterval>;
+  private atlassianOauthMessageHandler?: (e: MessageEvent) => void;
   private readonly artifactOrder = [
     'Product_Brief.md',
     'User_Needs_and_Actions.md',
@@ -66,7 +73,9 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   specService = inject(SpecService);
   loaderService = inject(LoaderService);
   router = inject(Router);
-private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
+  private route = inject(ActivatedRoute);
+
+  private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
     const [width, height, , , svgPathData] = icon.icon;
     return {
       viewBox: `0 0 ${width} ${height}`,
@@ -138,6 +147,20 @@ private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
       });
     }
     this.loadGitHubConnectionStatus();
+    this.loadAtlassianConnectionStatus();
+
+    this.route.queryParams.subscribe(params => {
+      if (params['github_connected'] === '1') {
+        this.loadGitHubConnectionStatus();
+        this.recordActivity('GitHub account connected successfully.', 'success');
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      }
+      if (params['atlassian_connected'] === '1') {
+        this.loadAtlassianConnectionStatus();
+        this.recordActivity('Atlassian account connected successfully.', 'success');
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      }
+    });
   }
 
   @HostListener('document:click')
@@ -385,6 +408,87 @@ private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
     });
   }
 
+  private loadAtlassianConnectionStatus(): void {
+    this.wizardService.getAtlassianConnectionStatus().subscribe({
+      next: (result) => {
+        this.atlassianConnected.set(!!result?.connected);
+        this.atlassianUsername.set(result?.atlassian_username || '');
+      },
+      error: () => {
+        this.atlassianConnected.set(false);
+        this.atlassianUsername.set('');
+      },
+    });
+  }
+
+  connectAtlassian(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.atlassianConnectLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+    this.recordActivity('Opening the Atlassian connection...', 'running');
+
+    this.wizardService.startAtlassianOAuth().pipe(
+      finalize(() => {
+        this.atlassianConnectLoading.set(false);
+        this.showExportMenu.set(false);
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result?.authorization_url) {
+          const popup = window.open(result.authorization_url, 'atlassian-oauth', 'width=600,height=700,left=200,top=100');
+          const cleanup = () => {
+            clearInterval(this.atlassianOauthPoll);
+            if (this.atlassianOauthMessageHandler) window.removeEventListener('message', this.atlassianOauthMessageHandler);
+            this.atlassianOauthPoll = undefined;
+            this.atlassianOauthMessageHandler = undefined;
+          };
+          this.atlassianOauthMessageHandler = (e: MessageEvent) => {
+            if (e.data === 'atlassian_connected') {
+              cleanup();
+              this.loadAtlassianConnectionStatus();
+              this.recordActivity('Atlassian account connected successfully.', 'success');
+            }
+          };
+          window.addEventListener('message', this.atlassianOauthMessageHandler);
+          this.atlassianOauthPoll = setInterval(() => {
+            if (popup?.closed) {
+              cleanup();
+              this.loadAtlassianConnectionStatus();
+            }
+          }, 500);
+          return;
+        }
+        this.recordActivity('Atlassian connection could not be started.', 'error');
+        this.integrationError.set('Sorry, I could not start the Atlassian connection just now. Please try again in a moment.');
+      },
+      error: (error) => {
+        this.recordActivity('Atlassian connection could not be started.', 'error');
+        this.integrationError.set(this.formatIntegrationError(error, 'Sorry, I could not connect to Atlassian just now. Please try again in a moment.'));
+      },
+    });
+  }
+
+  disconnectAtlassian(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.atlassianDisconnectLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+
+    this.wizardService.disconnectAtlassian().pipe(
+      finalize(() => this.atlassianDisconnectLoading.set(false))
+    ).subscribe({
+      next: () => {
+        this.atlassianConnected.set(false);
+        this.atlassianUsername.set('');
+        this.recordActivity('Atlassian account disconnected.', 'info');
+      },
+      error: () => {
+        this.integrationError.set('Sorry, I could not disconnect Atlassian just now. Please try again in a moment.');
+      },
+    });
+  }
+
   private formatIntegrationError(error: any, fallback: string): string {
     console.error(fallback, error);
     return fallback;
@@ -623,9 +727,9 @@ private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
   ngOnDestroy() {
     this.pollSub?.unsubscribe();
     clearInterval(this.oauthPoll);
-    if (this.oauthMessageHandler) {
-      window.removeEventListener('message', this.oauthMessageHandler);
-    }
+    if (this.oauthMessageHandler) window.removeEventListener('message', this.oauthMessageHandler);
+    clearInterval(this.atlassianOauthPoll);
+    if (this.atlassianOauthMessageHandler) window.removeEventListener('message', this.atlassianOauthMessageHandler);
   }
 
   deployProject() {

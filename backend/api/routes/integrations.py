@@ -14,9 +14,14 @@ from core.auth import get_current_user, get_oauth_token
 from core.logging_utils import log_event
 from core.runner import run_turn
 from core.user_store import (
+    consume_atlassian_oauth_state,
     consume_github_oauth_state,
+    delete_atlassian_connection,
     delete_github_connection,
+    get_atlassian_connection,
     get_github_connection,
+    save_atlassian_connection,
+    save_atlassian_oauth_state,
     save_github_connection,
     save_github_oauth_state,
     resolve_user_preference,
@@ -31,6 +36,18 @@ router = APIRouter(prefix="/integrations")
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+
+ATLASSIAN_AUTHORIZE_URL = "https://auth.atlassian.com/authorize"
+ATLASSIAN_TOKEN_URL = "https://auth.atlassian.com/oauth/token"
+ATLASSIAN_ME_URL = "https://api.atlassian.com/me"
+ATLASSIAN_OAUTH_SCOPE = (
+    "read:me offline_access "
+    "read:jira-user read:jira-work write:jira-work manage:jira-project manage:jira-configuration "
+    "read:space:confluence write:space:confluence "
+    "read:page:confluence write:page:confluence "
+    "read:content:confluence write:content:confluence "
+    "read:user:confluence "
+)
 
 
 class GitHubFile(BaseModel):
@@ -58,6 +75,15 @@ class GitHubOAuthStartResponse(BaseModel):
 class GitHubConnectionStatus(BaseModel):
     connected: bool
     github_username: str | None = None
+
+
+class AtlassianOAuthStartResponse(BaseModel):
+    authorization_url: str
+
+
+class AtlassianConnectionStatus(BaseModel):
+    connected: bool
+    atlassian_username: str | None = None
 
 
 class JiraCreateTasksRequest(BaseModel):
@@ -105,6 +131,17 @@ def _github_headers(token: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+
+
+def _atlassian_oauth_config() -> tuple[str, str, str]:
+    """Read Atlassian OAuth configuration and fail fast when it is incomplete."""
+    client_id = os.getenv("ATLASSIAN_CLIENT_ID")
+    client_secret = os.getenv("ATLASSIAN_CLIENT_SECRET")
+    backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+    redirect_uri = os.getenv("ATLASSIAN_OAUTH_REDIRECT_URI", f"{backend_url}/integrations/atlassian/oauth/callback")
+    if not client_id or not client_secret:
+        raise HTTPException(status_code=400, detail="Atlassian OAuth client_id and client_secret are required. Set ATLASSIAN_CLIENT_ID and ATLASSIAN_CLIENT_SECRET.")
+    return client_id, client_secret, redirect_uri
 
 
 def _github_oauth_config() -> tuple[str, str, str]:
@@ -380,6 +417,104 @@ def disconnect_github(current_user: dict[str, str] = Depends(get_current_user)):
     return {"disconnected": True}
 
 
+@router.get("/atlassian/oauth/start", response_model=AtlassianOAuthStartResponse)
+def start_atlassian_oauth(current_user: dict[str, str] = Depends(get_current_user)):
+    """Start Atlassian OAuth by storing state and returning the authorization URL."""
+    client_id, _client_secret, redirect_uri = _atlassian_oauth_config()
+    state = uuid.uuid4().hex
+    save_atlassian_oauth_state(state, current_user["username"])
+    log_event("TOOL", "atlassian_oauth_start", {"username": current_user["username"], "redirect_uri": redirect_uri})
+
+    params = urlencode({
+        "audience": "api.atlassian.com",
+        "client_id": client_id,
+        "scope": ATLASSIAN_OAUTH_SCOPE,
+        "redirect_uri": redirect_uri,
+        "state": state,
+        "response_type": "code",
+        "prompt": "consent",
+    })
+    return {"authorization_url": f"{ATLASSIAN_AUTHORIZE_URL}?{params}"}
+
+
+@router.get("/atlassian/oauth/status", response_model=AtlassianConnectionStatus)
+def atlassian_oauth_status(current_user: dict[str, str] = Depends(get_current_user)):
+    """Return whether the current user has an active Atlassian OAuth connection."""
+    connection = get_atlassian_connection(current_user["username"])
+    if not connection:
+        log_event("TOOL", "atlassian_oauth_status", {"username": current_user["username"], "connected": False}, status="ok")
+        return {"connected": False, "atlassian_username": None}
+    log_event("TOOL", "atlassian_oauth_status", {"username": current_user["username"], "connected": True, "atlassian_username": connection.get("atlassian_username")}, status="ok")
+    return {
+        "connected": True,
+        "atlassian_username": connection.get("atlassian_username"),
+    }
+
+
+@router.get("/atlassian/oauth/callback")
+async def atlassian_oauth_callback(code: str, state: str):
+    """Handle Atlassian OAuth callback, exchange code, and save the user connection."""
+    username = consume_atlassian_oauth_state(state)
+    if not username:
+        log_event("ERROR", "atlassian_oauth_callback_invalid_state", {"state_present": bool(state)}, status="fail")
+        raise HTTPException(status_code=400, detail="Invalid or expired Atlassian OAuth state.")
+
+    client_id, client_secret, redirect_uri = _atlassian_oauth_config()
+    log_event("TOOL", "atlassian_oauth_callback_start", {"username": username, "redirect_uri": redirect_uri})
+    async with httpx.AsyncClient(timeout=30) as client:
+        token_response = await client.post(
+            ATLASSIAN_TOKEN_URL,
+            headers={"Content-Type": "application/json"},
+            json={
+                "grant_type": "authorization_code",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+            },
+        )
+        token_response.raise_for_status()
+        token_payload = token_response.json()
+
+        access_token = token_payload.get("access_token")
+        if not access_token:
+            log_event("ERROR", "atlassian_oauth_missing_token", {"username": username}, status="fail")
+            raise HTTPException(status_code=400, detail="Atlassian OAuth did not return an access token.")
+
+        refresh_token = token_payload.get("refresh_token")
+
+        me_response = await client.get(
+            ATLASSIAN_ME_URL,
+            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+        )
+        atlassian_username: str | None = None
+        if me_response.status_code == 200:
+            me_data = me_response.json()
+            atlassian_username = me_data.get("email") or me_data.get("name") or me_data.get("account_id")
+
+    save_atlassian_connection(username, access_token, refresh_token, atlassian_username)
+    log_event("TOOL", "atlassian_oauth_callback_done", {"username": username, "atlassian_username": atlassian_username}, status="ok")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html><body><script>
+  if (window.opener) {{
+    window.opener.postMessage('atlassian_connected', '{frontend_url}');
+    window.close();
+  }} else {{
+    window.location.href = '{frontend_url}/spec-review?atlassian_connected=1';
+  }}
+</script></body></html>
+""")
+
+
+@router.delete("/atlassian/oauth/disconnect")
+def disconnect_atlassian(current_user: dict[str, str] = Depends(get_current_user)):
+    """Remove the stored Atlassian OAuth token for the current user."""
+    delete_atlassian_connection(current_user["username"])
+    log_event("TOOL", "atlassian_oauth_disconnect", {"username": current_user["username"]}, status="ok")
+    return {"disconnected": True}
+
+
 @router.post("/github/export")
 async def export_github(req: GitHubExportRequest, current_user: dict[str, str] = Depends(get_current_user)):
     """Export generated project files to a GitHub branch and open a pull request."""
@@ -471,6 +606,12 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str,
         else:
             raise HTTPException(status_code=400, detail="Either jira_context, product_plan, tasks, or project_id is required.")
 
+        atlassian_connection = get_atlassian_connection(current_user["username"])
+        if not atlassian_connection:
+            log_event("ERROR", "jira_create_tasks_not_connected", {"username": current_user["username"]}, status="fail")
+            raise HTTPException(status_code=400, detail="Connect your Atlassian account before creating a Jira plan.")
+        atlassian_token = atlassian_connection["access_token"]
+
         jira_project_key = req.jira_project_key or resolve_user_preference(current_user["username"], "JIRA_PROJECT_KEY", "JIRA_PROJECT_KEY")
 
         payload = {
@@ -487,14 +628,14 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str,
             "Before creating issues, find or create a Jira Software Scrum project/space that supports real Epic, Story, Task, Bug, and Sub-task issue types. "
             "If jira_project_key is provided, validate that it points to a suitable Jira Software Scrum project/space. If it is a Product Discovery/Discovery project or only supports Ideas, do not use it. "
             "Never create Product Discovery spaces or Idea issues for this workflow, and never put issue types in titles as a workaround. "
-            "If no suitable Scrum software project/space exists, create one when the available Jira MCP tools and account permissions allow it; otherwise stop and report the exact required configuration. "
+            "If no suitable Scrum software project/space exists, call create_jira_project to create one; if that fails due to permissions, stop and report the exact required configuration. "
             "Create the hierarchy in this order: Epics, then Stories under each Epic, then Sub-tasks under each Story. "
             "Make the Jira project demo-rich: populate acceptance criteria, labels, priorities, severity, story points, t-shirt size, sprint, due dates, dependencies, QA notes, demo notes, components/releases, and estimates wherever Jira supports those fields. "
             "Use one-week sprints for Stories. Put due dates at sprint boundaries for Stories and within the sprint for Sub-tasks so work appears in calendar views. "
             "Create or use clearly named one-week sprints when the Jira project supports sprint creation. "
             "Do not leave supported fields empty when a sensible value can be inferred from the spec or artifacts. "
             "Apply normal agile planning standards: acceptance criteria on stories, practical priority/severity, t-shirt sizing, story points, one-week sprint slices for stories, and 2-3 day maximum sub-task scopes. "
-            "Use Jira MCP to inspect available fields/project behavior and adapt to the target Jira project. "
+            "Call get_jira_project_meta to inspect available issue types and fields, then adapt to the target Jira project. "
             "If custom fields are unavailable, preserve the values in structured issue description sections and use the closest supported parent/link field. "
             "After creating issues, review them for missing rich fields and update them when Jira allows it. "
             "Avoid duplicate issues by checking for matching titles before creating anything. "
@@ -503,7 +644,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str,
         )
 
         token = await get_oauth_token()
-        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",))
+        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",), atlassian_token=atlassian_token)
         session_id = _safe_session_id(req.session_id, req.project_id, "jira-create-backlog")
         log_event(
             "AGENT",
@@ -537,7 +678,7 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str,
 
 @router.post("/confluence/export-artifacts")
 async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user: dict[str, str] = Depends(get_current_user)):
-    """Export saved artifact markdown files to Confluence pages via Atlassian MCP."""
+    """Export saved artifact markdown files to Confluence pages via Atlassian REST API."""
     try:
         log_event(
             "TOOL",
@@ -556,6 +697,12 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user
         else:
             raise HTTPException(status_code=400, detail="Either pages or project_id is required.")
 
+        atlassian_connection = get_atlassian_connection(current_user["username"])
+        if not atlassian_connection:
+            log_event("ERROR", "confluence_export_not_connected", {"username": current_user["username"]}, status="fail")
+            raise HTTPException(status_code=400, detail="Connect your Atlassian account before exporting to Confluence.")
+        atlassian_token = atlassian_connection["access_token"]
+
         confluence_space_key = req.confluence_space_key or resolve_user_preference(current_user["username"], "CONFLUENCE_SPACE_KEY", "CONFLUENCE_SPACE_KEY")
         payload = {
             "confluence_space_key": confluence_space_key,
@@ -565,9 +712,9 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user
 
         prompt = (
             "Export these ProtoPilot artifact markdown files to Confluence.\n\n"
-            "Use Atlassian MCP to find the target Confluence site and space. "
-            "If confluence_space_key is provided, validate and use that space. "
-            "If no space key is provided, choose a clearly suitable existing documentation/product space, or create a new project documentation space when MCP permissions allow it. "
+            "Call get_atlassian_accessible_sites to get the cloud_id and site URL, then call list_confluence_spaces to find the target space. "
+            "If confluence_space_key is provided, validate it appears in the accessible spaces list and use that space. "
+            "If no space key is provided, choose a clearly suitable existing documentation/product space, or call create_confluence_space to create one when needed. "
             "Create one Confluence page per artifact markdown file. Preserve markdown structure as faithfully as Confluence allows, including headings, tables, lists, code blocks, Mermaid source blocks, and links. "
             "Create or use a parent/index page when parent_page_title is provided or when multiple pages need organization. "
             "Avoid duplicates by checking for existing pages with the same title; update existing pages for this export/sync rather than creating duplicates when possible. "
@@ -577,7 +724,7 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user
         )
 
         token = await get_oauth_token()
-        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",))
+        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",), atlassian_token=atlassian_token)
         session_id = _safe_session_id(req.session_id, req.project_id, "confluence-export-artifacts")
         log_event(
             "AGENT",

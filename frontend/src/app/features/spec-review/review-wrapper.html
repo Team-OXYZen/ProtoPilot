@@ -149,7 +149,29 @@
                   <small>{{ githubConnected() ? 'Create branch and pull request' : 'Connect GitHub first' }}</small>
                 </span>
               </button>
-              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="jiraTasksLoading()">
+              @if (!atlassianConnected()) {
+                <button type="button" class="export-item" (click)="connectAtlassian($event)" [disabled]="atlassianConnectLoading()">
+                  <span class="export-item__icon export-item__icon--atlassian export-item__icon--brand" aria-hidden="true">
+                    <svg [attr.viewBox]="exportIcons.atlassian.viewBox">
+                      @for (path of exportIcons.atlassian.paths; track path) {
+                        <path [attr.d]="path"></path>
+                      }
+                    </svg>
+                  </span>
+                  <span class="export-item__copy">
+                    <span>{{ atlassianConnectLoading() ? 'Connecting Atlassian...' : 'Connect Atlassian' }}</span>
+                    <small>Required before Jira &amp; Confluence export</small>
+                  </span>
+                </button>
+              } @else {
+                <div class="export-status">
+                  Atlassian connected as <strong>{{ atlassianUsername() || 'Connected' }}</strong>
+                  <button type="button" class="export-status__disconnect" (click)="disconnectAtlassian($event)" [disabled]="atlassianDisconnectLoading()">
+                    {{ atlassianDisconnectLoading() ? 'Disconnecting...' : 'Disconnect' }}
+                  </button>
+                </div>
+              }
+              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="!atlassianConnected() || jiraTasksLoading()">
                 <span class="export-item__icon export-item__icon--jira export-item__icon--brand" aria-hidden="true">
                   <svg [attr.viewBox]="exportIcons.jira.viewBox">
                     @for (path of exportIcons.jira.paths; track path) {
@@ -159,10 +181,10 @@
                 </span>
                 <span class="export-item__copy">
                   <span>{{ jiraTasksLoading() ? 'Creating Jira plan...' : 'Create Jira plan' }}</span>
-                  <small>Publish epics, stories, and subtasks</small>
+                  <small>{{ atlassianConnected() ? 'Publish epics, stories, and subtasks' : 'Connect Atlassian first' }}</small>
                 </span>
               </button>
-              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="confluenceExportLoading()">
+              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="!atlassianConnected() || confluenceExportLoading()">
                 <span class="export-item__icon export-item__icon--confluence export-item__icon--brand" aria-hidden="true">
                   <svg [attr.viewBox]="exportIcons.confluence.viewBox">
                     @for (path of exportIcons.confluence.paths; track path) {
@@ -172,7 +194,7 @@
                 </span>
                 <span class="export-item__copy">
                   <span>{{ confluenceExportLoading() ? 'Exporting docs...' : 'Export docs to Confluence' }}</span>
-                  <small>Publish generated artifacts as pages</small>
+                  <small>{{ atlassianConnected() ? 'Publish generated artifacts as pages' : 'Connect Atlassian first' }}</small>
                 </span>
               </button>
               <button type="button" class="export-item" (click)="downloadZip($event)">
