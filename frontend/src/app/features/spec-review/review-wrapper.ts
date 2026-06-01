@@ -1,5 +1,5 @@
 import { Component, effect, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IconDefinition } from '@fortawesome/fontawesome-common-types';
 import { faConfluence, faGithub, faJira } from '@fortawesome/free-brands-svg-icons';
 import JSZip from 'jszip';
@@ -63,6 +63,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   specService = inject(SpecService);
   loaderService = inject(LoaderService);
   router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
     const [width, height, , , svgPathData] = icon.icon;
@@ -138,6 +139,14 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     if (this.hasGeneratedCode()) {
       this.loadGitHubConnectionStatus();
     }
+
+    this.route.queryParams.subscribe(params => {
+      if (params['github_connected'] === '1') {
+        this.loadGitHubConnectionStatus();
+        this.recordActivity('GitHub account connected successfully.', 'success');
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      }
+    });
   }
 
   @HostListener('document:click')
