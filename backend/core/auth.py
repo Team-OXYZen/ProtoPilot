@@ -215,9 +215,10 @@ async def get_oauth_token() -> str:
             headers=headers,
         )
         response.raise_for_status()
-        token = response.json()["access_token"]
+        data = response.json()
+        token = data["access_token"]
+        expires_in = int(data.get("expires_in", 7200))
 
-    # keep 120 mins
     _cache["token"] = token
-    _cache["expires_at"] = now + 120 * 60
+    _cache["expires_at"] = now + expires_in - 60
     return token
