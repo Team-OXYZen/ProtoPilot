@@ -294,15 +294,15 @@ export class DashboardComponent implements OnInit {
 
   getStageLabel(stage: string): string {
     const stageLabels: { [key: string]: string } = {
-      REQ: 'Requirements',
-      ARTIFACTS_NON_TECH: 'Non-Tech Artifacts',
-      WAIT_APPROVAL: 'Awaiting Approval',
-      TECH_ARTIFACTS: 'Technical Artifacts',
-      CODEGEN: 'Code Generation',
-      QA: 'QA',
-      FINALIZE: 'Finalized',
+      REQ: 'Gathering Ideas',
+      ARTIFACTS_NON_TECH: 'Preparing Documents',
+      WAIT_APPROVAL: 'Ready for Review',
+      TECH_ARTIFACTS: 'Planning Prototype',
+      CODEGEN: 'Building Prototype',
+      QA: 'Ready to Preview',
+      FINALIZE: 'Preparing Live Demo',
     };
-    return stageLabels[stage] || stage;
+    return stageLabels[stage] || 'In Progress';
   }
 
   confirmCreateProject(): void {

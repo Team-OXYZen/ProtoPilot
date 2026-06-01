@@ -169,7 +169,7 @@ def update_project(
 
 
 @app.delete("/projects/{project_id}")
-def delete_project(
+async def delete_project(
     project_id: str,
     current_user: dict[str, str] = Depends(get_current_user),
 ):
@@ -184,8 +184,10 @@ def delete_project(
     """
     from orchestration.persistent_store import delete_project as db_delete_project
     from orchestration.store import evict_project
+    from orchestration.deploy_manager import deploy_manager
 
     get_owned_project(project_id, authenticated_user_id(current_user))
+    await deploy_manager.undeploy(project_id)
     db_delete_project(project_id)
     evict_project(project_id)
     return {"ok": True, "project_id": project_id}
@@ -214,13 +216,12 @@ def update_project_stage(
 
 @app.post("/test_tool")
 def test_tool(payload: dict, current_user: dict[str, str] = Depends(get_current_user)):
-    from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
+    from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts
 
     tool_mapping = {
         "load_spec": load_spec,
         "save_nontech_artifacts": save_nontech_artifacts,
         "save_technical_artifacts": save_technical_artifacts,
-        "set_project_stage": set_project_stage,
         "list_angular_code_files": list_angular_code_files,
         "load_angular_code_file": load_angular_code_file,
         "patch_angular_code_file": patch_angular_code_file,

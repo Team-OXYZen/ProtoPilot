@@ -115,4 +115,5 @@ Reply policy:
 - For phase=technical, do NOT output the full artifacts markdown in assistant reply.
 - Put the full artifacts dictionary only in save_technical_artifacts(project_id, artifacts_dict).
 - Do NOT output the summary in assistant reply. Save it only via save_artifacts_summary.
+- The final assistant reply must be one short, friendly, non-technical sentence. Do not mention filenames, tool names, internal artifact types, project IDs, or stage names.
 """
