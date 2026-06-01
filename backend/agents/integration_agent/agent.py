@@ -1,15 +1,15 @@
 from google.genai import types
 from google.adk.agents import LlmAgent
-from google.adk.tools.mcp_tool import McpToolset, StdioConnectionParams, StreamableHTTPConnectionParams
-from mcp import StdioServerParameters
+from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 import os
 
 from core.logging_utils import log_event
 from core.llm import create_litellm
+from .atlassian_tools import create_atlassian_function_tools
 from .instructions import INTEGRATION_AGENT_INSTRUCTIONS
 
 GITHUB_MCP_URL = "https://api.githubcopilot.com/mcp/"
-ATLASSIAN_MCP_URL = "https://mcp.atlassian.com/v1/mcp"
+
 
 def create_github_mcp_toolset() -> McpToolset:
     """Create the GitHub MCP toolset using a server-side token from the environment."""
@@ -32,38 +32,26 @@ def create_github_mcp_toolset() -> McpToolset:
     log_event("TOOL", "github_mcp_toolset_ready", {"toolsets": "repos,issues,pull_requests"}, status="ok")
     return toolset
 
-def create_atlassian_mcp_toolset() -> McpToolset:
-    """Create the Atlassian MCP toolset used for Jira issue operations."""
-    log_event("TOOL", "atlassian_mcp_toolset_create", {"url": ATLASSIAN_MCP_URL, "command": "npx mcp-remote"})
-    toolset = McpToolset(
-        connection_params=StdioConnectionParams(
-            server_params=StdioServerParameters(
-                command="npx",
-                args=["mcp-remote", ATLASSIAN_MCP_URL],
-            ),
-            timeout=30,
-        ),
-    )
-    log_event("TOOL", "atlassian_mcp_toolset_ready", {"timeout": 30}, status="ok")
-    return toolset
 
-def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", "atlassian")) -> LlmAgent:
-    """Create an integration agent with the requested MCP toolsets attached."""
+def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", "atlassian"), atlassian_token: str | None = None) -> LlmAgent:
+    """Create an integration agent with the requested toolsets attached."""
     model_name = os.getenv("LITELLM_MODEL_INTEGRATION") or os.getenv("LITELLM_MODEL")
     log_event(
         "AGENT",
         "integration_agent_create",
         {"toolsets": list(toolsets), "extra_tools_count": len(tools or []), "model": model_name},
     )
-    llm = create_litellm(
-        token,
-        model=model_name,
-    )
+    llm = create_litellm(token, model=model_name)
     agent_tools = list(tools or [])
     if "github" in toolsets:
         agent_tools.append(create_github_mcp_toolset())
     if "atlassian" in toolsets:
-        agent_tools.append(create_atlassian_mcp_toolset())
+        if not atlassian_token:
+            log_event("ERROR", "atlassian_tools_missing_token", {}, status="fail")
+            raise RuntimeError("atlassian_token is required for Atlassian tools.")
+        atlassian_tools = create_atlassian_function_tools(atlassian_token)
+        log_event("TOOL", "atlassian_tools_ready", {"count": len(atlassian_tools)}, status="ok")
+        agent_tools.extend(atlassian_tools)
 
     agent = LlmAgent(
         model=llm,

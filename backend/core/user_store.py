@@ -61,6 +61,20 @@ def init_user_db() -> None:
             )
             """
         )
+        for col in ("atlassian_access_token TEXT", "atlassian_refresh_token TEXT", "atlassian_username TEXT"):
+            try:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {col}")
+            except sqlite3.OperationalError:
+                pass
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS atlassian_oauth_states (
+                state TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+            """
+        )
         conn.commit()
 
 
@@ -286,6 +300,98 @@ def delete_github_connection(username: str) -> None:
             (username,),
         )
         conn.commit()
+
+
+def save_atlassian_oauth_state(state: str, username: str) -> None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO atlassian_oauth_states (state, username, created_at)
+            VALUES (?, ?, ?)
+            """,
+            (state, username, int(time.time())),
+        )
+        conn.commit()
+
+
+def consume_atlassian_oauth_state(state: str, max_age_seconds: int = 10 * 60) -> str | None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT username, created_at
+            FROM atlassian_oauth_states
+            WHERE state = ?
+            """,
+            (state,),
+        ).fetchone()
+        conn.execute("DELETE FROM atlassian_oauth_states WHERE state = ?", (state,))
+        conn.commit()
+
+    if row is None:
+        return None
+
+    username, created_at = row
+    if int(time.time()) - int(created_at) > max_age_seconds:
+        return None
+
+    return username
+
+
+def save_atlassian_connection(username: str, access_token: str, refresh_token: str | None = None, atlassian_username: str | None = None) -> None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET atlassian_access_token = ?, atlassian_refresh_token = ?, atlassian_username = ?
+            WHERE username = ?
+            """,
+            (access_token, refresh_token, atlassian_username, username),
+        )
+        conn.commit()
+
+
+def delete_atlassian_connection(username: str) -> None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET atlassian_access_token = NULL, atlassian_refresh_token = NULL, atlassian_username = NULL
+            WHERE username = ?
+            """,
+            (username,),
+        )
+        conn.commit()
+
+
+def get_atlassian_connection(username: str) -> dict[str, str | None] | None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT atlassian_access_token, atlassian_refresh_token, atlassian_username
+            FROM users
+            WHERE username = ?
+            """,
+            (username,),
+        ).fetchone()
+
+    if row is None or not row[0]:
+        return None
+
+    return {
+        "access_token": row[0],
+        "refresh_token": row[1],
+        "atlassian_username": row[2],
+    }
 
 
 def get_github_connection(username: str) -> dict[str, str | None] | None:

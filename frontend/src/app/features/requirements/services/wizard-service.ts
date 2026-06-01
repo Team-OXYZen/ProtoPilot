@@ -141,6 +141,18 @@ export class WizardService {
     return this.http.delete<any>(`${this.apiBaseUrl}/integrations/github/oauth/disconnect`);
   }
 
+  getAtlassianConnectionStatus(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/atlassian/oauth/status`);
+  }
+
+  startAtlassianOAuth(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/atlassian/oauth/start`);
+  }
+
+  disconnectAtlassian(): Observable<any> {
+    return this.http.delete<any>(`${this.apiBaseUrl}/integrations/atlassian/oauth/disconnect`);
+  }
+
   exportGeneratedCodeToGithub(projectId: string, sessionId: string, owner: string, repo: string): Observable<any> {
     return this.http.post<any>(`${this.apiBaseUrl}/integrations/github/export`, {
       project_id: projectId,
