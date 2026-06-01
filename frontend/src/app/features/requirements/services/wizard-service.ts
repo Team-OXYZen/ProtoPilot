@@ -109,6 +109,14 @@ export class WizardService {
     });
   }
 
+  logProjectActivity(projectId: string, message: string, status: 'info' | 'running' | 'success' | 'error' = 'info'): Observable<any> {
+    return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/messages/activity`, {
+      session_id: this.session?.id,
+      message,
+      status,
+    });
+  }
+
   deployProject(projectId: string): Observable<any> {
     return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/deploy`, {});
   }

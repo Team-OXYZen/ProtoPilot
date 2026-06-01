@@ -3,10 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { WizardService } from '../../services/wizard-service';
 import { SpecService } from '../../../spec-review/services/spec.service';
-import { Question, Response, Spec } from '../../models/response.model';
+import { Question, Response } from '../../models/response.model';
 import { CONSTANTS } from '../../config/sample-questions';
 import { catchError, EMPTY, map } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
+import { LoaderService } from '../../../../shared/services/loader.service';
+
+const FRIENDLY_WIZARD_ERROR = 'Sorry, something went wrong while preparing the next step. Please try again in a moment.';
 
 @Component({
   selector: 'app-wizard',
@@ -24,6 +27,7 @@ export class WizardComponent implements OnInit {
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
+  loaderService = inject(LoaderService);
   router = inject(Router);
 
   ngOnInit() {
@@ -40,15 +44,11 @@ export class WizardComponent implements OnInit {
   private getErrorMessage(err: any): string {
     const detail = err?.error?.detail;
 
-    if (typeof detail === "string") {
-      return detail;
-    }
-
-    if (detail?.message) {
+    if (detail && typeof detail === "object" && detail.message) {
       return detail.message;
     }
 
-    return err?.message || CONSTANTS.ERROR_TEXT;
+    return FRIENDLY_WIZARD_ERROR;
   }
 
   private getReplyQuestion(reply: any): Question {
@@ -92,6 +92,67 @@ export class WizardComponent implements OnInit {
     };
   }
 
+  private storeProjectData(data: any): void {
+    if (data?.spec) {
+      this.specService.setSpec(data.spec);
+    }
+
+    if (data?.nontech_artifacts_md) {
+      this.specService.setNontechArtifacts(data.nontech_artifacts_md);
+    }
+
+    if (data?.technical_artifacts_md) {
+      this.specService.setTechnicalArtifacts(data.technical_artifacts_md);
+    }
+  }
+
+  private recordActivity(message: string, status: 'info' | 'running' | 'success' | 'error' = 'info'): void {
+    const projectId = this.wizardService.project?.id;
+    if (!projectId) return;
+
+    this.wizardService.logProjectActivity(projectId, message, status).subscribe({
+      error: err => console.warn('Activity message could not be saved:', err)
+    });
+  }
+
+  private prepareDesignDocuments(): void {
+    this.recordActivity('Preparing your design documents...', 'running');
+
+    this.loaderService.startWithMessages([
+      'Preparing your design documents...',
+      'Organizing the screens and user flows...',
+      'Writing the review checklist...',
+      'Almost there...'
+    ]);
+
+    this.wizardService.sendMessage('prepare design documents', false).pipe(catchError(err => {
+      console.error('Design document preparation failed:', err);
+      this.recordActivity('I could not prepare the design documents just now.', 'error');
+      this.loaderService.stop();
+      this.currentQuestion.summary = 'Sorry, I could not prepare the design documents just now. Please try again in a moment.';
+      this.currentQuestion.question = '';
+      this.currentQuestion.suggestions = [];
+      this.isLoading.set(false);
+      return EMPTY;
+    })).subscribe((res: Response | null) => {
+      this.loaderService.stop();
+      this.isLoading.set(false);
+
+      if (res?.nontech_artifacts_md) {
+        this.recordActivity('The design documents are ready for your review.', 'success');
+        this.storeProjectData(res);
+        this.router.navigate(['/spec-review']);
+        return;
+      }
+
+      console.warn('Design document response did not include review documents:', res);
+      this.recordActivity('The design documents need a little more time.', 'error');
+      this.currentQuestion.summary = 'The design documents need a little more time. Please try again in a moment.';
+      this.currentQuestion.question = '';
+      this.currentQuestion.suggestions = [];
+    });
+  }
+
   handleSendMessage() {
     if (!this.answer) return;
 
@@ -104,18 +165,26 @@ export class WizardComponent implements OnInit {
     this.answer = "";
 
     this.wizardService.sendMessage(tempAnswer).pipe(catchError(err => {
-      console.log('Error caught:', err);
+      console.error('Requirements request failed:', err);
 
-      this.currentQuestion.summary = `Error: ${this.getErrorMessage(err)}`;
+      this.currentQuestion.summary = this.getErrorMessage(err);
       this.currentQuestion.question = "";
       this.currentQuestion.suggestions = [];
       this.isLoading.set(false);
 
       return EMPTY;
     }), map((res: Response | null) => {
+      if (res?.stage === 'ARTIFACTS_NON_TECH' && res?.spec?.project_name && !res?.nontech_artifacts_md) {
+        return {
+          transitionToArtifacts: true,
+          message: (res.reply as any)?.message || 'Great, I have enough to prepare the first set of design documents for your review.',
+          spec: res.spec
+        };
+      }
+
       if (res?.spec?.project_name) {
         return {
-          reply: res.spec,
+          spec: res.spec,
           nontech_artifacts_md: res.nontech_artifacts_md,
           technical_artifacts_md: res.technical_artifacts_md
         };
@@ -139,9 +208,10 @@ export class WizardComponent implements OnInit {
       }
 
       if (res?.raw_reply) {
+        console.warn('Unexpected raw requirements reply:', res);
         return {
           reply: {
-            summary: res.raw_reply,
+            summary: FRIENDLY_WIZARD_ERROR,
             question: "",
             suggestions: []
           }
@@ -150,22 +220,21 @@ export class WizardComponent implements OnInit {
 
       return null;
     })).subscribe((data: any) => {
-      const reply = data?.reply;
+      if (data?.transitionToArtifacts) {
+        this.storeProjectData(data);
+        this.currentQuestion.summary = data.message;
+        this.currentQuestion.question = '';
+        this.currentQuestion.suggestions = [];
+        this.prepareDesignDocuments();
+        return;
+      }
 
-      if ((reply as Spec)?.project_name) {
-        // Store results in services and navigate to spec-review
-        this.specService.setSpec(reply);
-
-        if (data?.nontech_artifacts_md) {
-          this.specService.setNontechArtifacts(data.nontech_artifacts_md);
-        }
-
-        if (data?.technical_artifacts_md) {
-          this.specService.setTechnicalArtifacts(data.technical_artifacts_md);
-        }
+      if (data?.spec?.project_name) {
+        this.storeProjectData(data);
 
         this.router.navigate(['/spec-review']);
       } else {
+        const reply = data?.reply;
         this.currentQuestion.summary = (reply as Question)?.summary || CONSTANTS.ERROR_TEXT;
         this.currentQuestion.question = (reply as Question)?.question || "";
         this.currentQuestion.suggestions = (reply as Question)?.suggestions || [];

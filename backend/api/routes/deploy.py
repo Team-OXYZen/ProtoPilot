@@ -17,11 +17,11 @@ async def deploy_project(project_id: str):
     """
     proj = get_project(project_id)
     if proj is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail="Sorry, I could not find this project.")
     if not proj.angular_code_files:
-        raise HTTPException(status_code=400, detail="No Angular code files found")
+        raise HTTPException(status_code=400, detail="Please prepare the prototype before starting a live demo.")
     if not proj.java_code_files:
-        raise HTTPException(status_code=400, detail="No Java code files found")
+        raise HTTPException(status_code=400, detail="Please prepare the live demo first, then try again.")
 
     port = await deploy_manager.deploy(project_id, proj.angular_code_files, proj.java_code_files)
     return {"status": "building", "port": port}

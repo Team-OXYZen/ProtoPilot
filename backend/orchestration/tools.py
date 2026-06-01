@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -9,10 +10,15 @@ from pathlib import Path
 from typing import Any
 
 from core.logging_utils import log_event
-from orchestration.store import Stage, get_or_create_project, persist_project, get_project
+from orchestration.store import persist_project, get_project
 
 logger = logging.getLogger(__name__)
 MAX_BUILD_OUTPUT_CHARS = 20000
+MERMAID_BLOCK_RE = re.compile(r"```mermaid\s*\n(?P<body>.*?)```", re.IGNORECASE | re.DOTALL)
+MERMAID_START_RE = re.compile(
+    r"^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|block-beta)\b"
+)
+UNQUOTED_BRACKET_LABEL_WITH_PARENS_RE = re.compile(r"[\[{][^\]\}\n]*[()][^\]\}\n]*[\]\}]")
 
 
 def _log_tool_event(tool: str, payload: dict[str, Any]) -> None:
@@ -28,6 +34,65 @@ def _truncate_output(output: str, limit: int = MAX_BUILD_OUTPUT_CHARS) -> str:
     if len(output) <= limit:
         return output
     return output[-limit:]
+
+
+def _strip_quoted_text(value: str) -> str:
+    return re.sub(r'"(?:\\.|[^"\\])*"', '""', value)
+
+
+def _validate_mermaid_text(content: str) -> str | None:
+    stripped = content.strip()
+    if not stripped:
+        return "Mermaid content is empty."
+    if "```" in stripped:
+        return "Raw Mermaid files must not include markdown code fences."
+
+    first_line = next(
+        (line.strip() for line in stripped.splitlines() if line.strip() and not line.strip().startswith("%%")),
+        "",
+    )
+    if not MERMAID_START_RE.match(first_line):
+        return f"Mermaid content must start with a supported diagram type, found: {first_line[:80]!r}."
+
+    if len(re.findall(r'(?<!\\)"', stripped)) % 2:
+        return "Mermaid content has unbalanced double quotes."
+
+    unquoted = _strip_quoted_text(stripped)
+    if UNQUOTED_BRACKET_LABEL_WITH_PARENS_RE.search(unquoted):
+        return "Mermaid content has parentheses inside an unquoted bracket label."
+
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    stack: list[str] = []
+    for char in unquoted:
+        if char in pairs:
+            stack.append(pairs[char])
+        elif char in pairs.values():
+            if not stack or stack.pop() != char:
+                return f"Mermaid content has unbalanced {char!r}."
+    if stack:
+        return f"Mermaid content has unbalanced {stack[-1]!r}."
+
+    return None
+
+
+def _validate_mermaid_artifact(filename: str, content: str) -> str | None:
+    if filename.lower().endswith(".mmd"):
+        return _validate_mermaid_text(content)
+
+    for index, match in enumerate(MERMAID_BLOCK_RE.finditer(content), start=1):
+        error = _validate_mermaid_text(match.group("body"))
+        if error:
+            return f"Mermaid block {index} is invalid: {error}"
+    return None
+
+
+def _validate_technical_artifacts(artifacts_md: dict[str, str]) -> dict[str, str]:
+    errors = {
+        filename: error
+        for filename, content in (artifacts_md or {}).items()
+        if (error := _validate_mermaid_artifact(filename, content or ""))
+    }
+    return errors
 
 
 def _safe_project_file_path(root: Path, filename: str) -> Path:
@@ -72,29 +137,26 @@ def _run_command(command: list[str], cwd: Path, timeout_seconds: int) -> dict[st
 
 
 def submit_spec(project_id: str, spec: dict[str, Any]) -> dict[str, Any]:
-    """Store project specification and advance to non-technical artifacts stage.
+    """Store project specification.
     
     Args:
         project_id: Project identifier
         spec: Dictionary containing project requirements (name, goals, users, etc.)
         
     Returns:
-        dict with ok, project_id, and new stage value
+        dict with ok, project_id, and current stage value
     """
     try:
         proj = get_project(project_id)
-        before = proj.stage.value
 
         proj.spec = spec
-        proj.stage = Stage.ARTIFACTS_NON_TECH
         persist_project(project_id)
 
         _log_tool_event(
             "submit_spec",
             {
                 "project_id": project_id,
-                "stage_before": before,
-                "stage_after": proj.stage.value,
+                "stage": proj.stage.value,
                 "spec_keys": list(spec.keys()),
             },
         )
@@ -137,29 +199,26 @@ def load_spec(project_id: str) -> dict[str, Any]:
 
 
 def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
-    """Store non-technical artifacts (specs, requirements docs) and await approval.
+    """Store non-technical artifacts (specs, requirements docs).
     
     Args:
         project_id: Project identifier
         artifacts_md: Dict mapping filenames to markdown content
         
     Returns:
-        dict with ok, project_id, and new stage (WAIT_APPROVAL)
+        dict with ok, project_id, and current stage
     """
     try:
         proj = get_project(project_id)
-        before = proj.stage.value
 
         proj.nontech_artifacts_md = artifacts_md
-        proj.stage = Stage.WAIT_APPROVAL
         persist_project(project_id)
 
         _log_tool_event(
             "save_nontech_artifacts",
             {
                 "project_id": project_id,
-                "stage_before": before,
-                "stage_after": proj.stage.value,
+                "stage": proj.stage.value,
                 "artifact_files": list(artifacts_md.keys()) if artifacts_md else [],
             },
         )
@@ -173,29 +232,32 @@ def save_nontech_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dic
 
 
 def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> dict[str, Any]:
-    """Store technical artifacts (architecture, design docs) and advance to code generation.
+    """Store technical artifacts (architecture, design docs).
     
     Args:
         project_id: Project identifier
         artifacts_md: Dict mapping filenames to markdown content
         
     Returns:
-        dict with ok, project_id, and new stage (CODEGEN)
+        dict with ok, project_id, and current stage
     """
     try:
+        validation_errors = _validate_technical_artifacts(artifacts_md)
+        if validation_errors:
+            error_msg = f"save_technical_artifacts failed Mermaid validation: {validation_errors}"
+            _log_tool_error(error_msg)
+            return {"ok": False, "error": error_msg, "project_id": project_id, "validation_errors": validation_errors}
+
         proj = get_project(project_id)
-        before = proj.stage.value
 
         proj.technical_artifacts_md = artifacts_md
-        proj.stage = Stage.CODEGEN
         persist_project(project_id)
 
         _log_tool_event(
             "save_technical_artifacts",
             {
                 "project_id": project_id,
-                "stage_before": before,
-                "stage_after": proj.stage.value,
+                "stage": proj.stage.value,
                 "artifact_files": list(artifacts_md.keys()) if artifacts_md else [],
             },
         )
@@ -203,40 +265,6 @@ def save_technical_artifacts(project_id: str, artifacts_md: dict[str, str]) -> d
         return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
     except Exception as e:
         error_msg = f"save_technical_artifacts failed: {str(e)}"
-        _log_tool_error(error_msg)
-        logger.error(error_msg, exc_info=True)
-        return {"ok": False, "error": error_msg, "project_id": project_id}
-
-
-def set_project_stage(project_id: str, stage: str) -> dict[str, Any]:
-    """Update project workflow stage.
-    
-    Args:
-        project_id: Project identifier
-        stage: Target stage name (e.g., 'REQ', 'CODEGEN', 'QA')
-        
-    Returns:
-        dict with ok, project_id, and new stage value
-    """
-    try:
-        proj = get_project(project_id)
-        before = proj.stage.value
-
-        proj.stage = Stage(stage)
-        persist_project(project_id)
-
-        _log_tool_event(
-            "set_project_stage",
-            {
-                "project_id": project_id,
-                "stage_before": before,
-                "stage_after": proj.stage.value,
-            },
-        )
-
-        return {"ok": True, "project_id": project_id, "stage": proj.stage.value}
-    except Exception as e:
-        error_msg = f"set_project_stage failed: {str(e)}"
         _log_tool_error(error_msg)
         logger.error(error_msg, exc_info=True)
         return {"ok": False, "error": error_msg, "project_id": project_id}
@@ -363,6 +391,12 @@ def patch_technical_artifact(project_id: str, filename: str, content: str) -> di
         dict with ok, project_id, and filename
     """
     try:
+        validation_error = _validate_mermaid_artifact(filename, content or "")
+        if validation_error:
+            error_msg = f"patch_technical_artifact failed Mermaid validation for {filename}: {validation_error}"
+            _log_tool_error(error_msg)
+            return {"ok": False, "error": error_msg, "project_id": project_id, "filename": filename}
+
         proj = get_project(project_id)
         if not proj.technical_artifacts_md:
             proj.technical_artifacts_md = {}

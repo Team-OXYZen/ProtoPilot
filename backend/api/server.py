@@ -216,13 +216,12 @@ def update_project_stage(
 
 @app.post("/test_tool")
 def test_tool(payload: dict, current_user: dict[str, str] = Depends(get_current_user)):
-    from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
+    from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts
 
     tool_mapping = {
         "load_spec": load_spec,
         "save_nontech_artifacts": save_nontech_artifacts,
         "save_technical_artifacts": save_technical_artifacts,
-        "set_project_stage": set_project_stage,
         "list_angular_code_files": list_angular_code_files,
         "load_angular_code_file": load_angular_code_file,
         "patch_angular_code_file": patch_angular_code_file,
