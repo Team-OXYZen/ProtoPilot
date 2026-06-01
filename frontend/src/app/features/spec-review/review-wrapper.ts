@@ -1,5 +1,5 @@
 import { Component, effect, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { IconDefinition } from '@fortawesome/fontawesome-common-types';
 import { faConfluence, faGithub, faJira } from '@fortawesome/free-brands-svg-icons';
 import JSZip from 'jszip';
@@ -31,6 +31,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   showExportMenu = signal(false);
   githubExportLoading = signal(false);
   githubConnectLoading = signal(false);
+  githubDisconnectLoading = signal(false);
   githubConnected = signal(false);
   githubUsername = signal('');
   jiraTasksLoading = signal(false);
@@ -44,6 +45,8 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   };
 
   private pollSub?: Subscription;
+  private oauthPoll?: ReturnType<typeof setInterval>;
+  private oauthMessageHandler?: (e: MessageEvent) => void;
   private readonly artifactOrder = [
     'Product_Brief.md',
     'User_Needs_and_Actions.md',
@@ -63,9 +66,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   specService = inject(SpecService);
   loaderService = inject(LoaderService);
   router = inject(Router);
-  private route = inject(ActivatedRoute);
-
-  private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
+private toSvgIcon(icon: IconDefinition): { viewBox: string; paths: string[] } {
     const [width, height, , , svgPathData] = icon.icon;
     return {
       viewBox: `0 0 ${width} ${height}`,
@@ -136,17 +137,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
-    if (this.hasGeneratedCode()) {
-      this.loadGitHubConnectionStatus();
-    }
-
-    this.route.queryParams.subscribe(params => {
-      if (params['github_connected'] === '1') {
-        this.loadGitHubConnectionStatus();
-        this.recordActivity('GitHub account connected successfully.', 'success');
-        this.router.navigate([], { replaceUrl: true, queryParams: {} });
-      }
-    });
+    this.loadGitHubConnectionStatus();
   }
 
   @HostListener('document:click')
@@ -217,7 +208,27 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (result) => {
         if (result?.authorization_url) {
-          window.location.href = result.authorization_url;
+          const popup = window.open(result.authorization_url, 'github-oauth', 'width=600,height=700,left=200,top=100');
+          const cleanup = () => {
+            clearInterval(this.oauthPoll);
+            window.removeEventListener('message', this.oauthMessageHandler!);
+            this.oauthPoll = undefined;
+            this.oauthMessageHandler = undefined;
+          };
+          this.oauthMessageHandler = (e: MessageEvent) => {
+            if (e.data === 'github_connected') {
+              cleanup();
+              this.loadGitHubConnectionStatus();
+              this.recordActivity('GitHub account connected successfully.', 'success');
+            }
+          };
+          window.addEventListener('message', this.oauthMessageHandler);
+          this.oauthPoll = setInterval(() => {
+            if (popup?.closed) {
+              cleanup();
+              this.loadGitHubConnectionStatus();
+            }
+          }, 500);
           return;
         }
         console.error('GitHub connection did not return an authorization URL:', result);
@@ -227,6 +238,26 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.recordActivity('GitHub connection could not be started.', 'error');
         this.integrationError.set(this.formatIntegrationError(error, 'Sorry, I could not connect to GitHub just now. Please try again in a moment.'));
+      },
+    });
+  }
+
+  disconnectGitHub(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.githubDisconnectLoading.set(true);
+    this.integrationError.set('');
+    this.integrationMessage.set('');
+
+    this.wizardService.disconnectGitHub().pipe(
+      finalize(() => this.githubDisconnectLoading.set(false))
+    ).subscribe({
+      next: () => {
+        this.githubConnected.set(false);
+        this.githubUsername.set('');
+        this.recordActivity('GitHub account disconnected.', 'info');
+      },
+      error: () => {
+        this.integrationError.set('Sorry, I could not disconnect GitHub just now. Please try again in a moment.');
       },
     });
   }
@@ -591,6 +622,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.pollSub?.unsubscribe();
+    clearInterval(this.oauthPoll);
+    if (this.oauthMessageHandler) {
+      window.removeEventListener('message', this.oauthMessageHandler);
+    }
   }
 
   deployProject() {

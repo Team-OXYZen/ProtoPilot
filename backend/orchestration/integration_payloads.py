@@ -17,7 +17,7 @@ def _load_project(project_id: str):
 
 
 def _safe_github_path(path: str) -> str:
-    """Normalize generated file paths and keep GitHub exports under generated/."""
+    """Validate and normalize a generated file path, rejecting unsafe traversals."""
     if not isinstance(path, str) or not path.strip():
         log_event("ERROR", "github_payload_invalid_path", {"path_type": type(path).__name__}, status="fail")
         raise ValueError("Generated code file path must be a non-empty string.")
@@ -26,9 +26,6 @@ def _safe_github_path(path: str) -> str:
     if safe_path.startswith("/") or safe_path.startswith("\\") or ".." in safe_path:
         log_event("ERROR", "github_payload_unsafe_path", {"path": path}, status="fail")
         raise ValueError(f"Unsafe generated code file path rejected: {path}")
-
-    if not safe_path.startswith("generated/"):
-        safe_path = f"generated/{safe_path}"
 
     return safe_path
 
@@ -47,9 +44,11 @@ def build_github_files_from_project(project_id: str) -> list[dict]:
     )
     generated_code_files = {}
     if proj.angular_code_files:
-        generated_code_files.update(proj.angular_code_files)
+        for path, content in proj.angular_code_files.items():
+            generated_code_files[f"frontend/{path}"] = content
     if proj.java_code_files:
-        generated_code_files.update(proj.java_code_files)
+        for path, content in proj.java_code_files.items():
+            generated_code_files[f"backend/{path}"] = content
 
     if not generated_code_files:
         log_event("ERROR", "github_payload_no_files", {"project_id": project_id}, status="fail")
