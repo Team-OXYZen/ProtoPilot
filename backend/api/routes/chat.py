@@ -11,6 +11,7 @@ from orchestration.persistent_store import save_chat_message, list_chat_messages
 
 router = APIRouter()
 orch = Orchestrator()
+CHAT_USER_ERROR_MESSAGE = "Sorry, something went wrong while working on your project. Please try again in a moment."
 
 
 class ChatRequest(BaseModel):
@@ -21,6 +22,12 @@ class ChatRequest(BaseModel):
     project_description: str | None = None
     message: str
     save_to_history: bool = True
+
+
+class ActivityMessageRequest(BaseModel):
+    session_id: str | None = None
+    message: str
+    status: str = "info"
 
 
 def _stage_to_str(stage: Any) -> str | None:
@@ -76,7 +83,7 @@ def _reply_to_text(reply: Any) -> str:
         if parts:
             return "\n\n".join(parts)
 
-        return str(reply)
+        return "Thanks, I am still working on that. Please try again in a moment."
 
     return str(reply)
 
@@ -182,14 +189,20 @@ async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_curr
                 session_id=req.session_id,
                 role="assistant",
                 stage="ERROR",
-                content=str(e),
+                content=CHAT_USER_ERROR_MESSAGE,
                 metadata={
                     "error": True,
                     "detail": str(e),
                 },
             )
 
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": CHAT_USER_ERROR_MESSAGE,
+                "technical_detail": str(e),
+            },
+        )
 
 
 @router.get("/projects/{project_id}/messages")
@@ -214,3 +227,33 @@ def get_project_messages(
         "project_id": project_id,
         "messages": list_chat_messages(project_id),
     }
+
+
+@router.post("/projects/{project_id}/messages/activity")
+def log_project_activity(
+    project_id: str,
+    req: ActivityMessageRequest,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Store a user-friendly activity event in chat history."""
+    project = get_owned_project(project_id, authenticated_user_id(current_user))
+    allowed_statuses = {"info", "running", "success", "error"}
+    status = req.status if req.status in allowed_statuses else "info"
+    message = req.message.strip()
+
+    if not message:
+        raise HTTPException(status_code=400, detail="Activity message is required.")
+
+    save_chat_message(
+        project_id=project_id,
+        session_id=req.session_id or project.req_session_id,
+        role="assistant",
+        stage=_stage_to_str(project.stage),
+        content=message,
+        metadata={
+            "kind": "activity",
+            "status": status,
+        },
+    )
+
+    return {"ok": True, "message": message, "status": status}

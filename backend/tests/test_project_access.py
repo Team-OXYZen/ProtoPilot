@@ -113,6 +113,42 @@ class ProjectAccessTests(unittest.TestCase):
 
         self.assertEqual(takeover_attempt.status_code, 404)
 
+    def test_activity_messages_are_saved_to_owned_project_history(self) -> None:
+        alice_token = self._signup("alice")
+        bob_token = self._signup("bob")
+        self._create_project(alice_token, "alice", "alice-project")
+
+        save_activity = self.client.post(
+            "/projects/alice-project/messages/activity",
+            headers=self._auth_headers(alice_token),
+            json={
+                "session_id": "alice-session",
+                "message": "Live demo link is ready.",
+                "status": "success",
+            },
+        )
+        read_messages = self.client.get(
+            "/projects/alice-project/messages",
+            headers=self._auth_headers(alice_token),
+            params={"user_id": "alice"},
+        )
+        bob_save_attempt = self.client.post(
+            "/projects/alice-project/messages/activity",
+            headers=self._auth_headers(bob_token),
+            json={
+                "message": "Should not save",
+                "status": "success",
+            },
+        )
+
+        self.assertEqual(save_activity.status_code, 200)
+        self.assertEqual(read_messages.status_code, 200)
+        messages = read_messages.json()["messages"]
+        self.assertEqual(messages[-1]["content"], "Live demo link is ready.")
+        self.assertEqual(messages[-1]["metadata"]["kind"], "activity")
+        self.assertEqual(messages[-1]["metadata"]["status"], "success")
+        self.assertEqual(bob_save_attempt.status_code, 404)
+
     def test_signup_persists_users_in_dedicated_database(self) -> None:
         self._signup("alice")
 

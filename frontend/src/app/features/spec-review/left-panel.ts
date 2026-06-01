@@ -25,10 +25,10 @@ export class LeftPanelComponent {
   private productDocOrder = [
     'Product_Brief.md',
     'User_Needs_and_Actions.md',
-    'User_Stories_for_Jira.md',
     'User_Journey_and_Screens.md',
     'Screen_and_Interaction_Plan.md',
     'Prototype_Acceptance_Checklist.md',
+    'Jira_Plan.md',
   ];
 
   private technicalDocOrder = [

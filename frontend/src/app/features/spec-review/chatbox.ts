@@ -5,6 +5,17 @@ import { MarkdownModule } from 'ngx-markdown';
 import { WizardService } from '../requirements/services/wizard-service';
 import { SpecService } from './services/spec.service';
 import { catchError, of } from 'rxjs';
+import { LoaderService } from '../../shared/services/loader.service';
+
+const FRIENDLY_CHAT_ERROR = 'Sorry, something went wrong while working on your request. Please try again in a moment.';
+const FRIENDLY_EMPTY_REPLY = 'Thanks, I am still working on that. Please try again in a moment.';
+
+type ChatMessage = {
+  id: number;
+  text: string;
+  type: string;
+  status?: 'info' | 'running' | 'success' | 'error';
+};
 
 @Component({
   selector: 'app-chatbox',
@@ -18,7 +29,8 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
-  chatHistory = signal<[{ id: number, text: string, type: string }] | any>([]);
+  loaderService = inject(LoaderService);
+  chatHistory = signal<ChatMessage[]>([]);
   chatMessage: string = '';
   sendBtnDisabled = signal<boolean>(false);
   sendBtnText = signal<string>("Send");
@@ -42,8 +54,9 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
         const history = (res.messages || []).map((msg: any, index: number) => {
           return {
             id: msg.id || index + 1,
-            text: msg.content,
-            type: msg.role === "user" ? "user" : "system"
+            text: msg.metadata?.error ? FRIENDLY_CHAT_ERROR : msg.content,
+            type: msg.metadata?.kind === "activity" ? "activity" : msg.role === "user" ? "user" : "system",
+            status: msg.metadata?.status || "info",
           };
         });
 
@@ -91,25 +104,86 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
     ]);
   }
 
+  addActivityMessage(text: string, status: 'info' | 'running' | 'success' | 'error' = 'info'): void {
+    this.chatHistory.update((prev) => [
+      ...prev,
+      {
+        type: "activity",
+        status,
+        text,
+        id: prev.length + 1
+      }
+    ]);
+  }
+
   private getErrorMessage(err: any): string {
     const detail = err?.error?.detail;
 
-    if (typeof detail === "string") {
-      return detail;
-    }
-
-    if (detail?.message) {
+    if (detail && typeof detail === "object" && detail.message) {
       return detail.message;
     }
 
-    return err?.message || "Unknown backend error";
+    return FRIENDLY_CHAT_ERROR;
+  }
+
+  private applyProjectResponse(response: any, options: { updateNontechArtifacts?: boolean } = {}): void {
+    if (response?.spec) {
+      this.specService.setSpec(response.spec);
+    }
+    if (options.updateNontechArtifacts !== false && response?.nontech_artifacts_md) {
+      this.specService.setNontechArtifacts(response.nontech_artifacts_md);
+    }
+    if (response?.technical_artifacts_md) {
+      this.specService.setTechnicalArtifacts(response.technical_artifacts_md);
+    }
+    if (response?.angular_code_files) {
+      this.specService.setAngularCode(response.angular_code_files);
+    }
+    if (response?.needs_redeploy !== undefined) {
+      this.specService.needsRedeploy.set(!!response.needs_redeploy);
+    }
+  }
+
+  private needsDesignDocumentRefresh(response: any): boolean {
+    return response?.stage === 'ARTIFACTS_NON_TECH';
+  }
+
+  private refreshDesignDocuments(): void {
+    this.addActivityMessage('Updating your design documents...', 'running');
+    this.loaderService.startWithMessages([
+      'Updating your design documents...',
+      'Applying your latest changes...',
+      'Refreshing the review materials...',
+      'Almost there...'
+    ]);
+
+    this.wizardService.sendMessage('prepare updated design documents', false).pipe(catchError(err => {
+      console.error('Design document refresh failed:', err);
+      this.loaderService.stop();
+      this.addActivityMessage('I could not update the design documents just now.', 'error');
+      this.addSystemMessage(this.getErrorMessage(err));
+      this.resetSendState();
+      return of(null);
+    })).subscribe(response => {
+      this.loaderService.stop();
+
+      if (response) {
+        this.applyProjectResponse(response);
+        this.addActivityMessage('The design documents are updated and ready for review.', 'success');
+        this.addSystemMessage(this.getReplyText(response));
+      }
+
+      this.resetSendState();
+      console.log('Design documents refreshed: ', response);
+    });
   }
 
   private getReplyText(response: any): string {
     const reply = response?.reply;
 
     if (!reply) {
-      return response?.raw_reply || "";
+      console.warn('Empty chat reply received:', response);
+      return FRIENDLY_EMPTY_REPLY;
     }
 
     if (typeof reply === "string") {
@@ -139,7 +213,8 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
       return text;
     }
 
-    return response?.raw_reply || JSON.stringify(reply);
+    console.warn('Unexpected chat reply shape:', response);
+    return FRIENDLY_EMPTY_REPLY;
   }
 
   sendChatMessage() {
@@ -154,24 +229,13 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
       //code refinement flow when isStackblitzActive is true
       if (this.isStackblitzActive) {
         this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
-          console.log('Error caught:', err);
-          this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+          console.error('Chat request failed:', err);
+          this.addSystemMessage(this.getErrorMessage(err));
           this.resetSendState();
           return of(null); // fallback value
         })).subscribe(response => {
           if (response) {
-            if((response as any).angular_code_files){
-              this.specService.setAngularCode((response as any).angular_code_files);
-            }
-            if ((response as any).needs_redeploy !== undefined) {
-              this.specService.needsRedeploy.set(!!(response as any).needs_redeploy);
-            }
-            if ((response as any).nontech_artifacts_md) {
-              this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
-            }
-            if ((response as any).technical_artifacts_md) {
-              this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
-            }
+            this.applyProjectResponse(response);
 
             const systemResponse = this.getReplyText(response);
             this.addSystemMessage(systemResponse);
@@ -182,27 +246,26 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
       } else {
         //spec review flow
         this.wizardService.sendMessage("change", false).pipe(catchError(err => {
-          console.log('Error caught:', err);
-          this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+          console.error('Chat revision request failed:', err);
+          this.addSystemMessage(this.getErrorMessage(err));
           this.resetSendState();
           return of(null);
         })).subscribe(response => {
           if (response) {
             this.wizardService.sendMessage(tempMessage).pipe(catchError(err => {
-              console.log('Error caught:', err);
-              this.addSystemMessage(`Error: ${this.getErrorMessage(err)}`);
+              console.error('Chat follow-up request failed:', err);
+              this.addSystemMessage(this.getErrorMessage(err));
               this.resetSendState();
               return of(null);
             })).subscribe(response => {
               if (response) {
-                if ((response as any).spec) {
-                  this.specService.setSpec((response as any).spec);
-                }
-                if ((response as any).nontech_artifacts_md) {
-                  this.specService.setNontechArtifacts((response as any).nontech_artifacts_md);
-                }
-                if ((response as any).technical_artifacts_md) {
-                  this.specService.setTechnicalArtifacts((response as any).technical_artifacts_md);
+                this.applyProjectResponse(response, {
+                  updateNontechArtifacts: !this.needsDesignDocumentRefresh(response)
+                });
+
+                if (this.needsDesignDocumentRefresh(response)) {
+                  this.refreshDesignDocuments();
+                  return;
                 }
 
                 const systemResponse = this.getReplyText(response);

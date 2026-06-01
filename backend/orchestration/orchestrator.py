@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import uuid
 from typing import Any
 
 from core.auth import get_oauth_token
@@ -24,7 +25,6 @@ from orchestration.tools import (
     save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
-    set_project_stage,
     submit_spec,
     list_java_code_files,
     load_java_code_file,
@@ -34,8 +34,25 @@ from orchestration.tools import (
 )
 from orchestration.store import Stage, get_or_create_project, persist_project
 
+GENERIC_USER_ERROR_MESSAGE = "Sorry, something went wrong while preparing your project. Please try again in a moment."
+
 
 class Orchestrator:
+
+    def _set_stage(self, proj, stage: Stage, event: str, **extra: Any) -> None:
+        before = proj.stage
+        proj.stage = stage
+        persist_project(proj.project_id)
+        log_event(
+            "STAGE",
+            event,
+            {
+                "project_id": proj.project_id,
+                "from": before.value if hasattr(before, "value") else str(before),
+                "to": stage.value,
+                **extra,
+            },
+        )
 
     def _build_response(self, proj, reply: Any, artifacts_md: dict[str, str] | None = None, angular_code_files: dict[str, str] | None = None, raw_reply: str | None = None) -> dict[str, Any]:
         """Package orchestration result with project state and reply.
@@ -182,15 +199,11 @@ class Orchestrator:
             dict with response message or empty dict if approval handled
         """
         if normalized == "approve":
-            log_event("STAGE", "approval_received", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.TECH_ARTIFACTS.value})
-            set_project_stage(proj.project_id, Stage.TECH_ARTIFACTS)
-            proj.stage = Stage.TECH_ARTIFACTS
+            self._set_stage(proj, Stage.TECH_ARTIFACTS, "approval_received")
             return {}
 
         if normalized == "change":
-            log_event("STAGE", "revision_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.REQ.value})
-            set_project_stage(proj.project_id, Stage.REQ)
-            proj.stage = Stage.REQ
+            self._set_stage(proj, Stage.REQ, "revision_requested")
             return self._build_response(
                 proj=proj,
                 reply={"message": "You have entered revision mode. Please describe the changes needed."},
@@ -199,7 +212,7 @@ class Orchestrator:
 
         return self._build_response(
             proj=proj,
-            reply={"message": "Please reply with either 'approve' or 'change'."},
+            reply={"message": "Please let me know if you would like to move forward or make changes first."},
             artifacts_md=proj.nontech_artifacts_md,
         )
 
@@ -227,11 +240,17 @@ class Orchestrator:
         )
 
         log_event("AGENT", "requirements_start", {"project_id": proj.project_id, "phase": phase, "session_id": req_session_id})
+        before_spec = proj.spec
         reply = await run_turn(req_agent, req_session_id, message=req_prompt)
         log_event("AGENT", "requirements_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": reply}, status="ok")
 
-        if proj.stage == Stage.ARTIFACTS_NON_TECH and proj.spec:
-            return await self._run_artifacts_non_tech(token, proj, req_session_id)
+        if proj.spec and proj.spec is not before_spec:
+            self._set_stage(proj, Stage.ARTIFACTS_NON_TECH, "requirements_complete")
+            return self._build_response(
+                proj=proj,
+                reply={"message": "Great, I have enough to prepare the first set of design documents for your review."},
+                raw_reply=reply,
+            )
 
         return self._build_response(
             proj=proj,
@@ -283,8 +302,7 @@ class Orchestrator:
             return await self._run_angular_codegen(token, proj, req_session_id)
         if proj.stage == Stage.QA:
             if normalized == "finalize":
-                log_event("STAGE", "finalize_requested", {"project_id": proj.project_id, "from": proj.stage.value, "to": Stage.FINALIZE.value})
-                set_project_stage(proj.project_id, Stage.FINALIZE)
+                self._set_stage(proj, Stage.FINALIZE, "finalize_requested")
                 return await self._run_java_codegen(token, proj, req_session_id)
             return await self._run_qa(token, proj, req_session_id, user_message)
         if proj.stage == Stage.FINALIZE:
@@ -292,7 +310,7 @@ class Orchestrator:
 
         return self._build_response(
             proj=proj,
-            reply={"message": "Project complete."},
+            reply={"message": "Your project is ready whenever you would like to review it again."},
         )
 
     async def _run_artifacts_non_tech(self, token, proj, req_session_id: str) -> dict:
@@ -308,30 +326,38 @@ class Orchestrator:
         """
         art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
 
+        is_revision = bool(proj.nontech_artifacts_md)
+        revision_instruction = (
+            "Existing review documents are present because the user requested changes. "
+            "Regenerate the full non-technical artifact set from the latest saved spec and replace the previous documents. "
+            if is_revision
+            else ""
+        )
         art_prompt = (
             f"project_id={proj.project_id}\n"
             "phase=non_tech\n"
             "Generate PM-facing non-technical artifacts now.\n"
-            "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values, "
+            f"{revision_instruction}"
+            "You must call load_spec(project_id), then save_nontech_artifacts(project_id, artifacts_dict). "
+            "Save full content via save_nontech_artifacts(project_id, artifacts_dict) as a dictionary with filename keys and markdown content values."
         )
         _raw_reply = ""
         for attempt in range(2):
-            log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-nontech", "attempt": attempt + 1})
-            _raw_reply = await run_turn(art_agent, session_id=f"{req_session_id}-nontech", message=art_prompt)
+            attempt_session_id = f"{req_session_id}-nontech-{uuid.uuid4().hex[:8]}"
+            log_event("AGENT", "artifacts_nontech_start", {"project_id": proj.project_id, "session_id": attempt_session_id, "attempt": attempt + 1, "is_revision": is_revision})
+            before_nontech_artifacts = proj.nontech_artifacts_md
+            _raw_reply = await run_turn(art_agent, session_id=attempt_session_id, message=art_prompt)
             log_event("AGENT", "artifacts_nontech_done", {"project_id": proj.project_id, "stage": proj.stage.value, "reply": _raw_reply}, status="ok")
-            if proj.stage == Stage.WAIT_APPROVAL:
+            if proj.nontech_artifacts_md and proj.nontech_artifacts_md is not before_nontech_artifacts:
+                self._set_stage(proj, Stage.WAIT_APPROVAL, "nontech_artifacts_complete", attempt=attempt + 1)
                 break
             log_event("RETRY", "artifacts_nontech_retry", {"project_id": proj.project_id, "attempt": attempt + 1, "reply": _raw_reply}, status="fail")
         else:
             log_event("ERROR", "artifacts_nontech_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
-            set_project_stage(proj.project_id, Stage.REQ)
-            persist_project(proj.project_id)
+            self._set_stage(proj, Stage.REQ, "nontech_artifacts_failed")
             raise RuntimeError(f"Non-technical artifacts generation failed: {_raw_reply}")
 
-        reply = {
-            "message": _raw_reply,
-            "raw_reply": _raw_reply,
-        }
+        reply = {"message": "The design documents are now ready for your review."}
 
         return self._build_response(
             proj=proj,
@@ -361,6 +387,7 @@ class Orchestrator:
         )
 
         log_event("AGENT", "artifacts_technical_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-tech"})
+        before_technical_artifacts = proj.technical_artifacts_md
         _raw_reply = await run_turn(
             art_agent,
             session_id=f"{req_session_id}-tech",
@@ -368,14 +395,13 @@ class Orchestrator:
         )
         log_event("AGENT", "artifacts_technical_done", {"project_id": proj.project_id, "artifact_files": list((proj.technical_artifacts_md or {}).keys()), "reply": _raw_reply}, status="ok")
 
-        if not proj.technical_artifacts_md:
+        if not proj.technical_artifacts_md or proj.technical_artifacts_md is before_technical_artifacts:
             log_event("ERROR", "artifacts_technical_failed", {"project_id": proj.project_id, "reply": _raw_reply}, status="fail")
             raise RuntimeError(f"Technical artifacts generation failed: {_raw_reply}")
 
-        reply = {
-            "message": _raw_reply,
-            "raw_reply": _raw_reply,
-        }
+        self._set_stage(proj, Stage.CODEGEN, "technical_artifacts_complete")
+
+        reply = {"message": "The implementation plan is ready, and I will use it to prepare the working prototype."}
 
         return self._build_response(
             proj=proj,
@@ -420,7 +446,7 @@ class Orchestrator:
                     return self._build_response(
                         proj=proj,
                         reply={
-                            "message": "Angular code was generated, but the build still fails after repair attempts.",
+                            "message": "The prototype needs a little more work before it is ready to preview. Please try again, and I will keep refining it.",
                             "codegen_verification": codegen_verify_reply,
                         },
                         angular_code_files=proj.angular_code_files,
@@ -430,7 +456,7 @@ class Orchestrator:
                 review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Angular code generated, build-verified, and reviewed.", "codegen_verification": codegen_verify_reply, "review": review_reply},
+                    reply={"message": "Great, your interactive prototype is ready to preview.", "codegen_verification": codegen_verify_reply, "review": review_reply},
                     angular_code_files=proj.angular_code_files,
                     raw_reply=f"{_raw_reply}\n\n[CODEGEN_BUILD_VERIFICATION]\n{codegen_verify_reply}\n\n[CODE_REVIEW]\n{review_reply}",
                 )
@@ -439,7 +465,7 @@ class Orchestrator:
         except Exception as e:
             error_message = f"Code generation failed with error: {str(e)}"
             log_event("ERROR", "angular_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
-            return self._build_response(proj=proj, reply={"message": error_message})
+            return self._build_response(proj=proj, reply={"message": GENERIC_USER_ERROR_MESSAGE}, raw_reply=error_message)
 
     async def _verify_angular_codegen_build(self, code_agent, proj, req_session_id: str) -> tuple[bool, str]:
         """Verify Angular build succeeds, attempt repairs up to 3 times.
@@ -619,10 +645,7 @@ class Orchestrator:
             log_event("ERROR", "code_review_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return error_message
         finally:
-            log_event("STAGE", "code_review_complete", {"project_id": proj.project_id, "to": Stage.QA.value})
-            set_project_stage(proj.project_id, Stage.QA)
-            proj.stage = Stage.QA
-            persist_project(proj.project_id)
+            self._set_stage(proj, Stage.QA, "code_review_complete")
 
     def _java_codegen_tools(self) -> list:
         """Get tools available during Java code generation phase.
@@ -669,23 +692,23 @@ class Orchestrator:
 
             if proj.java_code_files:
                 proj.needs_redeploy = False
-                set_project_stage(proj.project_id, Stage.QA)
+                self._set_stage(proj, Stage.QA, "java_codegen_complete")
                 review_reply = await self._run_code_review(token, proj, req_session_id)
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Java Spring Boot code generated successfully. You can continue refining the app or type 'finalize' again to regenerate the backend."},
+                    reply={"message": "Great, the prototype is now prepared for a more realistic live demo."},
                     raw_reply=f"{_raw_reply}\n\n[POST_FINALIZE_CODE_REVIEW]\n{review_reply}",
                 )
             else:
                 return self._build_response(
                     proj=proj,
-                    reply={"message": "Java code generation failed. Please try again."},
+                    reply={"message": "The live demo setup needs a little more work. Please try again, and I will keep refining it."},
                     raw_reply=_raw_reply,
                 )
         except Exception as e:
             error_message = f"Java code generation failed with error: {str(e)}"
             log_event("ERROR", "java_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
-            return self._build_response(proj=proj, reply={"message": error_message})
+            return self._build_response(proj=proj, reply={"message": GENERIC_USER_ERROR_MESSAGE}, raw_reply=error_message)
 
     async def _run_qa(self, llm, proj, req_session_id: str, user_message: str) -> dict:
         qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())

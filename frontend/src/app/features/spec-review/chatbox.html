@@ -2,7 +2,12 @@
   <div class="chat-section">
     <div #chatHistoryElement class="chat-history">
       @for(msg of chatHistory(); track msg.id){
-        @if(msg.type != "user"){
+        @if(msg.type === "activity"){
+          <div class="activity-msg" [class]="'activity-' + (msg.status || 'info')">
+            <span class="activity-dot"></span>
+            <span>{{ msg.text }}</span>
+          </div>
+        } @else if(msg.type != "user"){
           <div class="system-msg">
             <markdown [data]="msg.text"></markdown>
           </div>
