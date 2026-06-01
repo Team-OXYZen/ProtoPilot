@@ -5,6 +5,18 @@ from google.adk.models.lite_llm import LiteLlm
 logger = logging.getLogger(__name__)
 
 def create_litellm(oauth_token: str, model: str | None = None) -> LiteLlm:
+    """Create LiteLLM client with credentials and OAuth token.
+    
+    Args:
+        oauth_token: OAuth access token for API
+        model: Optional model name override (uses LITELLM_MODEL env var if not provided)
+        
+    Returns:
+        Configured LiteLLM client instance
+        
+    Raises:
+        RuntimeError: If required environment variables missing
+    """
     litellm_api_key = os.getenv("LITELLM_API_KEY", "")
     resolved_model = model or os.getenv("LITELLM_MODEL", "")
     api_base = os.getenv("LITELLM_API_BASE", "")

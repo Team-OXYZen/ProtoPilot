@@ -1,26 +1,29 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { WelcomeComponent } from './features/welcome/welcome.component';
-import { DashboardComponent } from './features/dashboard/dashboard.component';
-import { WizardComponent } from './features/requirements/components/wizard/wizard';
-import { ReviewWrapperComponent } from './features/spec-review/review-wrapper';
 
 export const routes: Routes = [
   {
     path: 'welcome',
-    component: WelcomeComponent,
+    loadComponent: () =>
+      import('./features/welcome/welcome.component').then(m => m.WelcomeComponent),
   },
   {
     path: 'dashboard',
-    component: DashboardComponent,
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
+    canActivate: [authGuard],
   },
   {
     path: 'requirements',
-    component: WizardComponent,
+    loadComponent: () =>
+      import('./features/requirements/components/wizard/wizard').then(m => m.WizardComponent),
+    canActivate: [authGuard],
   },
   {
     path: 'spec-review',
-    component: ReviewWrapperComponent,
+    loadComponent: () =>
+      import('./features/spec-review/review-wrapper').then(m => m.ReviewWrapperComponent),
+    canActivate: [authGuard],
   },
   {
     path: '',

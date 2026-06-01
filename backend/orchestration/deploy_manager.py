@@ -5,13 +5,21 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from core.logging_utils import log_event
+
 PROJECTS_DIR = Path.home() / "protopilot-projects"
 PORT_RANGE_START = 5001
 PORT_RANGE_END = 5999
 
 
 class DeployManager:
+    """Manage Docker Compose deployments for generated Angular/Java projects.
+    
+    Handles port allocation, project file writing, Docker Compose configuration,
+    and deployment state tracking.
+    """
     def __init__(self):
+        """Initialize deployment manager with port registry and project directory."""
         self._port_registry: dict[str, int] = {}
         self._deploy_status: dict[str, str] = {}  # "building" | "running" | "failed"
         self._lock = asyncio.Lock()
@@ -20,17 +28,21 @@ class DeployManager:
         self._restore_running_containers()
 
     def _registry_path(self) -> Path:
+        """Get path to port registry JSON file."""
         return PROJECTS_DIR / "port_registry.json"
 
     def _load_registry(self):
+        """Load port registry from file."""
         p = self._registry_path()
         if p.exists():
             self._port_registry = json.loads(p.read_text())
 
     def _save_registry(self):
+        """Save port registry to file."""
         self._registry_path().write_text(json.dumps(self._port_registry))
 
     def _restore_running_containers(self):
+        """Restore deployment status from running Docker containers."""
         for project_id in list(self._port_registry.keys()):
             project_dir = PROJECTS_DIR / project_id
             if not project_dir.exists():
@@ -44,9 +56,20 @@ class DeployManager:
             )
             if "frontend" in result.stdout:
                 self._deploy_status[project_id] = "running"
-                print(f"[DEPLOY] Restored running state for {project_id}")
+                log_event("BUILD", "deploy_restore_running", {"project_id": project_id}, status="ok")
 
     def _allocate_port(self, project_id: str) -> int:
+        """Allocate or retrieve port for project.
+        
+        Args:
+            project_id: Project identifier
+            
+        Returns:
+            Port number in configured range
+            
+        Raises:
+            RuntimeError: If no ports available
+        """
         if project_id in self._port_registry:
             return self._port_registry[project_id]
         used = set(self._port_registry.values())
@@ -58,10 +81,18 @@ class DeployManager:
         raise RuntimeError("No available ports in range")
 
     def _free_port(self, project_id: str):
+        """Release allocated port for project."""
         self._port_registry.pop(project_id, None)
         self._save_registry()
 
     def _write_project_files(self, project_id: str, angular_files: dict, java_files: dict):
+        """Write source files to project directory.
+        
+        Args:
+            project_id: Project identifier
+            angular_files: Angular frontend source files dict
+            java_files: Java backend source files dict
+        """
         project_dir = PROJECTS_DIR / project_id
         if project_dir.exists():
             shutil.rmtree(project_dir)
@@ -170,8 +201,19 @@ networks:
         (project_dir / "docker-compose.yml").write_text(self._docker_compose(port))
 
     async def deploy(self, project_id: str, angular_files: dict, java_files: dict) -> int:
+        """Deploy project by writing files and building Docker Compose services.
+        
+        Args:
+            project_id: Project identifier
+            angular_files: Angular frontend source files
+            java_files: Java backend source files
+            
+        Returns:
+            Port number for accessing deployed project
+        """
         async with self._lock:
             port = self._allocate_port(project_id)
+        log_event("BUILD", "deploy_start", {"project_id": project_id, "port": port, "angular_files": len(angular_files or {}), "java_files": len(java_files or {})})
         self._write_project_files(project_id, angular_files, java_files)
         self._write_docker_files(project_id, port)
         self._deploy_status[project_id] = "building"
@@ -190,13 +232,13 @@ networks:
             stdout, stderr = await proc.communicate()
             if proc.returncode == 0:
                 self._deploy_status[project_id] = "running"
-                print(f"[DEPLOY] {project_id} running on port {self._port_registry.get(project_id)}")
+                log_event("BUILD", "deploy_running", {"project_id": project_id, "port": self._port_registry.get(project_id)}, status="ok")
             else:
                 self._deploy_status[project_id] = "failed"
-                print(f"[DEPLOY] {project_id} failed:\n{stderr.decode()}")
+                log_event("BUILD", "deploy_failed", {"project_id": project_id, "exit_code": proc.returncode, "stderr": stderr.decode()}, status="fail")
         except Exception as e:
             self._deploy_status[project_id] = "failed"
-            print(f"[DEPLOY] {project_id} error: {e}")
+            log_event("BUILD", "deploy_error", {"project_id": project_id, "error": str(e)}, status="fail")
 
     def get_status(self, project_id: str) -> dict:
         status = self._deploy_status.get(project_id, "idle")
@@ -218,9 +260,9 @@ networks:
                     stderr=asyncio.subprocess.PIPE,
                 )
                 await proc.communicate()
-                print(f"[UNDEPLOY] {project_id} stopped")
+                log_event("BUILD", "undeploy_done", {"project_id": project_id}, status="ok")
             except Exception as e:
-                print(f"[UNDEPLOY] {project_id} error: {e}")
+                log_event("BUILD", "undeploy_error", {"project_id": project_id, "error": str(e)}, status="fail")
         self._deploy_status.pop(project_id, None)
         self._free_port(project_id)
 

@@ -65,17 +65,28 @@ export class AuthModalComponent {
 
     this.isLoading.set(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const success = this.authService.login(this.username(), this.password());
+    const authRequest = this._isSignUp()
+      ? this.authService.signup(this.username(), this.password())
+      : this.authService.login(this.username(), this.password());
 
-      if (success) {
+    authRequest.subscribe({
+      next: (success) => {
+        if (success) {
+          this.isLoading.set(false);
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.errorMessage.set(
+            this._isSignUp()
+              ? 'Unable to create that account. Try a different username.'
+              : 'Invalid credentials. Try demo / demo123',
+          );
+          this.isLoading.set(false);
+        }
+      },
+      error: () => {
+        this.errorMessage.set('Authentication failed. Please try again.');
         this.isLoading.set(false);
-        this.router.navigate(['/dashboard']);
-      } else {
-        this.errorMessage.set('Invalid credentials. Try demo / demo123');
-        this.isLoading.set(false);
-      }
-    }, 300);
+      },
+    });
   }
 }

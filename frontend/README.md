@@ -18,6 +18,16 @@ npm start
 
 Navigate to `http://localhost:4200/`. The application automatically reloads when you modify source files.
 
+## API Base URL
+
+The frontend backend base URL is configured in:
+
+```ts
+src/environments/environment.ts
+```
+
+Update `apiBaseUrl` when the FastAPI backend is not running at `http://127.0.0.1:8000`.
+
 ---
 
 ## User Flow
@@ -90,4 +100,3 @@ Users can test the prototype functionality and download all generated materials.
 - [src/styles/variables.scss](src/styles/variables.scss) — Design tokens and theme variables
 
 ---
-

@@ -1,16 +1,28 @@
 from orchestration.tools import delete_angular_code_file, list_angular_code_files, load_angular_code_file, patch_angular_code_file, rename_angular_code_file
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from api.routes.auth import router as auth_router
 from api.routes.chat import router as chat_router
+from api.routes.preferences import router as preferences_router
+from api.project_access import authenticated_user_id, ensure_owned_project_or_missing, get_owned_project
+from core.auth import get_current_user
 from api.routes.deploy import router as deploy_router
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI(title="ProtoPilot API")
+app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(preferences_router)
 app.include_router(deploy_router)
+try:
+    from api.routes.integrations import router as integrations_router
+
+    app.include_router(integrations_router)
+except Exception as exc:
+    print(f"[INTEGRATIONS_ROUTER_DISABLED] {exc}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,16 +49,31 @@ class CreateProjectRequest(BaseModel):
     project_description: str | None = None
 
 @app.post("/projects")
-def create_project(req: CreateProjectRequest):
+def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Depends(get_current_user)):
+    """Create new project for authenticated user.
+    
+    Args:
+        req: CreateProjectRequest with project details
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with project_id, stage, user_id, and metadata
+    """
     from orchestration.store import get_or_create_project, persist_project
 
-    proj = get_or_create_project(
-        project_id=req.project_id,
-        req_session_id=req.session_id,
-        user_id=req.user_id,
-        project_title=req.project_title,
-        project_description=req.project_description,
-    )
+    user_id = authenticated_user_id(current_user, req.user_id)
+    ensure_owned_project_or_missing(req.project_id, user_id)
+
+    try:
+        proj = get_or_create_project(
+            project_id=req.project_id,
+            req_session_id=req.session_id,
+            user_id=user_id,
+            project_title=req.project_title,
+            project_description=req.project_description,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     persist_project(req.project_id)
 
@@ -61,20 +88,41 @@ def create_project(req: CreateProjectRequest):
     }
 
 @app.get("/projects")
-def projects():
+def projects(
+    user_id: str | None = None,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """List all projects owned by user.
+    
+    Args:
+        user_id: Optional user identifier (defaults to current user)
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with projects list
+    """
     from orchestration.persistent_store import list_projects
 
-    return {"projects": list_projects()}
+    return {"projects": list_projects(authenticated_user_id(current_user, user_id))}
 
 
 @app.get("/projects/{project_id}")
-def project_detail(project_id: str):
-    from orchestration.store import get_project
-
-    proj = get_project(project_id)
-
-    if proj is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+def project_detail(
+    project_id: str,
+    user_id: str | None = None,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Get detailed project information including all artifacts and generated code.
+    
+    Args:
+        project_id: Project identifier
+        user_id: Optional user identifier (defaults to current user)
+        current_user: Authenticated user from JWT
+        
+    Returns:
+        dict with full project state: stage, spec, artifacts, code files
+    """
+    proj = get_owned_project(project_id, authenticated_user_id(current_user, user_id))
 
     return {
         "project_id": proj.project_id,
@@ -88,18 +136,71 @@ def project_detail(project_id: str):
         "technical_artifacts_md": proj.technical_artifacts_md,
         "angular_code_files": proj.angular_code_files,
         "java_code_files": proj.java_code_files,
+        "needs_redeploy": proj.needs_redeploy,
     }
+
+class UpdateProjectRequest(BaseModel):
+    project_title: str
+    project_description: str | None = None
+
+@app.patch("/projects/{project_id}")
+def update_project(
+    project_id: str,
+    req: UpdateProjectRequest,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Update project title and description.
+
+    Args:
+        project_id: Project identifier
+        req: UpdateProjectRequest with new title and description
+        current_user: Authenticated user from JWT
+
+    Returns:
+        dict with ok, project_id, and updated fields
+    """
+    from orchestration.persistent_store import update_project_info
+    from orchestration.store import evict_project
+
+    get_owned_project(project_id, authenticated_user_id(current_user))
+    update_project_info(project_id, req.project_title, req.project_description)
+    evict_project(project_id)
+    return {"ok": True, "project_id": project_id, "project_title": req.project_title, "project_description": req.project_description}
+
+
+@app.delete("/projects/{project_id}")
+def delete_project(
+    project_id: str,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
+    """Delete project owned by the authenticated user.
+
+    Args:
+        project_id: Project identifier
+        current_user: Authenticated user from JWT
+
+    Returns:
+        dict with ok and project_id
+    """
+    from orchestration.persistent_store import delete_project as db_delete_project
+    from orchestration.store import evict_project
+
+    get_owned_project(project_id, authenticated_user_id(current_user))
+    db_delete_project(project_id)
+    evict_project(project_id)
+    return {"ok": True, "project_id": project_id}
+
 
 # update project stage
 @app.post("/projects/{project_id}/stage")
-def update_project_stage(project_id: str, stage: str):
-    from orchestration.store import get_project
+def update_project_stage(
+    project_id: str,
+    stage: str,
+    current_user: dict[str, str] = Depends(get_current_user),
+):
     from orchestration.persistent_store import Stage, set_project_stage
 
-    proj = get_project(project_id)
-
-    if proj is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+    proj = get_owned_project(project_id, authenticated_user_id(current_user))
 
     try:
         proj.stage = Stage(stage)
@@ -112,7 +213,7 @@ def update_project_stage(project_id: str, stage: str):
 
 
 @app.post("/test_tool")
-def test_tool(payload: dict):
+def test_tool(payload: dict, current_user: dict[str, str] = Depends(get_current_user)):
     from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts, set_project_stage
 
     tool_mapping = {
@@ -132,6 +233,10 @@ def test_tool(payload: dict):
 
     if tool_name not in tool_mapping:
         raise HTTPException(status_code=400, detail="Invalid tool name")
+
+    project_id = tool_payload.get("project_id")
+    if project_id:
+        get_owned_project(project_id, authenticated_user_id(current_user))
 
     tool_func = tool_mapping[tool_name]
     result = tool_func(**tool_payload)

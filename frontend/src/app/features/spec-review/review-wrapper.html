@@ -24,18 +24,6 @@
         <span>Approve</span>
       </button>
     } @else if (hasTechnicalArtifacts() || hasGeneratedCode()) {
-      @if (isStackblitzActive()) {
-        <button class="preview-btn" title="Preview Artifacts" (click)="showArtifacts()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <span>Preview Artifacts</span>
-        </button>
-      }
       @if (hasGeneratedCode() && !isStackblitzActive()) {
         <button class="view-prototype-btn" title="View Prototype" (click)="viewPrototype()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -46,8 +34,38 @@
         </button>
       }
       @if (hasGeneratedCode()) {
+        @if (isStackblitzActive()) {
+          <button class="preview-btn" title="Preview Artifacts" (click)="showArtifacts()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span>Preview Artifacts</span>
+          </button>
+        }
         @if (hasJavaCode()) {
-          @if (specService.deployStatus() === 'idle' || specService.deployStatus() === 'failed') {
+          <!-- Primary action -->
+          @if (specService.needsRedeploy()) {
+            @if (specService.deployStatus() === 'running') {
+              <button class="deploy-link deploy-link--stale" title="Preview is outdated — re-finalize to sync the backend" (click)="openStaleDeployLink()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </button>
+            }
+            <button class="finalize-btn" (click)="confirmRedeploy()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 16 12 12 8 16"></polyline>
+                <line x1="12" y1="12" x2="12" y2="21"></line>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+              </svg>
+              <span>Re-finalize</span>
+            </button>
+          } @else if (specService.deployStatus() === 'idle' || specService.deployStatus() === 'failed') {
             <button class="deploy-btn" title="Deploy locally with Docker" (click)="deployProject()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -72,14 +90,6 @@
               <span>Open Preview</span>
             </a>
           }
-          <button class="download-btn" title="Download ZIP" (click)="downloadZip()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>Export Package</span>
-          </button>
         } @else {
           <button class="finalize-btn" title="Generate Java Spring Boot backend" (click)="finalizeProject()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -90,10 +100,59 @@
             <span>Finalize</span>
           </button>
         }
+        <div class="export-menu" (click)="$event.stopPropagation()">
+          <button class="export-btn" type="button" title="Export integrations" (click)="toggleExportMenu($event)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Export</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          @if (showExportMenu()) {
+            <div class="export-dropdown">
+              @if (!githubConnected()) {
+                <button type="button" class="export-item" (click)="connectGitHub($event)" [disabled]="githubConnectLoading()">
+                  <span>{{ githubConnectLoading() ? 'Connecting GitHub...' : 'Connect GitHub' }}</span>
+                  <small>Required before code export</small>
+                </button>
+              } @else {
+                <div class="export-status">
+                  GitHub connected as <strong>{{ githubUsername() || 'Connected' }}</strong>
+                </div>
+              }
+              <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="!githubConnected() || githubExportLoading()">
+                <span>{{ githubExportLoading() ? 'Exporting code...' : 'Export code to GitHub' }}</span>
+                <small>{{ githubConnected() ? 'Create branch and pull request' : 'Connect GitHub first' }}</small>
+              </button>
+              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="jiraTasksLoading()">
+                <span>{{ jiraTasksLoading() ? 'Creating Jira plan...' : 'Create Jira plan' }}</span>
+                <small>Publish epics, stories, and subtasks</small>
+              </button>
+              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="confluenceExportLoading()">
+                <span>{{ confluenceExportLoading() ? 'Exporting docs...' : 'Export docs to Confluence' }}</span>
+                <small>Publish generated artifacts as pages</small>
+              </button>
+              <button type="button" class="export-item" (click)="downloadZip($event)">
+                <span>Download project package</span>
+                <small>Save code and artifacts as a ZIP</small>
+              </button>
+            </div>
+          }
+        </div>
       }
     }
   </div>
 </app-header>
+
+@if (integrationError() || integrationMessage()) {
+  <div class="integration-status" [class.error]="integrationError()">
+    {{ integrationError() || integrationMessage() }}
+  </div>
+}
 
 <div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
   @if (!isStackblitzActive()) {

@@ -5,6 +5,16 @@ from core.llm import create_litellm
 from .instructions import ANGULAR_CODEGEN_INSTRUCTIONS
 
 def create_agent(token: str, tools=None, instructions: str | None = None) -> LlmAgent:
+    """Create code generation agent for Angular/Java code.
+    
+    Args:
+        token: OAuth token for LLM
+        tools: Optional list of available tools
+        instructions: Optional custom instructions (uses default if not provided)
+        
+    Returns:
+        LlmAgent for code generation (temperature 0.3)
+    """
     llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_CODEGEN"))
     return LlmAgent(
         model=llm,

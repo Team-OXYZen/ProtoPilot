@@ -1,6 +1,4 @@
 google-adk[db]
-httpx
-python-dotenv
 litellm
-aiosqlite
 greenlet
+mcp

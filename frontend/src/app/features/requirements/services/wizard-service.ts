@@ -16,18 +16,18 @@ export class WizardService {
   userId = '';
   projectTitle = '';
   projectDescription = '';
-  private baseUrl = environment.apiUrl;
 
   http = inject(HttpClient);
   private authService = inject(AuthService);
+  private readonly apiBaseUrl = environment.apiBaseUrl;
 
   private sessionSubject:BehaviorSubject<Session | null> = new BehaviorSubject<Session | null>(null);
   session$ = this.sessionSubject.asObservable();
-  
+
   get session():Session|null {
     return this.sessionSubject.value;
   }
-  
+
   private projectSubject:BehaviorSubject<Project | null> = new BehaviorSubject<Project | null>(null);
   project$ = this.projectSubject.asObservable();
 
@@ -68,7 +68,7 @@ export class WizardService {
   }
 
   createProjectInDb(): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/projects`, {
+    return this.http.post<any>(`${this.apiBaseUrl}/projects`, {
       user_id: this.userId,
       project_id: this.project?.id,
       session_id: this.session?.id,
@@ -80,7 +80,7 @@ export class WizardService {
   sendMessage = (message: string, saveToHistory: boolean = true): Observable<Response | null> => {
     if (!this.session || !this.project) return of(null);
 
-    return this.http.post<Response>(`${this.baseUrl}/chat`, {
+    return this.http.post<Response>(CONSTANTS.REQUIREMENTS_AGENT_URL, {
       user_id: this.userId,
       project_id: this.project.id,
       session_id: this.session.id,
@@ -92,27 +92,87 @@ export class WizardService {
   }
 
   getProjects(): Observable<any> {
-  return this.http.get<any>(`${this.baseUrl}/projects`);
+    return this.http.get<any>(`${this.apiBaseUrl}/projects`, {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   getProject(projectId: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}`);
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}`, {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   getProjectMessages(projectId: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}/messages`);
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}/messages`, {
+      params: { user_id: this.requestUserId },
+    });
   }
 
   deployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/projects/${projectId}/deploy`, {});
+    return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/deploy`, {});
   }
 
   getDeployStatus(projectId: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/projects/${projectId}/deploy/status`);
+    return this.http.get<any>(`${this.apiBaseUrl}/projects/${projectId}/deploy/status`);
   }
 
   undeployProject(projectId: string): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/projects/${projectId}/undeploy`, {});
+    return this.http.post<any>(`${this.apiBaseUrl}/projects/${projectId}/undeploy`, {});
+  }
+
+  getGitHubConnectionStatus(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/github/oauth/status`);
+  }
+
+  startGitHubOAuth(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/integrations/github/oauth/start`);
+  }
+
+  exportGeneratedCodeToGithub(projectId: string, sessionId: string, owner: string, repo: string): Observable<any> {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/github/export`, {
+      project_id: projectId,
+      session_id: sessionId,
+      owner,
+      repo,
+      base_branch: 'main',
+    });
+  }
+
+  createJiraTasks(projectId: string, sessionId: string): Observable<any> {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/jira/create-tasks`, {
+      project_id: projectId,
+      session_id: sessionId,
+    });
+  }
+
+  exportArtifactsToConfluence(projectId: string, sessionId: string, confluenceSpaceKey: string): Observable<any> {
+    return this.http.post<any>(`${this.apiBaseUrl}/integrations/confluence/export-artifacts`, {
+      project_id: projectId,
+      session_id: sessionId,
+      confluence_space_key: confluenceSpaceKey,
+    });
+  }
+
+  getUserPreferences(): Observable<{ preferences: Record<string, string> }> {
+    return this.http.get<{ preferences: Record<string, string> }>(`${this.apiBaseUrl}/preferences`);
+  }
+
+  saveUserPreferences(preferences: Record<string, string>): Observable<{ preferences: Record<string, string> }> {
+    return this.http.put<{ preferences: Record<string, string> }>(`${this.apiBaseUrl}/preferences`, {
+      preferences,
+    });
+  }
+
+  deleteProject(projectId: string): Observable<any> {
+    return this.http.delete<any>(`${this.apiBaseUrl}/projects/${projectId}`);
+  }
+
+  updateProject(projectId: string, title: string, description: string): Observable<any> {
+    return this.http.patch<any>(`${this.apiBaseUrl}/projects/${projectId}`, {
+      project_title: title,
+      project_description: description,
+    });
   }
 
   loadExistingProject(project: any): void {
@@ -130,8 +190,7 @@ export class WizardService {
     console.log('Loaded existing project:', project.project_id);
   }
 
-
-
-
-  
+  private get requestUserId(): string {
+    return this.authService.getCurrentUser()()?.username || this.userId;
+  }
 }
