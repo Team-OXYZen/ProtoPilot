@@ -218,6 +218,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   connectGitHub(event?: MouseEvent): void {
     event?.stopPropagation();
+    clearInterval(this.oauthPoll);
+    if (this.oauthMessageHandler) window.removeEventListener('message', this.oauthMessageHandler);
+    this.oauthPoll = undefined;
+    this.oauthMessageHandler = undefined;
     this.githubConnectLoading.set(true);
     this.integrationError.set('');
     this.integrationMessage.set('');
@@ -232,26 +236,30 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       next: (result) => {
         if (result?.authorization_url) {
           const popup = window.open(result.authorization_url, 'github-oauth', 'width=600,height=700,left=200,top=100');
-          const cleanup = () => {
-            clearInterval(this.oauthPoll);
-            window.removeEventListener('message', this.oauthMessageHandler!);
-            this.oauthPoll = undefined;
-            this.oauthMessageHandler = undefined;
-          };
-          this.oauthMessageHandler = (e: MessageEvent) => {
+          const pollId = setInterval(() => {
+            if (popup?.closed) {
+              clearInterval(pollId);
+              if (this.oauthPoll === pollId) this.oauthPoll = undefined;
+              if (this.oauthMessageHandler === msgHandler) {
+                window.removeEventListener('message', msgHandler);
+                this.oauthMessageHandler = undefined;
+              }
+              this.loadGitHubConnectionStatus();
+            }
+          }, 500);
+          const msgHandler = (e: MessageEvent) => {
             if (e.data === 'github_connected') {
-              cleanup();
+              clearInterval(pollId);
+              if (this.oauthPoll === pollId) this.oauthPoll = undefined;
+              window.removeEventListener('message', msgHandler);
+              if (this.oauthMessageHandler === msgHandler) this.oauthMessageHandler = undefined;
               this.loadGitHubConnectionStatus();
               this.recordActivity('GitHub account connected successfully.', 'success');
             }
           };
-          window.addEventListener('message', this.oauthMessageHandler);
-          this.oauthPoll = setInterval(() => {
-            if (popup?.closed) {
-              cleanup();
-              this.loadGitHubConnectionStatus();
-            }
-          }, 500);
+          this.oauthPoll = pollId;
+          this.oauthMessageHandler = msgHandler;
+          window.addEventListener('message', msgHandler);
           return;
         }
         console.error('GitHub connection did not return an authorization URL:', result);
@@ -423,6 +431,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   connectAtlassian(event?: MouseEvent): void {
     event?.stopPropagation();
+    clearInterval(this.atlassianOauthPoll);
+    if (this.atlassianOauthMessageHandler) window.removeEventListener('message', this.atlassianOauthMessageHandler);
+    this.atlassianOauthPoll = undefined;
+    this.atlassianOauthMessageHandler = undefined;
     this.atlassianConnectLoading.set(true);
     this.integrationError.set('');
     this.integrationMessage.set('');
@@ -437,26 +449,30 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       next: (result) => {
         if (result?.authorization_url) {
           const popup = window.open(result.authorization_url, 'atlassian-oauth', 'width=600,height=700,left=200,top=100');
-          const cleanup = () => {
-            clearInterval(this.atlassianOauthPoll);
-            if (this.atlassianOauthMessageHandler) window.removeEventListener('message', this.atlassianOauthMessageHandler);
-            this.atlassianOauthPoll = undefined;
-            this.atlassianOauthMessageHandler = undefined;
-          };
-          this.atlassianOauthMessageHandler = (e: MessageEvent) => {
+          const pollId = setInterval(() => {
+            if (popup?.closed) {
+              clearInterval(pollId);
+              if (this.atlassianOauthPoll === pollId) this.atlassianOauthPoll = undefined;
+              if (this.atlassianOauthMessageHandler === msgHandler) {
+                window.removeEventListener('message', msgHandler);
+                this.atlassianOauthMessageHandler = undefined;
+              }
+              this.loadAtlassianConnectionStatus();
+            }
+          }, 500);
+          const msgHandler = (e: MessageEvent) => {
             if (e.data === 'atlassian_connected') {
-              cleanup();
+              clearInterval(pollId);
+              if (this.atlassianOauthPoll === pollId) this.atlassianOauthPoll = undefined;
+              window.removeEventListener('message', msgHandler);
+              if (this.atlassianOauthMessageHandler === msgHandler) this.atlassianOauthMessageHandler = undefined;
               this.loadAtlassianConnectionStatus();
               this.recordActivity('Atlassian account connected successfully.', 'success');
             }
           };
-          window.addEventListener('message', this.atlassianOauthMessageHandler);
-          this.atlassianOauthPoll = setInterval(() => {
-            if (popup?.closed) {
-              cleanup();
-              this.loadAtlassianConnectionStatus();
-            }
-          }, 500);
+          this.atlassianOauthPoll = pollId;
+          this.atlassianOauthMessageHandler = msgHandler;
+          window.addEventListener('message', msgHandler);
           return;
         }
         this.recordActivity('Atlassian connection could not be started.', 'error');
