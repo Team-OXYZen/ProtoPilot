@@ -84,9 +84,36 @@
   font-size: $text-sm;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: $space-xs;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
 
   strong {
     color: var(--color-text-primary);
+  }
+}
+
+.export-status__disconnect {
+  padding: 2px $space-sm;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: $text-xs;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: var(--color-bg-secondary);
+    color: var(--color-error, #ef4444);
+    border-color: var(--color-error, #ef4444);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
@@ -203,6 +230,7 @@
   padding: 0;
   border: 1px solid transparent;
   border-radius: 50%;
+  background: transparent;
   color: inherit;
   cursor: pointer;
   flex-shrink: 0;

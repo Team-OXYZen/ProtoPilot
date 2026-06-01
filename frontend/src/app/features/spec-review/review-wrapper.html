@@ -131,6 +131,9 @@
               } @else {
                 <div class="export-status">
                   GitHub connected as <strong>{{ githubUsername() || 'Connected' }}</strong>
+                  <button type="button" class="export-status__disconnect" (click)="disconnectGitHub($event)" [disabled]="githubDisconnectLoading()">
+                    {{ githubDisconnectLoading() ? 'Disconnecting...' : 'Disconnect' }}
+                  </button>
                 </div>
               }
               <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="!githubConnected() || githubExportLoading()">

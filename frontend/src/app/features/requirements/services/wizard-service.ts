@@ -137,6 +137,10 @@ export class WizardService {
     return this.http.get<any>(`${this.apiBaseUrl}/integrations/github/oauth/start`);
   }
 
+  disconnectGitHub(): Observable<any> {
+    return this.http.delete<any>(`${this.apiBaseUrl}/integrations/github/oauth/disconnect`);
+  }
+
   exportGeneratedCodeToGithub(projectId: string, sessionId: string, owner: string, repo: string): Observable<any> {
     return this.http.post<any>(`${this.apiBaseUrl}/integrations/github/export`, {
       project_id: projectId,

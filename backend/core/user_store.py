@@ -273,6 +273,21 @@ def save_github_connection(username: str, access_token: str, github_username: st
         conn.commit()
 
 
+def delete_github_connection(username: str) -> None:
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET github_access_token = NULL, github_username = NULL
+            WHERE username = ?
+            """,
+            (username,),
+        )
+        conn.commit()
+
+
 def get_github_connection(username: str) -> dict[str, str | None] | None:
     init_user_db()
 

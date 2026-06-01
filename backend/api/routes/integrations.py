@@ -5,7 +5,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import httpx
 from pydantic import BaseModel
 
@@ -15,6 +15,7 @@ from core.logging_utils import log_event
 from core.runner import run_turn
 from core.user_store import (
     consume_github_oauth_state,
+    delete_github_connection,
     get_github_connection,
     save_github_connection,
     save_github_oauth_state,
@@ -358,8 +359,25 @@ async def github_oauth_callback(code: str, state: str):
 
     save_github_connection(username, access_token, github_username)
     log_event("TOOL", "github_oauth_callback_done", {"username": username, "github_username": github_username}, status="ok")
-    frontend_url = os.getenv("FRONTEND_URL", "http://127.0.0.1:4200")
-    return RedirectResponse(f"{frontend_url}/spec-review?github_connected=1")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html><body><script>
+  if (window.opener) {{
+    window.opener.postMessage('github_connected', '{frontend_url}');
+    window.close();
+  }} else {{
+    window.location.href = '{frontend_url}/spec-review?github_connected=1';
+  }}
+</script></body></html>
+""")
+
+
+@router.delete("/github/oauth/disconnect")
+def disconnect_github(current_user: dict[str, str] = Depends(get_current_user)):
+    """Remove the stored GitHub OAuth token for the current user."""
+    delete_github_connection(current_user["username"])
+    log_event("TOOL", "github_oauth_disconnect", {"username": current_user["username"]}, status="ok")
+    return {"disconnected": True}
 
 
 @router.post("/github/export")
