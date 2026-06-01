@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from orchestration.orchestrator import Orchestrator
 from orchestration.store import ProjectState, Stage, _PROJECTS
@@ -50,6 +50,40 @@ class StageOwnershipTests(unittest.TestCase):
 
         self.assertEqual(project.stage, Stage.ARTIFACTS_NON_TECH)
         persist_project.assert_called_once_with("stage-project")
+
+    @patch("orchestration.orchestrator.run_turn", new_callable=AsyncMock)
+    @patch("orchestration.orchestrator.AGENT_FACTORIES")
+    @patch("orchestration.orchestrator.persist_project")
+    def test_revision_nontech_generation_uses_fresh_session_and_replace_prompt(
+        self,
+        persist_project,
+        agent_factories,
+        run_turn,
+    ) -> None:
+        project = _PROJECTS["stage-project"]
+        project.stage = Stage.ARTIFACTS_NON_TECH
+        project.spec = {"project_name": "Planner"}
+        project.nontech_artifacts_md = {"Product_Brief.md": "# Old"}
+
+        agent_factories.__getitem__.return_value = lambda *args, **kwargs: object()
+
+        async def save_updated_artifacts(*args, **kwargs):
+            project.nontech_artifacts_md = {"Product_Brief.md": "# Updated"}
+            return "Saved"
+
+        run_turn.side_effect = save_updated_artifacts
+
+        import asyncio
+
+        asyncio.run(Orchestrator()._run_artifacts_non_tech("token", project, "session-1"))
+
+        self.assertEqual(project.stage, Stage.WAIT_APPROVAL)
+        called_session_id = run_turn.await_args.kwargs["session_id"]
+        called_message = run_turn.await_args.kwargs["message"]
+        self.assertRegex(called_session_id, r"^session-1-nontech-[0-9a-f]{8}$")
+        self.assertIn("Regenerate the full non-technical artifact set", called_message)
+        self.assertIn("replace the previous documents", called_message)
+        self.assertIn("save_nontech_artifacts", called_message)
 
 
 if __name__ == "__main__":

@@ -99,14 +99,21 @@
   background: transparent;
   color: var(--color-text-primary);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: $space-sm;
   text-align: left;
   box-shadow: none;
   transform: none;
 
-  span {
+  .export-item__copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .export-item__copy > span {
     font-size: $text-sm;
     font-weight: $font-semibold;
   }
@@ -130,6 +137,49 @@
   }
 }
 
+.export-item__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: $radius-md;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &.export-item__icon--brand svg {
+    stroke: none;
+  }
+}
+
+.export-item__icon--github {
+  background: #24292f;
+}
+
+.export-item__icon--jira {
+  background: #0052cc;
+}
+
+.export-item__icon--confluence {
+  background: #172b4d;
+}
+
+.export-item__icon--download {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
 .integration-status {
   padding: $space-sm $space-2xl;
   border-bottom: 1px solid var(--color-border);
@@ -150,9 +200,9 @@
 .integration-status__close {
   width: 28px;
   height: 28px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 50%;
-  background: transparent;
   color: inherit;
   cursor: pointer;
   flex-shrink: 0;
