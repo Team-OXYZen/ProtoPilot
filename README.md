@@ -59,7 +59,7 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 ✅ **Live Deploy** — One-click Docker Compose deployment of generated Angular + Java Spring Boot stack with a live preview URL
 
-✅ **Third-Party Integrations** — Export generated code to GitHub, create Jira agile backlogs, and publish artifacts to Confluence; all with per-user OAuth
+✅ **Third-Party Integrations** — Export generated code to GitHub, create Jira agile backlogs, and publish artifacts to Confluence
 
 ---
 
