@@ -57,6 +57,10 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 ✅ **Export All Artifacts** — Download complete code files, design files, and documentation
 
+✅ **Live Deploy** — One-click Docker Compose deployment of generated Angular + Java Spring Boot stack with a live preview URL
+
+✅ **Third-Party Integrations** — Export generated code to GitHub, create Jira agile backlogs, and publish artifacts to Confluence; all with per-user OAuth
+
 ---
 
 ## 🏗️ Architecture
@@ -150,7 +154,7 @@ TBD
 **Current Status:** CI/CD is set up for this repo and gets triggered whenever new commits are pushed into the `chore/render_deployment` branch.
 
 ### Backend Deployment
-- **Deployed on:** Google Cloud Run
+- **Deployed on:** Google Cloud VM
 - **Configuration:** Requires environment variables for LLM API credentials
 
 ### Frontend Deployment
@@ -174,18 +178,10 @@ The demo shows the complete workflow: requirements gathering → specification p
 Please refer our issues tracker here: \
 https://github.com/orgs/Team-OXYZen/projects/1
 
-### Known Issues / Improvements
-- [ ] Authentication currently uses session-based tokens; OAuth2 integration planned
-- [ ] Allow users to export the generated markdown files
-
 ### Future Enhancements
-- [ ] **GitHub Integration** — Auto-create repository and push generated code
-- [ ] **JIRA Integration** — Sync requirements and track development tasks
 - [ ] **User Authentication** — Implement OAuth2 with multiple identity providers
-- [ ] **Java Backend Support** — Generate Java/Spring Boot backends in addition to frontend
 - [ ] **Advanced State Management** — NgRx/Akita integration for complex apps
 - [ ] **Database Schema Generation** — Auto-generate database schemas from specifications
-- [ ] **API Mock Server** — Generate mock REST API alongside frontend
 - [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
 - [ ] **Design System Export** — Export generated designs to Figma/Sketch
 
