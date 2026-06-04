@@ -30,10 +30,10 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 | Name | LinkedIn |
 |------|----------|
-| Omkar Dabir | [LinkedIn URL] |
-| Xin Jiang | [LinkedIn URL] |
-| Yiniu Han | [LinkedIn URL] |
-| Zhihao Wang | [LinkedIn URL] |
+| Omkar Dabir | https://www.linkedin.com/in/rakmo33/ |
+| Xin Jiang | https://www.linkedin.com/in/xin-jiang12/ |
+| Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
+| Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
 ---
 
