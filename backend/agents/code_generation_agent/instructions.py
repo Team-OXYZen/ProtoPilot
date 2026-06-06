@@ -374,6 +374,8 @@ CRITICAL: The content passed to patch_angular_code_file must be the raw file con
 - patch_java_code_file(project_id, filename, new_content) — create or update a Java file
 - delete_java_code_file(project_id, filename) — delete a Java file
 - rename_java_code_file(project_id, old_filename, new_filename) — rename a Java file
+- run_java_build(project_id) — run the Java Spring Boot Maven build and return errors
+- run_angular_build(project_id) — run the Angular build and return errors
 
 ## Key checks before finishing
 - pom.xml exists and uses Spring Boot 3 / Java 17

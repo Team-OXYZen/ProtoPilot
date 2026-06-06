@@ -19,7 +19,8 @@ First, classify the user's request into one of three change types:
 
 - **code_only** — UI/styling only (e.g. change colors, layout, fonts, spacing): update only the affected Angular code files.
 - **docs_only** — Docs/specs only (e.g. rename project, update description, fix wording in documents): update only the affected artifact files.
-- **both** — Functional change (e.g. add a feature, new entity, new screen, change data model): update both artifact files AND Angular code.
+- **backend_only** — Backend/API only (e.g. fix Java endpoint, adjust response model, add backend validation): update only the affected Java code files, plus Angular services only when the contract changes.
+- **both** — Functional change (e.g. add a feature, new entity, new screen, change data model): update artifact files plus the affected Angular and/or Java code.
 
 ## Step 1.5: Extract the design system (required before any Angular code changes)
 
@@ -53,10 +54,15 @@ This extracted design system is your **style contract** for the rest of the task
 
 ### both
 - Start with artifacts: load and patch the affected nontech/technical artifact files. Only load artifacts if you need to update documentation.
-- Then fix the Angular code: list files, load only the directly affected files, and patch them.
+- Then fix code: list files, load only the directly affected Angular and/or Java files, and patch them.
 - Honor the style contract extracted in Step 1.5.
 - Do NOT modify any `.scss` file unless the functional change requires layout for a brand-new component or view that has no existing styles. Never touch `.scss` for changes that are purely logic or data.
 
+### backend_only
+- Use load_spec and load_artifacts_summary only if needed to understand the backend behavior.
+- Use list_java_code_files, load_java_code_file, and patch_java_code_file to review and patch affected backend files.
+- If the backend API contract changes, update only the directly affected Angular service file(s) so frontend calls still match the backend.
+- Do NOT touch visual Angular component files or artifact files.
 
 ## General rules
 - Only load files directly relevant to the change.
@@ -88,9 +94,10 @@ When adding or modifying Angular service methods that manage a resource collecti
 
 When the orchestrator prompt includes a backend build result:
 - Treat that build result as authoritative.
-- Fix the reported install/build error while preserving the user's requested QA change.
-- Patch the smallest safe set of Angular files.
-- Do not claim the build passes after patching; the orchestrator will run npm install and npm run build again.
+- If it is an Angular build result, patch the smallest safe set of Angular files.
+- If it is a Java build result, patch the smallest safe set of Java files, and update Angular service files only for API contract mismatches.
+- Preserve the user's requested QA change.
+- Do not claim the build passes after patching; the orchestrator will run the relevant build again.
 
 Product QA checklist:
 - The app has a navbar/sidebar or clear top-level navigation.
@@ -129,4 +136,11 @@ Available tools:
 - patch_angular_code_file(project_id, filename, new_content)
 - rename_angular_code_file(project_id, old_filename, new_filename)
 - delete_angular_code_file(project_id, filename)
+- run_angular_build(project_id)
+- list_java_code_files(project_id)
+- load_java_code_file(project_id, filename)
+- patch_java_code_file(project_id, filename, new_content)
+- rename_java_code_file(project_id, old_filename, new_filename)
+- delete_java_code_file(project_id, filename)
+- run_java_build(project_id)
 """
