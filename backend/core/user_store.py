@@ -7,18 +7,24 @@ import re
 
 USER_DB_PATH = Path(os.getenv("USERS_DB_PATH", "./users.db"))
 PREFERENCE_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,79}$")
-SECRET_KEY_PARTS = (
-    "SECRET",
-    "TOKEN",
-    "PASSWORD",
-    "PASS",
-    "CREDENTIAL",
-    "API_KEY",
-    "PRIVATE_KEY",
-    "ACCESS_KEY",
-    "CLIENT_ID",
-    "CLIENT_SECRET",
-)
+SECRET_MASK = "********"
+SECRET_PREFERENCE_KEYS = {
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "ATLASSIAN_CLIENT_ID",
+    "ATLASSIAN_CLIENT_SECRET",
+}
+ALLOWED_PREFERENCE_KEYS = {
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GITHUB_OWNER",
+    "GITHUB_REPO",
+    "ATLASSIAN_CLIENT_ID",
+    "ATLASSIAN_CLIENT_SECRET",
+    "JIRA_PROJECT_KEY",
+    "CONFLUENCE_SPACE_KEY",
+    "CONFLUENCE_PARENT_PAGE_TITLE",
+}
 
 
 def init_user_db() -> None:
@@ -78,18 +84,27 @@ def init_user_db() -> None:
         conn.commit()
 
 
-def validate_non_secret_preference_key(pref_key: str) -> str:
-    """Validate a user preference key and reject secret-like names."""
+def validate_preference_key(pref_key: str) -> str:
+    """Validate a supported user-configurable setting key."""
     normalized = (pref_key or "").strip().upper()
     if not PREFERENCE_KEY_RE.match(normalized):
         raise ValueError("Preference keys must use uppercase letters, numbers, and underscores only.")
-    if any(secret_part in normalized for secret_part in SECRET_KEY_PARTS):
-        raise ValueError("Secret-like preference keys are not allowed in user preferences.")
+    if normalized not in ALLOWED_PREFERENCE_KEYS:
+        raise ValueError(f"Unsupported preference key: {normalized}")
     return normalized
 
 
+def _mask_preferences(preferences: dict[str, str]) -> dict[str, str]:
+    """Return preferences safe to display in the UI."""
+    masked = dict(preferences)
+    for key in SECRET_PREFERENCE_KEYS:
+        if masked.get(key):
+            masked[key] = SECRET_MASK
+    return masked
+
+
 def get_user_preferences(username: str) -> dict[str, str]:
-    """Return all non-secret preferences saved for a user."""
+    """Return all UI-safe preferences saved for a user."""
     init_user_db()
 
     with sqlite3.connect(USER_DB_PATH) as conn:
@@ -103,19 +118,28 @@ def get_user_preferences(username: str) -> dict[str, str]:
             (username,),
         ).fetchall()
 
-    return {key: value for key, value in rows}
+    return _mask_preferences({key: value for key, value in rows if key in ALLOWED_PREFERENCE_KEYS})
 
 
 def save_user_preferences(username: str, preferences: dict[str, str]) -> dict[str, str]:
-    """Replace a user's non-secret preferences with the provided key/value pairs."""
+    """Save supported user preferences, preserving existing secrets when left blank."""
     init_user_db()
 
-    cleaned: dict[str, str] = {}
+    existing = get_user_preferences_unmasked(username)
+    cleaned: dict[str, str] = {
+        key: value
+        for key, value in existing.items()
+        if key in SECRET_PREFERENCE_KEYS and value
+    }
     for key, value in preferences.items():
-        normalized_key = validate_non_secret_preference_key(key)
+        normalized_key = validate_preference_key(key)
         cleaned_value = str(value or "").strip()
+        if normalized_key in SECRET_PREFERENCE_KEYS and cleaned_value in {"", SECRET_MASK}:
+            continue
         if cleaned_value:
             cleaned[normalized_key] = cleaned_value
+        elif normalized_key in cleaned:
+            cleaned.pop(normalized_key, None)
 
     with sqlite3.connect(USER_DB_PATH) as conn:
         conn.execute("DELETE FROM user_preferences WHERE username = ?", (username,))
@@ -128,13 +152,31 @@ def save_user_preferences(username: str, preferences: dict[str, str]) -> dict[st
         )
         conn.commit()
 
-    return cleaned
+    return _mask_preferences(cleaned)
+
+
+def get_user_preferences_unmasked(username: str) -> dict[str, str]:
+    """Return raw preference values for server-side config resolution only."""
+    init_user_db()
+
+    with sqlite3.connect(USER_DB_PATH) as conn:
+        rows = conn.execute(
+            """
+            SELECT pref_key, pref_value
+            FROM user_preferences
+            WHERE username = ?
+            ORDER BY pref_key
+            """,
+            (username,),
+        ).fetchall()
+
+    return {key: value for key, value in rows if key in ALLOWED_PREFERENCE_KEYS}
 
 
 def get_user_preference(username: str, pref_key: str) -> str | None:
     """Return one user preference value by key, or None when not set."""
     init_user_db()
-    normalized_key = validate_non_secret_preference_key(pref_key)
+    normalized_key = validate_preference_key(pref_key)
 
     with sqlite3.connect(USER_DB_PATH) as conn:
         row = conn.execute(
@@ -150,7 +192,7 @@ def get_user_preference(username: str, pref_key: str) -> str | None:
 
 
 def resolve_user_preference(username: str, pref_key: str, env_key: str | None = None, default: str | None = None) -> str | None:
-    """Resolve a non-secret setting using user preference, environment, then default."""
+    """Resolve a supported setting using user preference, environment, then default."""
     value = get_user_preference(username, pref_key)
     if value:
         return value

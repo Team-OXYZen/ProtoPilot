@@ -10,16 +10,22 @@ import { SpecService } from '../spec-review/services/spec.service';
 
 type PreferenceRow = {
   key: string;
+  label: string;
   value: string;
+  secret?: boolean;
+  placeholder?: string;
 };
 
-const DEFAULT_PREFERENCE_KEYS = [
-  'GITHUB_OWNER',
-  'GITHUB_REPO',
-  'GITHUB_BASE_BRANCH',
-  'JIRA_PROJECT_KEY',
-  'CONFLUENCE_SPACE_KEY',
-  'CONFLUENCE_PARENT_PAGE_TITLE',
+const CONFIG_FIELDS: Omit<PreferenceRow, 'value'>[] = [
+  { key: 'GITHUB_CLIENT_ID', label: 'GitHub OAuth client ID', secret: true },
+  { key: 'GITHUB_CLIENT_SECRET', label: 'GitHub OAuth client secret', secret: true },
+  { key: 'GITHUB_OWNER', label: 'GitHub owner or organization' },
+  { key: 'GITHUB_REPO', label: 'GitHub repository' },
+  { key: 'ATLASSIAN_CLIENT_ID', label: 'Atlassian OAuth client ID', secret: true },
+  { key: 'ATLASSIAN_CLIENT_SECRET', label: 'Atlassian OAuth client secret', secret: true },
+  { key: 'JIRA_PROJECT_KEY', label: 'Jira project key', placeholder: 'e.g. PROTO' },
+  { key: 'CONFLUENCE_SPACE_KEY', label: 'Confluence space key', placeholder: 'e.g. PROTO' },
+  { key: 'CONFLUENCE_PARENT_PAGE_TITLE', label: 'Confluence parent page title' },
 ];
 
 @Component({
@@ -97,7 +103,7 @@ export class DashboardComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load preferences:', err);
         this.preferencesError.set('Failed to load preferences.');
-        this.preferenceRows = [{ key: '', value: '' }];
+        this.preferenceRows = this.buildPreferenceRows({});
         this.preferencesLoading.set(false);
       },
     });
@@ -109,26 +115,11 @@ export class DashboardComponent implements OnInit {
     this.preferencesMessage.set('');
   }
 
-  addPreferenceRow(): void {
-    this.preferenceRows = [...this.preferenceRows, { key: '', value: '' }];
-  }
-
   private buildPreferenceRows(preferences: Record<string, string>): PreferenceRow[] {
-    const rows = DEFAULT_PREFERENCE_KEYS.map((key) => ({
-      key,
-      value: preferences[key] || (key === 'GITHUB_BASE_BRANCH' ? 'main' : ''),
+    return CONFIG_FIELDS.map((field) => ({
+      ...field,
+      value: preferences[field.key] || '',
     }));
-    const customRows = Object.entries(preferences)
-      .filter(([key]) => !DEFAULT_PREFERENCE_KEYS.includes(key))
-      .map(([key, value]) => ({ key, value }));
-    return [...rows, ...customRows];
-  }
-
-  removePreferenceRow(index: number): void {
-    this.preferenceRows = this.preferenceRows.filter((_, rowIndex) => rowIndex !== index);
-    if (this.preferenceRows.length === 0) {
-      this.addPreferenceRow();
-    }
   }
 
   savePreferences(): void {
@@ -137,16 +128,9 @@ export class DashboardComponent implements OnInit {
     this.preferencesMessage.set('');
 
     for (const row of this.preferenceRows) {
-      const key = row.key.trim().toUpperCase();
+      const key = row.key;
       const value = row.value.trim();
-      if (!key && !value) {
-        continue;
-      }
-      if (!key) {
-        this.preferencesError.set('Each preference value needs a key.');
-        return;
-      }
-      if (!value) {
+      if (!value && !row.secret) {
         continue;
       }
       preferences[key] = value;
@@ -156,7 +140,7 @@ export class DashboardComponent implements OnInit {
     this.wizardService.saveUserPreferences(preferences).subscribe({
       next: (res) => {
         this.preferenceRows = this.buildPreferenceRows(res.preferences || {});
-        this.preferencesMessage.set('Preferences saved.');
+        this.preferencesMessage.set('Settings saved.');
         this.preferencesSaving.set(false);
       },
       error: (err) => {

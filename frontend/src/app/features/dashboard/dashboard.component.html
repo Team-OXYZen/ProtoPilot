@@ -125,8 +125,8 @@
       <section class="preferences-modal" (click)="$event.stopPropagation()">
         <div class="preferences-header">
           <div>
-            <h2>User Preferences</h2>
-            <p>Non-secret defaults for integrations and app behavior.</p>
+            <h2>Connection Settings</h2>
+            <p>Credentials and repository target used by the app.</p>
           </div>
           <button class="icon-button" type="button" (click)="closePreferences()" aria-label="Close preferences">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -137,7 +137,7 @@
         </div>
 
         <p class="preferences-note">
-          Default integration keys are shown below. Leave a value blank to skip it. Secret-like keys containing TOKEN, SECRET, PASSWORD, CLIENT_ID, CLIENT_SECRET, API_KEY, or similar names are rejected.
+          Secret values are stored for server-side use and shown as masked after saving. Leave a masked or blank secret field unchanged to keep the existing value.
         </p>
 
         @if (preferencesLoading()) {
@@ -145,29 +145,19 @@
         } @else {
           <div class="preferences-table">
             <div class="preferences-table-header">
-              <span>Key</span>
+              <span>Setting</span>
               <span>Value</span>
-              <span></span>
             </div>
 
             @for (row of preferenceRows; track $index) {
               <div class="preference-row">
+                <label>{{ row.label }}</label>
                 <input
-                  type="text"
-                  [(ngModel)]="row.key"
-                  autocomplete="off"
-                />
-                <input
-                  type="text"
+                  [type]="row.secret ? 'password' : 'text'"
                   [(ngModel)]="row.value"
+                  [placeholder]="row.placeholder || (row.secret ? 'Leave blank to keep existing' : '')"
                   autocomplete="off"
                 />
-                <button class="icon-button" type="button" (click)="removePreferenceRow($index)" aria-label="Remove preference">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
               </div>
             }
           </div>
@@ -180,9 +170,8 @@
           }
 
           <div class="preferences-actions">
-            <button class="btn-cancel" type="button" (click)="addPreferenceRow()">Add Row</button>
             <button class="btn-create" type="button" (click)="savePreferences()" [disabled]="preferencesSaving()">
-              {{ preferencesSaving() ? 'Saving...' : 'Save Preferences' }}
+              {{ preferencesSaving() ? 'Saving...' : 'Save Settings' }}
             </button>
           </div>
         }

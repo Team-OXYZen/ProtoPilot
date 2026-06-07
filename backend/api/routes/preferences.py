@@ -14,7 +14,7 @@ class UserPreferencesRequest(BaseModel):
 
 @router.get("")
 def read_preferences(current_user: dict[str, str] = Depends(get_current_user)):
-    """Return non-secret preferences for the authenticated user."""
+    """Return UI-safe preferences for the authenticated user."""
     username = current_user["username"]
     preferences = get_user_preferences(username)
     log_event("TOOL", "user_preferences_read", {"username": username, "keys": list(preferences.keys())}, status="ok")
@@ -23,7 +23,7 @@ def read_preferences(current_user: dict[str, str] = Depends(get_current_user)):
 
 @router.put("")
 def update_preferences(req: UserPreferencesRequest, current_user: dict[str, str] = Depends(get_current_user)):
-    """Replace non-secret preferences for the authenticated user."""
+    """Save supported preferences for the authenticated user."""
     username = current_user["username"]
     try:
         preferences = save_user_preferences(username, req.preferences)

@@ -392,9 +392,20 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         this.confluenceExportLoading.set(false);
       })
     ).subscribe({
-      next: () => {
-        this.integrationMessage.set('Your documents are now available in Confluence.');
-        this.recordActivity('Documents have been shared with Confluence.', 'success');
+      next: (result) => {
+        const requested = result?.pages_requested;
+        const exported = result?.pages_exported;
+        this.integrationMessage.set(
+          requested && exported !== undefined
+            ? `Your documents are now available in Confluence. Exported ${exported} of ${requested} pages.`
+            : 'Your documents are now available in Confluence.'
+        );
+        this.recordActivity(
+          requested && exported !== undefined
+            ? `Documents have been shared with Confluence (${exported}/${requested}).`
+            : 'Documents have been shared with Confluence.',
+          'success'
+        );
       },
       error: (error) => {
         this.recordActivity('Document sharing could not be completed.', 'error');

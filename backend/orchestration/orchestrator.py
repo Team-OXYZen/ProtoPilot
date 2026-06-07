@@ -220,7 +220,7 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_requirements(self, token, proj, req_session_id: str, user_message: str) -> dict[str, Any]:
+    async def _run_requirements(self, token, proj, req_session_id: str, user_message: str, user_id: str = "") -> dict[str, Any]:
         """Execute requirements gathering agent and advance project.
         
         Args:
@@ -232,7 +232,7 @@ class Orchestrator:
         Returns:
             dict with agent reply and updated project state
         """
-        req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
+        req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools(), username=user_id)
 
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
 
@@ -294,30 +294,30 @@ class Orchestrator:
             if approval_result:
                 return approval_result
 
-        token = await get_oauth_token()
+        token = await get_oauth_token(user_id)
 
         if proj.stage == Stage.REQ:
-            return await self._run_requirements(token, proj, req_session_id, user_message)
+            return await self._run_requirements(token, proj, req_session_id, user_message, user_id)
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
-            return await self._run_artifacts_non_tech(token, proj, req_session_id)
+            return await self._run_artifacts_non_tech(token, proj, req_session_id, user_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(token, proj, req_session_id)
+            return await self._run_artifacts_technical(token, proj, req_session_id, user_id)
         if proj.stage == Stage.CODEGEN:
-            return await self._run_angular_codegen(token, proj, req_session_id)
+            return await self._run_angular_codegen(token, proj, req_session_id, user_id)
         if proj.stage == Stage.QA:
             if normalized == "finalize":
                 self._set_stage(proj, Stage.FINALIZE, "finalize_requested")
-                return await self._run_java_codegen(token, proj, req_session_id)
-            return await self._run_qa(token, proj, req_session_id, user_message)
+                return await self._run_java_codegen(token, proj, req_session_id, user_id)
+            return await self._run_qa(token, proj, req_session_id, user_message, user_id)
         if proj.stage == Stage.FINALIZE:
-            return await self._run_java_codegen(token, proj, req_session_id)
+            return await self._run_java_codegen(token, proj, req_session_id, user_id)
 
         return self._build_response(
             proj=proj,
             reply={"message": "Your project is ready whenever you would like to review it again."},
         )
 
-    async def _run_artifacts_non_tech(self, token, proj, req_session_id: str) -> dict:
+    async def _run_artifacts_non_tech(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate PM-facing non-technical artifacts (specs, requirements docs).
         
         Args:
@@ -328,7 +328,7 @@ class Orchestrator:
         Returns:
             dict with artifacts and project state
         """
-        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech", username=user_id)
 
         is_revision = bool(proj.nontech_artifacts_md)
         revision_instruction = (
@@ -370,7 +370,7 @@ class Orchestrator:
             raw_reply=_raw_reply,
         )
 
-    async def _run_artifacts_technical(self, token, proj, req_session_id: str) -> dict:
+    async def _run_artifacts_technical(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate technical artifacts (architecture, design documents).
         
         Args:
@@ -381,7 +381,7 @@ class Orchestrator:
         Returns:
             dict with artifacts and project state
         """
-        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical")
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical", username=user_id)
 
         art_prompt = (
             f"project_id={proj.project_id}\n"
@@ -414,7 +414,7 @@ class Orchestrator:
             raw_reply=_raw_reply,
         )
 
-    async def _run_angular_codegen(self, token, proj, req_session_id: str) -> dict:
+    async def _run_angular_codegen(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate Angular frontend code with build verification and repair.
         
         Args:
@@ -426,7 +426,7 @@ class Orchestrator:
             dict with generated code files and build status
         """
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools())
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools(), username=user_id)
             code_prompt = (
                 f"project_id={proj.project_id}\n"
                 "Generate a POC-level Angular frontend code now.\n"
@@ -457,7 +457,7 @@ class Orchestrator:
                         raw_reply=f"{_raw_reply}\n\n[CODEGEN_BUILD_VERIFICATION]\n{codegen_verify_reply}",
                     )
 
-                review_reply = await self._run_code_review(token, proj, req_session_id)
+                review_reply = await self._run_code_review(token, proj, req_session_id, user_id)
                 return self._build_response(
                     proj=proj,
                     reply={"message": "Great, your interactive prototype is ready to preview.", "codegen_verification": codegen_verify_reply, "review": review_reply},
@@ -526,7 +526,7 @@ class Orchestrator:
         verification_messages.append(failure_message)
         return False, "\n\n".join(verification_messages)
 
-    async def _run_code_review(self, token, proj, req_session_id: str) -> str:
+    async def _run_code_review(self, token, proj, req_session_id: str, user_id: str = "") -> str:
         """Audit and improve generated code UX/styling, verify builds throughout.
         
         Args:
@@ -540,7 +540,7 @@ class Orchestrator:
         review_messages: list[str] = []
 
         try:
-            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools())
+            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools(), username=user_id)
 
             log_event("AGENT", "code_review_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-code-review"})
             build_result = run_angular_build(proj.project_id)
@@ -665,7 +665,7 @@ class Orchestrator:
             run_angular_build, run_java_build,
         ]
 
-    async def _run_java_codegen(self, token, proj, req_session_id: str) -> dict:
+    async def _run_java_codegen(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate Java backend code.
         
         Args:
@@ -678,7 +678,7 @@ class Orchestrator:
         """
         from agents.code_generation_agent.instructions import JAVA_CODEGEN_INSTRUCTIONS
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS)
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS, username=user_id)
             code_prompt = (
                 f"project_id={proj.project_id}\n"
                 "Generate a Java Spring Boot backend and update Angular services to use real API calls.\n"
@@ -709,7 +709,7 @@ class Orchestrator:
 
                 proj.needs_redeploy = False
                 self._set_stage(proj, Stage.QA, "java_codegen_complete")
-                review_reply = await self._run_code_review(token, proj, req_session_id)
+                review_reply = await self._run_code_review(token, proj, req_session_id, user_id)
                 return self._build_response(
                     proj=proj,
                     reply={"message": "Great, the prototype is now prepared for a more realistic live demo."},
@@ -773,8 +773,8 @@ class Orchestrator:
         verification_messages.append(failure_message)
         return False, "\n\n".join(verification_messages)
 
-    async def _run_qa(self, llm, proj, req_session_id: str, user_message: str) -> dict:
-        qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
+    async def _run_qa(self, llm, proj, req_session_id: str, user_message: str, user_id: str = "") -> dict:
+        qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools(), username=user_id)
 
         qa_prompt = (
             f"project_id={proj.project_id}\n"
