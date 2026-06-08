@@ -468,13 +468,15 @@
 .preferences-modal {
   width: min(780px, 100%);
   max-height: min(720px, calc(100vh - 48px));
-  overflow: auto;
+  overflow: hidden;
   background: var(--color-panel-bg);
   border: 1px solid var(--color-border);
   border-radius: $radius-lg;
   box-shadow: $shadow-lg;
   padding: $space-xl;
   color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
 }
 
 .preferences-header {
@@ -508,6 +510,17 @@
 .preferences-table {
   display: grid;
   gap: $space-sm;
+  min-height: 0;
+}
+
+.preferences-rows {
+  display: grid;
+  gap: $space-sm;
+  max-height: clamp(180px, calc(100vh - 360px), 360px);
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: $space-xs;
+  overscroll-behavior: contain;
 }
 
 .preferences-table-header,
@@ -529,7 +542,7 @@
 .preference-row {
   label {
     color: var(--color-text-primary);
-    font-size: $text-sm;
+    font-size: $text-base;
     font-weight: $font-medium;
   }
 
@@ -592,6 +605,10 @@
   .preference-row {
     grid-template-columns: 1fr;
     gap: $space-xs;
+  }
+
+  .preferences-rows {
+    max-height: clamp(160px, calc(100vh - 390px), 320px);
   }
 
   .preferences-actions {

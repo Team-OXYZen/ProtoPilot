@@ -149,17 +149,19 @@
               <span>Value</span>
             </div>
 
-            @for (row of preferenceRows; track $index) {
-              <div class="preference-row">
-                <label>{{ row.label }}</label>
-                <input
-                  [type]="row.secret ? 'password' : 'text'"
-                  [(ngModel)]="row.value"
-                  [placeholder]="row.placeholder || (row.secret ? 'Leave blank to keep existing' : '')"
-                  autocomplete="off"
-                />
-              </div>
-            }
+            <div class="preferences-rows">
+              @for (row of preferenceRows; track $index) {
+                <div class="preference-row">
+                  <label>{{ row.label }}</label>
+                  <input
+                    [type]="row.secret ? 'password' : 'text'"
+                    [(ngModel)]="row.value"
+                    [placeholder]="row.placeholder || (row.secret ? 'Leave blank to keep existing' : '')"
+                    autocomplete="off"
+                  />
+                </div>
+              }
+            </div>
           </div>
 
           @if (preferencesError()) {
