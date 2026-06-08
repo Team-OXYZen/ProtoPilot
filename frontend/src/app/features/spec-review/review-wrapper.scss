@@ -212,8 +212,14 @@
 }
 
 .integration-status {
-  padding: $space-sm $space-2xl;
-  border-bottom: 1px solid var(--color-border);
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  z-index: 600;
+  width: min(720px, calc(100vw - #{$space-xl}));
+  padding: $space-sm $space-lg;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  border-radius: $radius-md;
   background: rgba(16, 185, 129, 0.12);
   color: var(--color-text-primary);
   font-size: $text-sm;
@@ -221,9 +227,13 @@
   align-items: center;
   justify-content: space-between;
   gap: $space-md;
+  box-shadow: $shadow-lg;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
 
   &.error {
     background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.32);
     color: var(--color-error);
   }
 }

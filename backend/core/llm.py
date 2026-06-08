@@ -4,7 +4,7 @@ from google.adk.models.lite_llm import LiteLlm
 
 logger = logging.getLogger(__name__)
 
-def create_litellm(oauth_token: str, model: str | None = None) -> LiteLlm:
+def create_litellm(oauth_token: str, model: str | None = None, username: str | None = None) -> LiteLlm:
     """Create LiteLLM client with credentials and OAuth token.
     
     Args:

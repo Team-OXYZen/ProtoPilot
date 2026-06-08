@@ -2,63 +2,73 @@
 
 FastAPI + Google ADK multi-agent backend for AI-driven prototype generation.
 
-## Setup
+## Quick Start
 
 ```bash
-cp .env.example .env  # fill in credentials
+cp .env.example .env   # fill in credentials
 uvicorn api.server:app --reload --port 8000
 ```
 
-Key environment variables are documented in `.env.example`. Integration-related values include:
+Requires Docker for the live deploy feature.
 
-| Variable | Purpose |
+---
+
+## Environment Variables
+
+Full reference in `.env.example`. Key variables:
+
+- `LITELLM_MODEL` / `LITELLM_API_KEY` — default model and credentials for all agents
+- `CLIENT_ID` / `CLIENT_SECRET` — upstream OAuth credentials for the private LLM service
+- `JWT_SECRET` — HS256 signing secret; required in production
+- `BACKEND_URL` / `FRONTEND_URL` — used for OAuth callback construction and redirects
+- `DEPLOY_HOST` — public host for live preview URLs; set to server IP/domain in cloud
+
+Integration values can be configured in two places:
+
+- Env-only: `CLIENT_ID`, `CLIENT_SECRET`, LiteLLM settings, `JWT_SECRET`, app URLs, database paths, and deploy host.
+- Dashboard Preferences: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OWNER`, `GITHUB_REPO`, `ATLASSIAN_CLIENT_ID`, `ATLASSIAN_CLIENT_SECRET`, `JIRA_PROJECT_KEY`, `CONFLUENCE_SPACE_KEY`, and `CONFLUENCE_PARENT_PAGE_TITLE`.
+
+GitHub and Atlassian OAuth app setup, callback URLs, and required scopes are documented in [docs/integrations.md](../docs/integrations.md).
+
+---
+
+## API Routes
+
+
+| Prefix | Description |
 |---|---|
-| `BACKEND_URL` | Public/local backend base URL used for generated callbacks. |
-| `FRONTEND_URL` | Public/local frontend URL used after GitHub OAuth returns. |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | GitHub OAuth app credentials for user-scoped code export. |
-| `GITHUB_OAUTH_REDIRECT_URI` | Optional explicit GitHub callback URL. Defaults from `BACKEND_URL`. |
-| `GITHUB_OAUTH_SCOPE` | GitHub OAuth scope, defaults to `repo`. |
-| `GITHUB_TOKEN` | Optional server token used only when initializing GitHub MCP tooling. |
-| `GITHUB_OWNER`, `GITHUB_REPO` | Optional default GitHub target owner/repo for code export. |
-| `GITHUB_BASE_BRANCH` | Optional default branch for GitHub export, defaults to `main`. |
-| `JIRA_PROJECT_KEY` | Optional default Jira project key. If omitted, the Atlassian agent discovers or creates a suitable Scrum software project. |
-| `CONFLUENCE_SPACE_KEY` | Optional default Confluence space key. If omitted, the Atlassian agent discovers or creates a suitable space. |
-| `CONFLUENCE_PARENT_PAGE_TITLE` | Optional parent page title for Confluence artifact export. |
-| `LITELLM_MODEL_INTEGRATION` | Optional model override for GitHub/Jira/Confluence integration work. |
+| `/auth` | Login, register |
+| `/projects` | CRUD, stage control |
+| `/projects/{id}/deploy` | Live deploy (see below) |
+| `/chat` | Main agent interaction |
+| `/preferences` | Per-user non-secret settings |
+| `/integrations` | GitHub / Jira / Confluence (see [docs/integrations.md](../docs/integrations.md)) |
 
-User preferences can override non-secret integration defaults such as `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_BASE_BRANCH`, `JIRA_PROJECT_KEY`, `CONFLUENCE_SPACE_KEY`, and `CONFLUENCE_PARENT_PAGE_TITLE`. Secret-like keys such as tokens, passwords, client secrets, and API keys are rejected by the preferences API.
+---
 
-## Completed Workflow
+## Stage Pipeline
 
-The backend runs a stage-driven pipeline. Each user message hits `POST /chat` and the orchestrator routes it based on the current project stage.
-
-### Stage Flow
+User messages hit `POST /chat`; the orchestrator routes by the project's current stage.
 
 ```
-REQ → ARTIFACTS_NON_TECH → WAIT_APPROVAL → TECH_ARTIFACTS → CODEGEN → QA
+REQ → ARTIFACTS_NON_TECH → WAIT_APPROVAL → TECH_ARTIFACTS → CODEGEN → QA → FINALIZE → QA
 ```
 
-| Stage | What happens |
+Manual gates: `WAIT_APPROVAL`（`approve` / `change`）and `QA → FINALIZE`（user sends `finalize`）. All other transitions are automatic.
+
+- `CODEGEN` generates the Angular frontend, runs build verification and UX review, then advances to `QA`
+- `FINALIZE` generates the Java Spring Boot backend and wires up real API calls in Angular, then returns to `QA`
+
+---
+
+## Live Deploy
+
+`POST /projects/{id}/deploy` writes generated files to `~/protopilot-projects/{project_id}/`, runs `docker compose up`, and allocates a port in `5001–5999`.
+
+| Endpoint | Description |
 |---|---|
-| **REQ** | Requirements agent gathers info via Q&A. On completion, auto-submits spec and immediately triggers non-tech artifact generation. |
-| **ARTIFACTS_NON_TECH** | Artifacts agent generates PM-facing documents (user stories, feature list, etc.) in markdown. Stage moves to WAIT_APPROVAL on success. |
-| **WAIT_APPROVAL** | No model call. User sends `approve` → moves to TECH_ARTIFACTS. User sends `change` → drops back to REQ for revision. |
-| **TECH_ARTIFACTS** | Artifacts agent generates technical documents (data model, API spec, system design, etc.). Stage moves to CODEGEN on success. |
-| **CODEGEN** | Code generation agent produces a POC Angular frontend with mocked API calls. Stage moves to QA on success. |
-| **QA** | QA agent handles user feedback. Classifies each request and updates code, docs, or both accordingly. |
+| `POST /projects/{id}/deploy` | Build and start; returns `{status, port}` |
+| `GET /projects/{id}/deploy/status` | Returns `building`, `running`, or `failed` |
+| `POST /projects/{id}/undeploy` | Stop and remove containers |
 
-### QA Agent Behavior
-
-The QA agent classifies user feedback into three categories:
-
-- **code_only** — UI/styling (colors, layout, fonts): updates Angular files only
-- **docs_only** — Doc/spec changes (rename, descriptions): updates artifact markdown only
-- **both** — Functional changes (new feature, entity, screen): updates artifacts then regenerates affected code
-
-### Key Behaviors
-
-- `ARTIFACTS_NON_TECH` is triggered **automatically** after REQ completes — no separate call needed
-- `TECH_ARTIFACTS` + `CODEGEN` are triggered automatically after approval
-- Project state is persisted — reloading a project from the dashboard restores all artifacts and generated code
-- Each response includes `nontech_artifacts_md`, `technical_artifacts_md`, and `generated_code_files` so the frontend always has the latest data
-- Code generation writes files one at a time via `patch_generated_code_file` to avoid WAF blocking large payloads
+Port assignments persist in `~/protopilot-projects/port_registry.json` and are restored on startup.

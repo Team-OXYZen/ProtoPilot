@@ -4,7 +4,7 @@ from google.genai import types
 from core.llm import create_litellm
 from .instructions import REQUIREMENTS_GATHERING_AGENT_INSTRUCTIONS
 
-def create_agent(token: str, tools=None) -> LlmAgent:
+def create_agent(token: str, tools=None, username: str | None = None) -> LlmAgent:
     """Create requirements gathering agent.
     
     Args:
@@ -14,7 +14,7 @@ def create_agent(token: str, tools=None) -> LlmAgent:
     Returns:
         LlmAgent for requirements gathering (temperature 0.7)
     """
-    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_REQUIREMENTS"))
+    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_REQUIREMENTS"), username=username)
     return LlmAgent(
         model=llm,
         name="reqs_gathering_agent",

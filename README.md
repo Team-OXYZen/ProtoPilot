@@ -30,10 +30,10 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 | Name | LinkedIn |
 |------|----------|
-| Omkar Dabir | [LinkedIn URL] |
-| Xin Jiang | [LinkedIn URL] |
-| Yiniu Han | [LinkedIn URL] |
-| Zhihao Wang | [LinkedIn URL] |
+| Omkar Dabir | https://www.linkedin.com/in/rakmo33/ |
+| Xin Jiang | https://www.linkedin.com/in/xin-jiang12/ |
+| Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
+| Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
 ---
 
@@ -56,6 +56,10 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 ✅ **Code Refinement Chat** — Use chat to request code changes and improvements
 
 ✅ **Export All Artifacts** — Download complete code files, design files, and documentation
+
+✅ **Live Deploy** — One-click Docker Compose deployment of generated Angular + Java Spring Boot stack with a live preview URL
+
+✅ **Third-Party Integrations** — Export generated code to GitHub, create Jira agile backlogs, and publish artifacts to Confluence
 
 ---
 
@@ -100,6 +104,8 @@ uvicorn api.server:app --reload --port 8000
 ```
 
 **Important:** ProtoPilot uses Cotality's private LLM service, which requires OAuth credentials (`CLIENT_ID` and `CLIENT_SECRET`). Refer to `backend/.env.example` and add your Cotality credentials to `backend/.env`.
+
+GitHub, Jira, and Confluence integrations can be configured per user from **Dashboard → Preferences → Connection Settings**. The required OAuth app credentials, destination keys, callback URLs, and granular GitHub/Atlassian permissions are documented in [`docs/integrations.md`](docs/integrations.md).
 
 ### Frontend Setup
 
@@ -150,7 +156,7 @@ TBD
 **Current Status:** CI/CD is set up for this repo and gets triggered whenever new commits are pushed into the `chore/render_deployment` branch.
 
 ### Backend Deployment
-- **Deployed on:** Google Cloud Run
+- **Deployed on:** Google Cloud VM
 - **Configuration:** Requires environment variables for LLM API credentials
 
 ### Frontend Deployment
@@ -174,18 +180,10 @@ The demo shows the complete workflow: requirements gathering → specification p
 Please refer our issues tracker here: \
 https://github.com/orgs/Team-OXYZen/projects/1
 
-### Known Issues / Improvements
-- [ ] Authentication currently uses session-based tokens; OAuth2 integration planned
-- [ ] Allow users to export the generated markdown files
-
 ### Future Enhancements
-- [ ] **GitHub Integration** — Auto-create repository and push generated code
-- [ ] **JIRA Integration** — Sync requirements and track development tasks
 - [ ] **User Authentication** — Implement OAuth2 with multiple identity providers
-- [ ] **Java Backend Support** — Generate Java/Spring Boot backends in addition to frontend
 - [ ] **Advanced State Management** — NgRx/Akita integration for complex apps
 - [ ] **Database Schema Generation** — Auto-generate database schemas from specifications
-- [ ] **API Mock Server** — Generate mock REST API alongside frontend
 - [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
 - [ ] **Design System Export** — Export generated designs to Figma/Sketch
 

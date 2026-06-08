@@ -664,6 +664,83 @@ def run_angular_build(project_id: str) -> dict[str, Any]:
 
 # ── Java code file tools ───────────────────────────────────────────────────
 
+def run_java_build(project_id: str) -> dict[str, Any]:
+    """Execute Maven package for the generated Java Spring Boot project.
+
+    Args:
+        project_id: Project identifier
+
+    Returns:
+        dict with ok, exit code, phase, and error_output.
+    """
+    try:
+        proj = get_project(project_id)
+        if not proj or not proj.java_code_files:
+            log_event("BUILD", "java_build_missing_files", {"project_id": project_id}, status="fail")
+            return {
+                "ok": False,
+                "project_id": project_id,
+                "error": "No Java code files found for this project.",
+            }
+
+        if "pom.xml" not in proj.java_code_files:
+            log_event("BUILD", "java_build_missing_pom", {"project_id": project_id}, status="fail")
+            return {
+                "ok": False,
+                "project_id": project_id,
+                "error": "pom.xml is missing from the generated Java files.",
+            }
+
+        with tempfile.TemporaryDirectory(prefix=f"protopilot-java-{project_id}-") as temp_dir:
+            project_root = Path(temp_dir)
+            log_event(
+                "BUILD",
+                "java_build_start",
+                {"project_id": project_id, "files_count": len(proj.java_code_files), "workspace": str(project_root)},
+            )
+            for filename, content in proj.java_code_files.items():
+                destination = _safe_project_file_path(project_root, filename)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(content or "", encoding="utf-8")
+
+            maven = shutil.which("mvn")
+            if not maven:
+                log_event("BUILD", "maven_missing", {"project_id": project_id}, status="fail")
+                return {
+                    "ok": False,
+                    "project_id": project_id,
+                    "phase": "build",
+                    "error": "mvn was not found on PATH.",
+                    "error_output": "mvn was not found on PATH.",
+                }
+
+            log_event("BUILD", "maven_package_start", {"project_id": project_id})
+            build_result = _run_command([maven, "-q", "-DskipTests", "package"], project_root, timeout_seconds=240)
+            log_event(
+                "BUILD",
+                "maven_package_done",
+                {
+                    "project_id": project_id,
+                    "phase": "build",
+                    "exit_code": build_result["exit_code"],
+                    "output": "" if build_result["ok"] else build_result["output"],
+                },
+                status="ok" if build_result["ok"] else "fail",
+            )
+            return {
+                "ok": build_result["ok"],
+                "project_id": project_id,
+                "phase": "build",
+                "install": None,
+                "build": build_result,
+                "error_output": "" if build_result["ok"] else build_result["output"],
+            }
+    except Exception as e:
+        error_msg = f"run_java_build failed: {str(e)}"
+        log_event("BUILD", "java_build_error", {"project_id": project_id, "error": error_msg}, status="fail")
+        logger.error(error_msg, exc_info=True)
+        return {"ok": False, "error": error_msg, "project_id": project_id}
+
 def list_java_code_files(project_id: str) -> dict[str, Any]:
     """List all Java source code files in the project.
     

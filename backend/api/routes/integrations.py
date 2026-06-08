@@ -1,7 +1,9 @@
 import json
 import os
+import re
 import uuid
 from typing import Any
+from html import escape
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,6 +40,7 @@ GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 
 ATLASSIAN_AUTHORIZE_URL = "https://auth.atlassian.com/authorize"
+ATLASSIAN_API_BASE = "https://api.atlassian.com"
 ATLASSIAN_TOKEN_URL = "https://auth.atlassian.com/oauth/token"
 ATLASSIAN_ME_URL = "https://api.atlassian.com/me"
 ATLASSIAN_OAUTH_SCOPE = (
@@ -124,6 +127,15 @@ def _json_prompt_payload(payload: dict) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
+def _atlassian_headers(token: str) -> dict[str, str]:
+    """Create Atlassian API headers without logging or exposing the token."""
+    return {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+
 def _github_headers(token: str) -> dict[str, str]:
     """Create GitHub API headers without logging or exposing the token."""
     return {
@@ -133,10 +145,10 @@ def _github_headers(token: str) -> dict[str, str]:
     }
 
 
-def _atlassian_oauth_config() -> tuple[str, str, str]:
+def _atlassian_oauth_config(username: str | None = None) -> tuple[str, str, str]:
     """Read Atlassian OAuth configuration and fail fast when it is incomplete."""
-    client_id = os.getenv("ATLASSIAN_CLIENT_ID")
-    client_secret = os.getenv("ATLASSIAN_CLIENT_SECRET")
+    client_id = resolve_user_preference(username, "ATLASSIAN_CLIENT_ID", "ATLASSIAN_CLIENT_ID") if username else os.getenv("ATLASSIAN_CLIENT_ID")
+    client_secret = resolve_user_preference(username, "ATLASSIAN_CLIENT_SECRET", "ATLASSIAN_CLIENT_SECRET") if username else os.getenv("ATLASSIAN_CLIENT_SECRET")
     backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
     redirect_uri = os.getenv("ATLASSIAN_OAUTH_REDIRECT_URI", f"{backend_url}/integrations/atlassian/oauth/callback")
     if not client_id or not client_secret:
@@ -144,10 +156,10 @@ def _atlassian_oauth_config() -> tuple[str, str, str]:
     return client_id, client_secret, redirect_uri
 
 
-def _github_oauth_config() -> tuple[str, str, str]:
+def _github_oauth_config(username: str | None = None) -> tuple[str, str, str]:
     """Read GitHub OAuth configuration and fail fast when it is incomplete."""
-    client_id = os.getenv("GITHUB_CLIENT_ID")
-    client_secret = os.getenv("GITHUB_CLIENT_SECRET")
+    client_id = resolve_user_preference(username, "GITHUB_CLIENT_ID", "GITHUB_CLIENT_ID") if username else os.getenv("GITHUB_CLIENT_ID")
+    client_secret = resolve_user_preference(username, "GITHUB_CLIENT_SECRET", "GITHUB_CLIENT_SECRET") if username else os.getenv("GITHUB_CLIENT_SECRET")
     backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
     redirect_uri = os.getenv("GITHUB_OAUTH_REDIRECT_URI", f"{backend_url}/integrations/github/oauth/callback")
     if not client_id or not client_secret:
@@ -175,6 +187,31 @@ async def _github_request(
         log_event("ERROR", "github_api_request_failed", {"method": method, "url": url, "status_code": response.status_code, "detail": detail}, status="fail")
         raise HTTPException(status_code=response.status_code, detail=detail)
     log_event("TOOL", "github_api_request_done", {"method": method, "url": url, "status_code": response.status_code}, status="ok")
+    if response.status_code == 204 or not response.content:
+        return {}
+    return response.json()
+
+
+async def _atlassian_request(
+    client: httpx.AsyncClient,
+    method: str,
+    url: str,
+    *,
+    expected_status: int | tuple[int, ...],
+    **kwargs,
+) -> dict:
+    """Send an Atlassian API request and convert failures into HTTP errors."""
+    log_event("TOOL", "atlassian_api_request", {"method": method, "url": url, "expected_status": expected_status})
+    response = await client.request(method, url, **kwargs)
+    expected = (expected_status,) if isinstance(expected_status, int) else expected_status
+    if response.status_code not in expected:
+        try:
+            detail = response.json()
+        except ValueError:
+            detail = response.text
+        log_event("ERROR", "atlassian_api_request_failed", {"method": method, "url": url, "status_code": response.status_code, "detail": detail}, status="fail")
+        raise HTTPException(status_code=response.status_code, detail=detail)
+    log_event("TOOL", "atlassian_api_request_done", {"method": method, "url": url, "status_code": response.status_code}, status="ok")
     if response.status_code == 204 or not response.content:
         return {}
     return response.json()
@@ -327,10 +364,308 @@ async def _export_files_to_github(
     return result
 
 
+def _cdata(text: str) -> str:
+    """Wrap text for Confluence plain-text macro bodies."""
+    return "<![CDATA[" + text.replace("]]>", "]]]]><![CDATA[>") + "]]>"
+
+
+def _split_markdown_table_row(line: str) -> list[str]:
+    """Split a simple markdown table row into cells."""
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _flush_list(items: list[str], ordered: bool, chunks: list[str]) -> None:
+    if not items:
+        return
+    tag = "ol" if ordered else "ul"
+    chunks.append(f"<{tag}>" + "".join(f"<li>{escape(item)}</li>" for item in items) + f"</{tag}>")
+    items.clear()
+
+
+def _markdown_to_confluence_storage(markdown: str) -> str:
+    """Convert common markdown structures to Confluence storage XML."""
+    lines = markdown.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    chunks: list[str] = []
+    list_items: list[str] = []
+    list_ordered = False
+    table_rows: list[list[str]] = []
+    in_code = False
+    code_language = ""
+    code_lines: list[str] = []
+
+    def flush_table() -> None:
+        if not table_rows:
+            return
+        body_rows = []
+        for row_index, row in enumerate(table_rows):
+            cell_tag = "th" if row_index == 0 else "td"
+            body_rows.append("<tr>" + "".join(f"<{cell_tag}>{escape(cell)}</{cell_tag}>" for cell in row) + "</tr>")
+        chunks.append("<table><tbody>" + "".join(body_rows) + "</tbody></table>")
+        table_rows.clear()
+
+    def flush_code() -> None:
+        language_param = f'<ac:parameter ac:name="language">{escape(code_language)}</ac:parameter>' if code_language else ""
+        chunks.append(
+            '<ac:structured-macro ac:name="code">'
+            f"{language_param}"
+            f"<ac:plain-text-body>{_cdata(chr(10).join(code_lines))}</ac:plain-text-body>"
+            "</ac:structured-macro>"
+        )
+        code_lines.clear()
+
+    for raw_line in lines:
+        line = raw_line.rstrip()
+        fence = re.match(r"^```([A-Za-z0-9_-]+)?\s*$", line)
+        if fence:
+            if in_code:
+                flush_code()
+                in_code = False
+                code_language = ""
+            else:
+                _flush_list(list_items, list_ordered, chunks)
+                flush_table()
+                in_code = True
+                code_language = fence.group(1) or ""
+            continue
+
+        if in_code:
+            code_lines.append(raw_line)
+            continue
+
+        if not line.strip():
+            _flush_list(list_items, list_ordered, chunks)
+            flush_table()
+            continue
+
+        table_separator = re.match(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", line)
+        if table_separator:
+            continue
+        if "|" in line and line.strip().startswith("|"):
+            _flush_list(list_items, list_ordered, chunks)
+            table_rows.append(_split_markdown_table_row(line))
+            continue
+        flush_table()
+
+        heading = re.match(r"^(#{1,6})\s+(.+)$", line)
+        if heading:
+            _flush_list(list_items, list_ordered, chunks)
+            level = len(heading.group(1))
+            chunks.append(f"<h{level}>{escape(heading.group(2).strip())}</h{level}>")
+            continue
+
+        unordered = re.match(r"^\s*[-*]\s+(.+)$", line)
+        if unordered:
+            if list_items and list_ordered:
+                _flush_list(list_items, list_ordered, chunks)
+            list_ordered = False
+            list_items.append(unordered.group(1).strip())
+            continue
+
+        ordered = re.match(r"^\s*\d+\.\s+(.+)$", line)
+        if ordered:
+            if list_items and not list_ordered:
+                _flush_list(list_items, list_ordered, chunks)
+            list_ordered = True
+            list_items.append(ordered.group(1).strip())
+            continue
+
+        _flush_list(list_items, list_ordered, chunks)
+        chunks.append(f"<p>{escape(line.strip())}</p>")
+
+    if in_code:
+        flush_code()
+    _flush_list(list_items, list_ordered, chunks)
+    flush_table()
+    return "".join(chunks) or "<p></p>"
+
+
+def _default_confluence_space_key(project_id: str | None) -> str:
+    """Build a short Confluence space key fallback."""
+    source = project_id or "ProtoPilot"
+    letters = re.sub(r"[^A-Za-z0-9]", "", source).upper()
+    return (letters[:10] or "PP")
+
+
+async def _find_confluence_page(client: httpx.AsyncClient, cloud_id: str, space_id: str, title: str) -> dict:
+    page_list = await _atlassian_request(
+        client,
+        "GET",
+        f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/pages",
+        expected_status=200,
+        params={"space-id": space_id, "title": title, "limit": 1},
+    )
+    results = page_list.get("results", [])
+    if not results:
+        return {"found": False}
+    page_id = str(results[0]["id"])
+    page_detail = await _atlassian_request(
+        client,
+        "GET",
+        f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/pages/{page_id}",
+        expected_status=200,
+    )
+    return {
+        "found": True,
+        "page_id": page_id,
+        "title": page_detail["title"],
+        "version": page_detail.get("version", {}).get("number", 1),
+    }
+
+
+async def _create_confluence_page(
+    client: httpx.AsyncClient,
+    cloud_id: str,
+    space_id: str,
+    title: str,
+    body_storage: str,
+    parent_page_id: str = "",
+) -> dict:
+    body: dict[str, Any] = {
+        "spaceId": space_id,
+        "status": "current",
+        "title": title,
+        "body": {"representation": "storage", "value": body_storage},
+    }
+    if parent_page_id:
+        body["parentId"] = parent_page_id
+    return await _atlassian_request(
+        client,
+        "POST",
+        f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/pages",
+        expected_status=(200, 201),
+        json=body,
+    )
+
+
+async def _update_confluence_page(
+    client: httpx.AsyncClient,
+    cloud_id: str,
+    page_id: str,
+    title: str,
+    body_storage: str,
+    current_version: int,
+) -> dict:
+    return await _atlassian_request(
+        client,
+        "PUT",
+        f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/pages/{page_id}",
+        expected_status=(200, 201),
+        json={
+            "id": page_id,
+            "status": "current",
+            "title": title,
+            "version": {"number": current_version + 1, "message": "Updated by ProtoPilot"},
+            "body": {"representation": "storage", "value": body_storage},
+        },
+    )
+
+
+async def _export_pages_to_confluence(
+    *,
+    atlassian_token: str,
+    pages: list[dict[str, Any]],
+    confluence_space_key: str | None,
+    parent_page_title: str | None,
+    project_id: str | None,
+) -> dict:
+    """Create or update every provided page directly through the Confluence API."""
+    log_event("TOOL", "confluence_direct_export_start", {"project_id": project_id, "pages_count": len(pages), "space_key": confluence_space_key})
+    async with httpx.AsyncClient(headers=_atlassian_headers(atlassian_token), timeout=60) as client:
+        sites = await _atlassian_request(
+            client,
+            "GET",
+            f"{ATLASSIAN_API_BASE}/oauth/token/accessible-resources",
+            expected_status=200,
+        )
+        if not isinstance(sites, list) or not sites:
+            raise HTTPException(status_code=400, detail="No accessible Atlassian sites found for this account.")
+        site = sites[0]
+        cloud_id = site["id"]
+        site_url = site.get("url", "")
+
+        spaces_payload = await _atlassian_request(
+            client,
+            "GET",
+            f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/spaces",
+            expected_status=200,
+            params={"limit": 250},
+        )
+        spaces = spaces_payload.get("results", [])
+        requested_key = (confluence_space_key or "").strip().upper()
+        space = None
+        if requested_key:
+            space = next((s for s in spaces if str(s.get("key", "")).upper() == requested_key), None)
+            if not space:
+                raise HTTPException(status_code=400, detail=f"Confluence space '{requested_key}' was not found or is not accessible.")
+        elif spaces:
+            space = next((s for s in spaces if s.get("type") == "global"), spaces[0])
+        else:
+            requested_key = _default_confluence_space_key(project_id)
+            space = await _atlassian_request(
+                client,
+                "POST",
+                f"{ATLASSIAN_API_BASE}/ex/confluence/{cloud_id}/wiki/api/v2/spaces",
+                expected_status=(200, 201),
+                json={"key": requested_key, "name": f"{project_id or 'ProtoPilot'} Documentation", "type": "global"},
+            )
+
+        space_id = str(space["id"])
+        space_key = str(space.get("key") or requested_key or space_id)
+        parent_page_id = ""
+        if parent_page_title:
+            parent = await _find_confluence_page(client, cloud_id, space_id, parent_page_title)
+            index_body = "<p>ProtoPilot exported project documents.</p>"
+            if parent.get("found"):
+                parent_page_id = parent["page_id"]
+                await _update_confluence_page(client, cloud_id, parent_page_id, parent_page_title, index_body, int(parent["version"]))
+            else:
+                created_parent = await _create_confluence_page(client, cloud_id, space_id, parent_page_title, index_body)
+                parent_page_id = str(created_parent["id"])
+
+        exported_pages = []
+        seen_titles: set[str] = set()
+        for index, page in enumerate(pages, start=1):
+            title = str(page.get("title") or page.get("filename") or f"ProtoPilot Document {index}").strip()
+            if title in seen_titles:
+                suffix_source = str(page.get("filename") or page.get("artifact_group") or index).strip()
+                suffix = re.sub(r"\.[A-Za-z0-9]+$", "", suffix_source).replace("_", " ").replace("-", " ").title()
+                title = f"{title} ({suffix or index})"
+            while title in seen_titles:
+                title = f"{title} {index}"
+            seen_titles.add(title)
+            markdown = str(page.get("markdown") or page.get("content") or "")
+            if not markdown.strip():
+                continue
+            body_storage = _markdown_to_confluence_storage(markdown)
+            existing = await _find_confluence_page(client, cloud_id, space_id, title)
+            if existing.get("found"):
+                updated = await _update_confluence_page(client, cloud_id, existing["page_id"], title, body_storage, int(existing["version"]))
+                page_id = str(updated["id"])
+                action = "updated"
+            else:
+                created = await _create_confluence_page(client, cloud_id, space_id, title, body_storage, parent_page_id)
+                page_id = str(created["id"])
+                action = "created"
+            url = f"{site_url.rstrip('/')}/wiki/spaces/{space_key}/pages/{page_id}" if site_url else f"/wiki/pages/{page_id}"
+            exported_pages.append({"title": title, "page_id": page_id, "url": url, "action": action})
+            log_event("TOOL", "confluence_direct_page_done", {"index": index, "pages_count": len(pages), "title": title[:60], "action": action}, status="ok")
+
+    result = {
+        "ok": True,
+        "space_key": space_key,
+        "pages_requested": len(pages),
+        "pages_exported": len(exported_pages),
+        "pages": exported_pages,
+        "reply": f"Exported {len(exported_pages)} of {len(pages)} documents to Confluence.",
+    }
+    log_event("TOOL", "confluence_direct_export_done", {"project_id": project_id, "space_key": space_key, "pages_exported": len(exported_pages), "pages_requested": len(pages)}, status="ok")
+    return result
+
+
 @router.get("/github/oauth/start", response_model=GitHubOAuthStartResponse)
 def start_github_oauth(current_user: dict[str, str] = Depends(get_current_user)):
     """Start GitHub OAuth by storing state and returning the authorization URL."""
-    client_id, _client_secret, redirect_uri = _github_oauth_config()
+    client_id, _client_secret, redirect_uri = _github_oauth_config(current_user["username"])
     state = uuid.uuid4().hex
     save_github_oauth_state(state, current_user["username"])
     log_event("TOOL", "github_oauth_start", {"username": current_user["username"], "redirect_uri": redirect_uri})
@@ -366,7 +701,7 @@ async def github_oauth_callback(code: str, state: str):
         log_event("ERROR", "github_oauth_callback_invalid_state", {"state_present": bool(state)}, status="fail")
         raise HTTPException(status_code=400, detail="Invalid or expired GitHub OAuth state.")
 
-    client_id, client_secret, redirect_uri = _github_oauth_config()
+    client_id, client_secret, redirect_uri = _github_oauth_config(username)
     log_event("TOOL", "github_oauth_callback_start", {"username": username, "redirect_uri": redirect_uri})
     async with httpx.AsyncClient(timeout=30) as client:
         token_response = await client.post(
@@ -420,7 +755,7 @@ def disconnect_github(current_user: dict[str, str] = Depends(get_current_user)):
 @router.get("/atlassian/oauth/start", response_model=AtlassianOAuthStartResponse)
 def start_atlassian_oauth(current_user: dict[str, str] = Depends(get_current_user)):
     """Start Atlassian OAuth by storing state and returning the authorization URL."""
-    client_id, _client_secret, redirect_uri = _atlassian_oauth_config()
+    client_id, _client_secret, redirect_uri = _atlassian_oauth_config(current_user["username"])
     state = uuid.uuid4().hex
     save_atlassian_oauth_state(state, current_user["username"])
     log_event("TOOL", "atlassian_oauth_start", {"username": current_user["username"], "redirect_uri": redirect_uri})
@@ -459,7 +794,7 @@ async def atlassian_oauth_callback(code: str, state: str):
         log_event("ERROR", "atlassian_oauth_callback_invalid_state", {"state_present": bool(state)}, status="fail")
         raise HTTPException(status_code=400, detail="Invalid or expired Atlassian OAuth state.")
 
-    client_id, client_secret, redirect_uri = _atlassian_oauth_config()
+    client_id, client_secret, redirect_uri = _atlassian_oauth_config(username)
     log_event("TOOL", "atlassian_oauth_callback_start", {"username": username, "redirect_uri": redirect_uri})
     async with httpx.AsyncClient(timeout=30) as client:
         token_response = await client.post(
@@ -557,7 +892,7 @@ async def export_github(req: GitHubExportRequest, current_user: dict[str, str] =
             github_token=github_token,
             owner=owner,
             repo=repo,
-            base_branch=req.base_branch or resolve_user_preference(current_user["username"], "GITHUB_BASE_BRANCH", default="main") or "main",
+            base_branch=req.base_branch or os.getenv("GITHUB_BASE_BRANCH", "main") or "main",
             new_branch=_resolve_github_branch(req),
             commit_message=req.commit_message or "Export ProtoPilot generated code",
             pull_request_title=req.pull_request_title or "Export ProtoPilot generated code",
@@ -643,8 +978,8 @@ async def create_jira_tasks(req: JiraCreateTasksRequest, current_user: dict[str,
             f"{_json_prompt_payload(payload)}"
         )
 
-        token = await get_oauth_token()
-        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",), atlassian_token=atlassian_token)
+        token = await get_oauth_token(current_user["username"])
+        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",), atlassian_token=atlassian_token, username=current_user["username"])
         session_id = _safe_session_id(req.session_id, req.project_id, "jira-create-backlog")
         log_event(
             "AGENT",
@@ -704,30 +1039,9 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user
         atlassian_token = atlassian_connection["access_token"]
 
         confluence_space_key = req.confluence_space_key or resolve_user_preference(current_user["username"], "CONFLUENCE_SPACE_KEY", "CONFLUENCE_SPACE_KEY")
-        payload = {
-            "confluence_space_key": confluence_space_key,
-            "parent_page_title": req.parent_page_title or resolve_user_preference(current_user["username"], "CONFLUENCE_PARENT_PAGE_TITLE"),
-            "pages": pages,
-        }
-
-        prompt = (
-            "Export these ProtoPilot artifact markdown files to Confluence.\n\n"
-            "Call get_atlassian_accessible_sites to get the cloud_id and site URL, then call list_confluence_spaces to find the target space. "
-            "If confluence_space_key is provided, validate it appears in the accessible spaces list and use that space. "
-            "If no space key is provided, choose a clearly suitable existing documentation/product space, or call create_confluence_space to create one when needed. "
-            "Create one Confluence page per artifact markdown file. Preserve markdown structure as faithfully as Confluence allows, including headings, tables, lists, code blocks, Mermaid source blocks, and links. "
-            "Create or use a parent/index page when parent_page_title is provided or when multiple pages need organization. "
-            "Avoid duplicates by checking for existing pages with the same title; update existing pages for this export/sync rather than creating duplicates when possible. "
-            "Report created or updated page titles and URLs. "
-            "Use this payload:\n"
-            f"{_json_prompt_payload(payload)}"
-        )
-
-        token = await get_oauth_token()
-        agent = AGENT_FACTORIES["integration"](token, toolsets=("atlassian",), atlassian_token=atlassian_token)
         session_id = _safe_session_id(req.session_id, req.project_id, "confluence-export-artifacts")
         log_event(
-            "AGENT",
+            "TOOL",
             "confluence_export_start",
             {
                 "project_id": req.project_id,
@@ -736,14 +1050,16 @@ async def export_confluence_artifacts(req: ConfluenceExportRequest, current_user
                 "pages_count": len(pages),
             },
         )
-        reply = await run_turn(
-            agent,
-            session_id=session_id,
-            message=prompt,
+        result = await _export_pages_to_confluence(
+            atlassian_token=atlassian_token,
+            pages=pages,
+            confluence_space_key=confluence_space_key,
+            parent_page_title=req.parent_page_title or resolve_user_preference(current_user["username"], "CONFLUENCE_PARENT_PAGE_TITLE", "CONFLUENCE_PARENT_PAGE_TITLE"),
+            project_id=req.project_id,
         )
 
-        log_event("AGENT", "confluence_export_done", {"project_id": req.project_id, "session_id": session_id, "reply": reply}, status="ok")
-        return {"ok": True, "reply": reply}
+        log_event("TOOL", "confluence_export_done", {"project_id": req.project_id, "session_id": session_id, **result}, status="ok")
+        return result
 
     except HTTPException:
         raise
