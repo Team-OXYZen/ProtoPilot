@@ -33,7 +33,7 @@ def create_github_mcp_toolset() -> McpToolset:
     return toolset
 
 
-def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", "atlassian"), atlassian_token: str | None = None) -> LlmAgent:
+def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", "atlassian"), atlassian_token: str | None = None, username: str | None = None) -> LlmAgent:
     """Create an integration agent with the requested toolsets attached."""
     model_name = os.getenv("LITELLM_MODEL_INTEGRATION") or os.getenv("LITELLM_MODEL")
     log_event(
@@ -41,7 +41,7 @@ def create_agent(token: str, tools=None, toolsets: tuple[str, ...] = ("github", 
         "integration_agent_create",
         {"toolsets": list(toolsets), "extra_tools_count": len(tools or []), "model": model_name},
     )
-    llm = create_litellm(token, model=model_name)
+    llm = create_litellm(token, model=model_name, username=username)
     agent_tools = list(tools or [])
     if "github" in toolsets:
         agent_tools.append(create_github_mcp_toolset())

@@ -22,6 +22,7 @@ from orchestration.tools import (
     patch_technical_artifact,
     rename_angular_code_file,
     run_angular_build,
+    run_java_build,
     save_artifacts_summary,
     save_nontech_artifacts,
     save_technical_artifacts,
@@ -186,6 +187,9 @@ class Orchestrator:
             list_angular_code_files, load_angular_code_file,
             patch_angular_code_file, delete_angular_code_file, rename_angular_code_file,
             run_angular_build,
+            list_java_code_files, load_java_code_file,
+            patch_java_code_file, delete_java_code_file, rename_java_code_file,
+            run_java_build,
         ]
 
     async def _handle_wait_approval(self, proj, normalized: str) -> dict[str, Any]:
@@ -216,7 +220,7 @@ class Orchestrator:
             artifacts_md=proj.nontech_artifacts_md,
         )
 
-    async def _run_requirements(self, token, proj, req_session_id: str, user_message: str) -> dict[str, Any]:
+    async def _run_requirements(self, token, proj, req_session_id: str, user_message: str, user_id: str = "") -> dict[str, Any]:
         """Execute requirements gathering agent and advance project.
         
         Args:
@@ -228,7 +232,7 @@ class Orchestrator:
         Returns:
             dict with agent reply and updated project state
         """
-        req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools())
+        req_agent = AGENT_FACTORIES["requirements"](token, tools=self._requirements_tools(), username=user_id)
 
         phase = "requirements_revision" if proj.nontech_artifacts_md else "requirements_gathering"
 
@@ -290,30 +294,30 @@ class Orchestrator:
             if approval_result:
                 return approval_result
 
-        token = await get_oauth_token()
+        token = await get_oauth_token(user_id)
 
         if proj.stage == Stage.REQ:
-            return await self._run_requirements(token, proj, req_session_id, user_message)
+            return await self._run_requirements(token, proj, req_session_id, user_message, user_id)
         if proj.stage == Stage.ARTIFACTS_NON_TECH:
-            return await self._run_artifacts_non_tech(token, proj, req_session_id)
+            return await self._run_artifacts_non_tech(token, proj, req_session_id, user_id)
         if proj.stage == Stage.TECH_ARTIFACTS:
-            return await self._run_artifacts_technical(token, proj, req_session_id)
+            return await self._run_artifacts_technical(token, proj, req_session_id, user_id)
         if proj.stage == Stage.CODEGEN:
-            return await self._run_angular_codegen(token, proj, req_session_id)
+            return await self._run_angular_codegen(token, proj, req_session_id, user_id)
         if proj.stage == Stage.QA:
             if normalized == "finalize":
                 self._set_stage(proj, Stage.FINALIZE, "finalize_requested")
-                return await self._run_java_codegen(token, proj, req_session_id)
-            return await self._run_qa(token, proj, req_session_id, user_message)
+                return await self._run_java_codegen(token, proj, req_session_id, user_id)
+            return await self._run_qa(token, proj, req_session_id, user_message, user_id)
         if proj.stage == Stage.FINALIZE:
-            return await self._run_java_codegen(token, proj, req_session_id)
+            return await self._run_java_codegen(token, proj, req_session_id, user_id)
 
         return self._build_response(
             proj=proj,
             reply={"message": "Your project is ready whenever you would like to review it again."},
         )
 
-    async def _run_artifacts_non_tech(self, token, proj, req_session_id: str) -> dict:
+    async def _run_artifacts_non_tech(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate PM-facing non-technical artifacts (specs, requirements docs).
         
         Args:
@@ -324,7 +328,7 @@ class Orchestrator:
         Returns:
             dict with artifacts and project state
         """
-        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech")
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="non_tech", username=user_id)
 
         is_revision = bool(proj.nontech_artifacts_md)
         revision_instruction = (
@@ -366,7 +370,7 @@ class Orchestrator:
             raw_reply=_raw_reply,
         )
 
-    async def _run_artifacts_technical(self, token, proj, req_session_id: str) -> dict:
+    async def _run_artifacts_technical(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate technical artifacts (architecture, design documents).
         
         Args:
@@ -377,7 +381,7 @@ class Orchestrator:
         Returns:
             dict with artifacts and project state
         """
-        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical")
+        art_agent = AGENT_FACTORIES["artifacts"](token, tools=self._artifacts_tools(), phase="technical", username=user_id)
 
         art_prompt = (
             f"project_id={proj.project_id}\n"
@@ -410,7 +414,7 @@ class Orchestrator:
             raw_reply=_raw_reply,
         )
 
-    async def _run_angular_codegen(self, token, proj, req_session_id: str) -> dict:
+    async def _run_angular_codegen(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate Angular frontend code with build verification and repair.
         
         Args:
@@ -422,7 +426,7 @@ class Orchestrator:
             dict with generated code files and build status
         """
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools())
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._angular_codegen_tools(), username=user_id)
             code_prompt = (
                 f"project_id={proj.project_id}\n"
                 "Generate a POC-level Angular frontend code now.\n"
@@ -453,7 +457,7 @@ class Orchestrator:
                         raw_reply=f"{_raw_reply}\n\n[CODEGEN_BUILD_VERIFICATION]\n{codegen_verify_reply}",
                     )
 
-                review_reply = await self._run_code_review(token, proj, req_session_id)
+                review_reply = await self._run_code_review(token, proj, req_session_id, user_id)
                 return self._build_response(
                     proj=proj,
                     reply={"message": "Great, your interactive prototype is ready to preview.", "codegen_verification": codegen_verify_reply, "review": review_reply},
@@ -522,7 +526,7 @@ class Orchestrator:
         verification_messages.append(failure_message)
         return False, "\n\n".join(verification_messages)
 
-    async def _run_code_review(self, token, proj, req_session_id: str) -> str:
+    async def _run_code_review(self, token, proj, req_session_id: str, user_id: str = "") -> str:
         """Audit and improve generated code UX/styling, verify builds throughout.
         
         Args:
@@ -536,7 +540,7 @@ class Orchestrator:
         review_messages: list[str] = []
 
         try:
-            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools())
+            review_agent = AGENT_FACTORIES["code_review"](token, tools=self._code_review_tools(), username=user_id)
 
             log_event("AGENT", "code_review_start", {"project_id": proj.project_id, "session_id": f"{req_session_id}-code-review"})
             build_result = run_angular_build(proj.project_id)
@@ -658,9 +662,10 @@ class Orchestrator:
             list_angular_code_files, load_angular_code_file, patch_angular_code_file,
             list_java_code_files, load_java_code_file, patch_java_code_file,
             delete_java_code_file, rename_java_code_file,
+            run_angular_build, run_java_build,
         ]
 
-    async def _run_java_codegen(self, token, proj, req_session_id: str) -> dict:
+    async def _run_java_codegen(self, token, proj, req_session_id: str, user_id: str = "") -> dict:
         """Generate Java backend code.
         
         Args:
@@ -673,7 +678,7 @@ class Orchestrator:
         """
         from agents.code_generation_agent.instructions import JAVA_CODEGEN_INSTRUCTIONS
         try:
-            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS)
+            code_agent = AGENT_FACTORIES["code_generation"](token, tools=self._java_codegen_tools(), instructions=JAVA_CODEGEN_INSTRUCTIONS, username=user_id)
             code_prompt = (
                 f"project_id={proj.project_id}\n"
                 "Generate a Java Spring Boot backend and update Angular services to use real API calls.\n"
@@ -691,13 +696,24 @@ class Orchestrator:
             log_event("AGENT", "java_codegen_done", {"project_id": proj.project_id, "files": list((proj.java_code_files or {}).keys()), "reply": _raw_reply}, status="ok")
 
             if proj.java_code_files:
+                java_build_ok, java_verification_reply = await self._verify_java_codegen_build(code_agent, proj, req_session_id)
+                if not java_build_ok:
+                    return self._build_response(
+                        proj=proj,
+                        reply={
+                            "message": "The backend code was generated, but the Java build still needs work after repair attempts.",
+                            "java_verification": java_verification_reply,
+                        },
+                        raw_reply=f"{_raw_reply}\n\n[JAVA_BUILD_VERIFICATION]\n{java_verification_reply}",
+                    )
+
                 proj.needs_redeploy = False
                 self._set_stage(proj, Stage.QA, "java_codegen_complete")
-                review_reply = await self._run_code_review(token, proj, req_session_id)
+                review_reply = await self._run_code_review(token, proj, req_session_id, user_id)
                 return self._build_response(
                     proj=proj,
                     reply={"message": "Great, the prototype is now prepared for a more realistic live demo."},
-                    raw_reply=f"{_raw_reply}\n\n[POST_FINALIZE_CODE_REVIEW]\n{review_reply}",
+                    raw_reply=f"{_raw_reply}\n\n[JAVA_BUILD_VERIFICATION]\n{java_verification_reply}\n\n[POST_FINALIZE_CODE_REVIEW]\n{review_reply}",
                 )
             else:
                 return self._build_response(
@@ -710,8 +726,55 @@ class Orchestrator:
             log_event("ERROR", "java_codegen_failed", {"project_id": proj.project_id, "error": error_message}, status="fail")
             return self._build_response(proj=proj, reply={"message": GENERIC_USER_ERROR_MESSAGE}, raw_reply=error_message)
 
-    async def _run_qa(self, llm, proj, req_session_id: str, user_message: str) -> dict:
-        qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools())
+    async def _verify_java_codegen_build(self, code_agent, proj, req_session_id: str) -> tuple[bool, str]:
+        """Verify generated Java backend builds, with repair retries."""
+        verification_messages: list[str] = []
+        build_result = run_java_build(proj.project_id)
+
+        for attempt in range(1, 4):
+            if build_result.get("ok"):
+                verified_message = "Java build verified by orchestrator after Java code generation."
+                log_event("AGENT", "java_codegen_build_verified", {"project_id": proj.project_id}, status="ok")
+                verification_messages.append(verified_message)
+                return True, "\n\n".join(verification_messages)
+
+            log_event(
+                "AGENT",
+                "java_codegen_repair_attempt",
+                {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(build_result)},
+                status="retry",
+            )
+            repair_prompt = (
+                f"project_id={proj.project_id}\n"
+                f"java_build_repair_attempt={attempt}/3\n"
+                "The backend orchestrator ran mvn package -DskipTests for the Java Spring Boot project you generated, and it failed. "
+                "Inspect the generated Java files and any Angular service files needed to fix contract mismatches, patch the smallest safe set of files, "
+                "and do not claim success. The orchestrator will run the Java build again after your patch. "
+                "Continue from existing saved files; do not regenerate the whole backend unless unavoidable.\n\n"
+                "Latest Java build result:\n"
+                f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+            )
+            repair_reply = await run_turn_with_recovery(
+                code_agent,
+                session_id=f"{req_session_id}-java-build-repair-{attempt}",
+                message=repair_prompt,
+                resume_context=self._resume_context(proj, f"java_build_repair_{attempt}"),
+                use_compaction=True,
+                max_retries=1,
+            )
+            verification_messages.append(f"Java build repair attempt {attempt}: {repair_reply}")
+            build_result = run_java_build(proj.project_id)
+
+        failure_message = (
+            "Java build still fails after 3 orchestrator-verified repair attempts.\n"
+            f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+        )
+        log_event("ERROR", "java_codegen_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(build_result)}, status="fail")
+        verification_messages.append(failure_message)
+        return False, "\n\n".join(verification_messages)
+
+    async def _run_qa(self, llm, proj, req_session_id: str, user_message: str, user_id: str = "") -> dict:
+        qa_agent = AGENT_FACTORIES["qa"](llm, tools=self._qa_tools(), username=user_id)
 
         qa_prompt = (
             f"project_id={proj.project_id}\n"
@@ -749,45 +812,98 @@ class Orchestrator:
 
     async def _verify_qa_build(self, qa_agent, proj, req_session_id: str) -> tuple[bool, str]:
         verification_messages: list[str] = []
-        build_result = run_angular_build(proj.project_id)
+        max_repairs = 3
+        angular_verified = False
+        java_verified = False
 
-        for attempt in range(1, 4):
-            if build_result.get("ok"):
+        for attempt in range(1, max_repairs + 2):
+            angular_build_result = run_angular_build(proj.project_id)
+            if not angular_build_result.get("ok"):
+                if attempt > max_repairs:
+                    failure_message = (
+                        "Angular build still fails after QA changes and 3 orchestrator-verified repair attempts.\n"
+                        f"{json.dumps(self._build_summary(angular_build_result), ensure_ascii=False, indent=2)}"
+                    )
+                    log_event("ERROR", "qa_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(angular_build_result)}, status="fail")
+                    verification_messages.append(failure_message)
+                    return False, "\n\n".join(verification_messages)
+
+                log_event(
+                    "AGENT",
+                    "qa_build_repair_attempt",
+                    {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(angular_build_result)},
+                    status="retry",
+                )
+                repair_prompt = (
+                    f"project_id={proj.project_id}\n"
+                    f"qa_build_repair_attempt={attempt}/{max_repairs}\n"
+                    "The QA changes left the Angular project failing npm install or npm run build. "
+                    "Inspect the generated Angular files needed to fix the error, patch the smallest safe set of files, "
+                    "and preserve the user's requested QA change. Do not claim success; the orchestrator will run the build again after your patch.\n\n"
+                    "Latest Angular build result:\n"
+                    f"{json.dumps(self._build_summary(angular_build_result), ensure_ascii=False, indent=2)}"
+                )
+                repair_reply = await run_turn_with_recovery(
+                    qa_agent,
+                    session_id=f"{req_session_id}-qa-build-repair-{attempt}",
+                    message=repair_prompt,
+                    resume_context=self._resume_context(proj, f"qa_build_repair_{attempt}"),
+                    use_compaction=True,
+                    max_retries=1,
+                )
+                verification_messages.append(f"QA Angular build repair attempt {attempt}: {repair_reply}")
+                continue
+
+            if not angular_verified:
                 verified_message = "Angular build verified by orchestrator after QA changes."
                 log_event("AGENT", "qa_build_verified", {"project_id": proj.project_id}, status="ok")
                 verification_messages.append(verified_message)
+                angular_verified = True
+
+            if not proj.java_code_files:
                 return True, "\n\n".join(verification_messages)
+
+            java_build_result = run_java_build(proj.project_id)
+            if java_build_result.get("ok"):
+                if not java_verified:
+                    verified_message = "Java build verified by orchestrator after QA changes."
+                    log_event("AGENT", "qa_java_build_verified", {"project_id": proj.project_id}, status="ok")
+                    verification_messages.append(verified_message)
+                    java_verified = True
+                return True, "\n\n".join(verification_messages)
+
+            if attempt > max_repairs:
+                failure_message = (
+                    "Java build still fails after QA changes and 3 orchestrator-verified repair attempts.\n"
+                    f"{json.dumps(self._build_summary(java_build_result), ensure_ascii=False, indent=2)}"
+                )
+                log_event("ERROR", "qa_java_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(java_build_result)}, status="fail")
+                verification_messages.append(failure_message)
+                return False, "\n\n".join(verification_messages)
 
             log_event(
                 "AGENT",
-                "qa_build_repair_attempt",
-                {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(build_result)},
+                "qa_java_build_repair_attempt",
+                {"project_id": proj.project_id, "attempt": attempt, "build": self._build_summary(java_build_result)},
                 status="retry",
             )
             repair_prompt = (
                 f"project_id={proj.project_id}\n"
-                f"qa_build_repair_attempt={attempt}/3\n"
-                "The QA changes left the Angular project failing npm install or npm run build. "
-                "Inspect the generated Angular files needed to fix the error, patch the smallest safe set of files, "
-                "and preserve the user's requested QA change. Do not claim success; the orchestrator will run the build again after your patch.\n\n"
-                "Latest build result:\n"
-                f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
+                f"qa_java_build_repair_attempt={attempt}/{max_repairs}\n"
+                "The QA changes left the Java Spring Boot backend failing mvn package -DskipTests. "
+                "Inspect the generated Java files and any Angular service files needed to fix contract mismatches, patch the smallest safe set of files, "
+                "and preserve the user's requested QA change. Do not claim success; the orchestrator will run both builds again after your patch.\n\n"
+                "Latest Java build result:\n"
+                f"{json.dumps(self._build_summary(java_build_result), ensure_ascii=False, indent=2)}"
             )
             repair_reply = await run_turn_with_recovery(
                 qa_agent,
-                session_id=f"{req_session_id}-qa-build-repair-{attempt}",
+                session_id=f"{req_session_id}-qa-java-build-repair-{attempt}",
                 message=repair_prompt,
-                resume_context=self._resume_context(proj, f"qa_build_repair_{attempt}"),
+                resume_context=self._resume_context(proj, f"qa_java_build_repair_{attempt}"),
                 use_compaction=True,
                 max_retries=1,
             )
-            verification_messages.append(f"QA build repair attempt {attempt}: {repair_reply}")
-            build_result = run_angular_build(proj.project_id)
+            verification_messages.append(f"QA Java build repair attempt {attempt}: {repair_reply}")
 
-        failure_message = (
-            "Angular build still fails after QA changes and 3 orchestrator-verified repair attempts.\n"
-            f"{json.dumps(self._build_summary(build_result), ensure_ascii=False, indent=2)}"
-        )
-        log_event("ERROR", "qa_build_unresolved", {"project_id": proj.project_id, "build": self._build_summary(build_result)}, status="fail")
-        verification_messages.append(failure_message)
         return False, "\n\n".join(verification_messages)

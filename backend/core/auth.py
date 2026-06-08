@@ -185,7 +185,7 @@ def get_current_user(
     payload = decode_access_token(credentials.credentials)
     return {"username": payload["sub"]}
 
-async def get_oauth_token() -> str:
+async def get_oauth_token(username: str | None = None) -> str:
     """Get cached OAuth token from external service, refresh if expired.
     
     Returns:

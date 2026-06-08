@@ -18,11 +18,17 @@ Requires Docker for the live deploy feature.
 Full reference in `.env.example`. Key variables:
 
 - `LITELLM_MODEL` / `LITELLM_API_KEY` — default model and credentials for all agents
+- `CLIENT_ID` / `CLIENT_SECRET` — upstream OAuth credentials for the private LLM service
 - `JWT_SECRET` — HS256 signing secret; required in production
 - `BACKEND_URL` / `FRONTEND_URL` — used for OAuth callback construction and redirects
 - `DEPLOY_HOST` — public host for live preview URLs; set to server IP/domain in cloud
 
-Integration OAuth credentials (`GITHUB_CLIENT_ID`, `ATLASSIAN_CLIENT_ID`, etc.) are documented in [docs/integrations.md](../docs/integrations.md).
+Integration values can be configured in two places:
+
+- Env-only: `CLIENT_ID`, `CLIENT_SECRET`, LiteLLM settings, `JWT_SECRET`, app URLs, database paths, and deploy host.
+- Dashboard Preferences: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OWNER`, `GITHUB_REPO`, `ATLASSIAN_CLIENT_ID`, `ATLASSIAN_CLIENT_SECRET`, `JIRA_PROJECT_KEY`, `CONFLUENCE_SPACE_KEY`, and `CONFLUENCE_PARENT_PAGE_TITLE`.
+
+GitHub and Atlassian OAuth app setup, callback URLs, and required scopes are documented in [docs/integrations.md](../docs/integrations.md).
 
 ---
 

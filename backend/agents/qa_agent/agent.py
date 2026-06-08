@@ -4,7 +4,7 @@ from google.genai import types
 from google.adk.agents import LlmAgent
 from .instructions import QA_AGENT_INSTRUCTIONS
 
-def create_agent(token: str, tools=None) -> LlmAgent:
+def create_agent(token: str, tools=None, username: str | None = None) -> LlmAgent:
     """Create QA testing and validation agent.
     
     Args:
@@ -14,7 +14,7 @@ def create_agent(token: str, tools=None) -> LlmAgent:
     Returns:
         LlmAgent for QA testing and validation (temperature 0.3)
     """
-    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_QA"))
+    llm = create_litellm(token, model=os.getenv("LITELLM_MODEL_QA"), username=username)
     return LlmAgent(
         model=llm,
         name="qa_agent",
