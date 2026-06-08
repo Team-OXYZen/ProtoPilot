@@ -105,6 +105,8 @@ uvicorn api.server:app --reload --port 8000
 
 **Important:** ProtoPilot uses Cotality's private LLM service, which requires OAuth credentials (`CLIENT_ID` and `CLIENT_SECRET`). Refer to `backend/.env.example` and add your Cotality credentials to `backend/.env`.
 
+GitHub, Jira, and Confluence integrations can be configured per user from **Dashboard → Preferences → Connection Settings**. The required OAuth app credentials, destination keys, callback URLs, and granular GitHub/Atlassian permissions are documented in [`docs/integrations.md`](docs/integrations.md).
+
 ### Frontend Setup
 
 ```bash

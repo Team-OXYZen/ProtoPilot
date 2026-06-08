@@ -6,17 +6,55 @@
 |---|---|---|
 | GitHub export | GitHub REST API (direct, no agent) | Per-user OAuth2 |
 | Jira backlog | ADK integration agent + Atlassian REST API FunctionTools | Per-user OAuth2 |
-| Confluence export | ADK integration agent + Atlassian REST API FunctionTools | Per-user OAuth2 |
+| Confluence export | Atlassian Confluence REST API (direct, no agent) | Per-user OAuth2 |
 
-GitHub export creates blobs, tree, commit, branch, and PR directly via the GitHub REST API — file content is never sent to an LLM. Jira and Confluence operations are handled by an ADK `LlmAgent` equipped with `FunctionTool` wrappers around the Atlassian REST API (Jira v3, Confluence v2).
+GitHub export creates blobs, tree, commit, branch, and PR directly via the GitHub REST API — file content is never sent to an LLM. Jira backlog creation is handled by an ADK `LlmAgent` equipped with `FunctionTool` wrappers around the Atlassian REST API. Confluence export is deterministic: the backend creates or updates every artifact page directly through the Confluence v2 REST API.
 
 OAuth tokens are stored per user in SQLite. There are no global service tokens.
 
 ---
 
-## Environment Variables
+## Configuration
 
-Set in `backend/.env`.
+Some values are server/runtime credentials and must stay in `backend/.env`. Integration destination values and integration OAuth app credentials can be set either in `backend/.env` or by each user in the dashboard **Preferences → Connection Settings** popup.
+
+### Env-only Runtime Variables
+
+These are not configurable from the UI:
+
+```env
+CLIENT_ID=
+CLIENT_SECRET=
+
+LITELLM_MODEL=
+LITELLM_API_BASE=
+LITELLM_API_KEY=
+
+JWT_SECRET=
+BACKEND_URL=http://127.0.0.1:8000
+FRONTEND_URL=http://127.0.0.1:4200
+```
+
+`CLIENT_ID` / `CLIENT_SECRET` are used to obtain the upstream OAuth token for the private LLM service. LiteLLM settings are used by all generation agents.
+
+### UI-configurable Integration Values
+
+Users can configure these from the dashboard Preferences popup. Saved secret values are masked in the UI and stored per user in SQLite.
+
+```env
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_OWNER=
+GITHUB_REPO=
+
+ATLASSIAN_CLIENT_ID=
+ATLASSIAN_CLIENT_SECRET=
+JIRA_PROJECT_KEY=
+CONFLUENCE_SPACE_KEY=
+CONFLUENCE_PARENT_PAGE_TITLE=
+```
+
+The backend resolves these in this order: request body when supported → user preference → `.env` → default/discovery behavior.
 
 ### GitHub OAuth
 
@@ -27,6 +65,17 @@ GITHUB_OAUTH_REDIRECT_URI=        # optional; defaults to {BACKEND_URL}/integrat
 GITHUB_OAUTH_SCOPE=repo           # optional; defaults to "repo"
 ```
 
+Create the GitHub OAuth app in GitHub under **Settings → Developer settings → OAuth Apps → New OAuth App**. For an organization-owned app, use the organization settings instead.
+
+Use these URLs:
+
+```text
+Homepage URL:              {FRONTEND_URL}
+Authorization callback URL: {BACKEND_URL}/integrations/github/oauth/callback
+```
+
+The default scope is `repo`, because the export flow needs to create Git blobs, commits, branches, and pull requests in the target repository. For public repositories only, this can be reduced to `public_repo`, but private repository export requires `repo`.
+
 ### Atlassian OAuth
 
 ```env
@@ -35,16 +84,45 @@ ATLASSIAN_CLIENT_SECRET=
 ATLASSIAN_OAUTH_REDIRECT_URI=     # optional; defaults to {BACKEND_URL}/integrations/atlassian/oauth/callback
 ```
 
-### Defaults (can be overridden per user via Preferences)
+Create the Atlassian OAuth app in the [Atlassian Developer Console](https://developer.atlassian.com/console/myapps/) with an **OAuth 2.0 (3LO)** integration. Add this callback URL:
+
+```text
+{BACKEND_URL}/integrations/atlassian/oauth/callback
+```
+
+Required Atlassian scopes:
+
+```text
+read:me
+offline_access
+read:jira-user
+read:jira-work
+write:jira-work
+manage:jira-project
+manage:jira-configuration
+read:space:confluence
+write:space:confluence
+read:page:confluence
+write:page:confluence
+read:content:confluence
+write:content:confluence
+read:user:confluence
+```
+
+Jira needs read/write issue permissions plus project/board management so the agent can discover projects, create Scrum projects when needed, create issues, create sprints, and move issues into sprints. Confluence needs space/page/content read-write scopes so the backend can find spaces, create spaces when needed, find pages, and create or update exported pages.
+
+### Destination Defaults
 
 ```env
 GITHUB_OWNER=
 GITHUB_REPO=
-GITHUB_BASE_BRANCH=main
+GITHUB_BASE_BRANCH=main          # env-only fallback for export base branch
 JIRA_PROJECT_KEY=
 CONFLUENCE_SPACE_KEY=
 CONFLUENCE_PARENT_PAGE_TITLE=
 ```
+
+`GITHUB_OWNER`, `GITHUB_REPO`, `JIRA_PROJECT_KEY`, `CONFLUENCE_SPACE_KEY`, and `CONFLUENCE_PARENT_PAGE_TITLE` are configurable from the dashboard Preferences popup. `GITHUB_BASE_BRANCH` remains env-only unless a request explicitly sends `base_branch`.
 
 ---
 
@@ -83,7 +161,7 @@ Requires GitHub account connected. Either `project_id` (loads generated files fr
   "project_id": "my-project",
   "owner": "github-org",               // falls back to user preference → GITHUB_OWNER
   "repo": "target-repo",               // falls back to user preference → GITHUB_REPO
-  "base_branch": "main",               // falls back to user preference → GITHUB_BASE_BRANCH
+  "base_branch": "main",               // falls back to GITHUB_BASE_BRANCH → "main"
   "new_branch": "protopilot-export-x", // auto-generated if omitted
   "commit_message": "...",
   "pull_request_title": "...",
@@ -158,12 +236,18 @@ Requires Atlassian account connected. Either `project_id` or explicit `pages` mu
 }
 ```
 
-The integration agent calls `list_confluence_spaces`, resolves or creates the target space, then creates or updates one page per artifact in Confluence storage format (XML). Existing pages with matching titles are updated rather than duplicated.
+The backend resolves the target space, then creates or updates one page per artifact in Confluence storage format (XML). Existing pages with matching titles are updated rather than duplicated. Mermaid diagrams and code blocks are exported as Confluence code macros. The response reports `pages_requested` and `pages_exported` so the UI can show whether every document was exported.
 
 **Response:**
 
 ```json
-{ "ok": true, "reply": "Created 5 pages in space PROTO." }
+{
+  "ok": true,
+  "space_key": "PROTO",
+  "pages_requested": 5,
+  "pages_exported": 5,
+  "reply": "Exported 5 of 5 documents to Confluence."
+}
 ```
 
 ---
