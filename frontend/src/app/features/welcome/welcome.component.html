@@ -1,8 +1,6 @@
 <div class="welcome-container">
   <header class="welcome-header">
-    <button class="logo-link" title="Home">
-      <h1 class="logo">ProtoPilot</h1>
-    </button>
+    <h1 class="logo">ProtoPilot</h1>
     <div class="header-actions">
       <app-theme-toggle></app-theme-toggle>
       @if (!(authService.isAuthenticated()())) {
@@ -48,6 +46,16 @@
   <div class="hero-section">
     <div class="hero-content">
       <div class="animated-background"></div>
+
+      <div class="mobile-support-notice" role="status" aria-live="polite">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="7" y="2" width="10" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <p>
+          ProtoPilot is best experienced on a desktop. Mobile devices are not currently supported, so we recommend switching to a desktop browser.
+        </p>
+      </div>
       
       <div class="hero-text">
         <h2 class="hero-title">ProtoPilot</h2>
