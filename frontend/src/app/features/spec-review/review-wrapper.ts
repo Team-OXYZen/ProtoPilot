@@ -524,7 +524,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   approveSpec() {
     this.loaderService.startWithMessages(['Reviewing your idea...', 'Organizing the plan...', 'Preparing the next documents...', 'Almost there...']);
     this.recordActivity('Preparing the implementation plan...', 'running');
-    this.wizardService.sendMessage('approve').pipe(catchError(err => {
+    this.wizardService.sendMessage('approve', false).pipe(catchError(err => {
       console.error('Approval request failed:', err);
       this.recordActivity('The implementation plan could not be prepared.', 'error');
       this.integrationError.set('Sorry, I could not prepare the next documents just now. Please try again in a moment.');
@@ -564,7 +564,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   generateCode() {
     this.loaderService.startWithMessages(['Preparing your prototype...', 'Putting the screens together...', 'Adding the main interactions...', 'Almost there...']);
     this.recordActivity('Preparing the interactive prototype...', 'running');
-    this.wizardService.sendMessage('generate-code').pipe(catchError(err => {
+    this.wizardService.sendMessage('generate-code', false).pipe(catchError(err => {
       console.error('Prototype generation failed:', err);
       this.recordActivity('The prototype could not be prepared.', 'error');
       this.integrationError.set('Sorry, I could not prepare the prototype just now. Please try again in a moment.');
@@ -603,7 +603,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   finalizeProject() {
     this.loaderService.startWithMessages(['Preparing the live demo...', 'Connecting the experience...', 'Checking the preview...', 'Almost there...']);
     this.recordActivity('Preparing the live demo setup...', 'running');
-    this.wizardService.sendMessage('finalize').pipe(catchError(err => {
+    this.wizardService.sendMessage('finalize', false).pipe(catchError(err => {
       console.error('Live demo preparation failed:', err);
       this.recordActivity('The live demo setup could not be prepared.', 'error');
       this.integrationError.set('Sorry, I could not prepare the live demo just now. Please try again in a moment.');
