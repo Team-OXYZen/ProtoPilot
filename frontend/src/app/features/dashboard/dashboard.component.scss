@@ -389,7 +389,7 @@
 }
 
 .btn-create {
-  @include button-primary;
+  @include button-secondary;
   flex: 1;
 
   &:disabled {
@@ -399,8 +399,16 @@
 }
 
 .btn-cancel {
-  @include button-secondary;
+  @include button-ghost;
   flex: 1;
+  color: var(--color-sidebar-text);
+  border-color: rgba(241, 245, 249, 0.28);
+
+  &:hover:not(:disabled) {
+    background-color: rgba(241, 245, 249, 0.08);
+    border-color: rgba(241, 245, 249, 0.48);
+    color: var(--color-sidebar-text);
+  }
 }
 
 .edit-modal-overlay {

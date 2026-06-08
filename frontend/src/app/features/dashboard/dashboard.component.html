@@ -109,11 +109,11 @@
         ></textarea>
 
         <div class="form-actions">
-          <button class="btn-create" (click)="editingProject() ? confirmEditProject() : confirmCreateProject()" [disabled]="!editTitle.trim()">
-            {{ editingProject() ? 'Save' : 'Continue' }}
-          </button>
           <button class="btn-cancel" (click)="closeProjectModal()">
             Cancel
+          </button>
+          <button class="btn-create" (click)="editingProject() ? confirmEditProject() : confirmCreateProject()" [disabled]="!editTitle.trim()">
+            {{ editingProject() ? 'Save' : 'Continue' }}
           </button>
         </div>
       </div>
