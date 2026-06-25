@@ -170,7 +170,7 @@ TBD
 
 Watch ProtoPilot transform a product idea into a working prototype:
 
-📹 **Demo Video Link:** `[TBD]`
+📹 **Demo Video Link:** `https://drive.google.com/file/d/1YBcEzvtccvi5uLdjAVtt_jqFzcrAHjjQ/view?usp=sharing`
 
 The demo shows the complete workflow: requirements gathering → specification preview → chat refinement → live prototype interaction → code download.
 
