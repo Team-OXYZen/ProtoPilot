@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth.service';
 import { ProjectCard } from '../../shared/models/project-card.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SpecService } from '../spec-review/services/spec.service';
+import { environment } from '../../../environments/environment';
 
 type PreferenceRow = {
   key: string;
@@ -49,6 +50,7 @@ export class DashboardComponent implements OnInit {
   editingProject = signal<ProjectCard | null>(null);
   editTitle = '';
   editDescription = '';
+  readonly isReadOnlyMode = environment.readOnlyMode;
 
   private wizardService = inject(WizardService);
   private authService = inject(AuthService);
@@ -89,6 +91,7 @@ export class DashboardComponent implements OnInit {
   }
 
   openPreferences(): void {
+    if (this.isReadOnlyMode) return;
     this.showPreferences.set(true);
     this.preferencesError.set('');
     this.preferencesMessage.set('');
@@ -204,6 +207,7 @@ export class DashboardComponent implements OnInit {
 
   onEditProject(event: MouseEvent, project: ProjectCard): void {
     event.stopPropagation();
+    if (this.isReadOnlyMode) return;
     this.showCreateForm.set(false);
     this.editTitle = project.project_title || '';
     this.editDescription = project.project_description || '';
@@ -245,6 +249,7 @@ export class DashboardComponent implements OnInit {
 
   onDeleteProject(event: MouseEvent, project: ProjectCard): void {
     event.stopPropagation();
+    if (this.isReadOnlyMode) return;
     if (!confirm(`Delete "${project.project_title || project.project_id}"? This cannot be undone.`)) return;
 
     this.wizardService.deleteProject(project.project_id).subscribe({
@@ -313,6 +318,12 @@ export class DashboardComponent implements OnInit {
       this.editTitle.trim(),
       this.editDescription.trim()
     );
+
+    if (this.isReadOnlyMode) {
+      this.closeProjectModal();
+      this.router.navigate(['/requirements']);
+      return;
+    }
 
     this.wizardService.createProjectInDb().subscribe({
       next: (res) => {

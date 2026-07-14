@@ -1,3 +1,13 @@
-<app-loader></app-loader>
-<router-outlet />
-<app-footer></app-footer>
+@if (isUnsupportedViewport()) {
+  <div class="desktop-only-warning" role="alert" aria-live="polite">
+    <div class="desktop-only-warning__panel">
+      <div class="desktop-only-warning__icon" aria-hidden="true">!</div>
+      <h1>Desktop Required</h1>
+      <p>Mobile devices are not supported. Please use the desktop version to view ProtoPilot.</p>
+    </div>
+  </div>
+} @else {
+  <app-loader></app-loader>
+  <router-outlet />
+  <app-footer></app-footer>
+}

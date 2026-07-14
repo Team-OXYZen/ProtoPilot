@@ -37,6 +37,7 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
   isThinking = signal<boolean>(false);
   @Input() isPreviewMode: boolean = false;
   @Input() isStackblitzActive: boolean = false;
+  @Input() isReadOnlyMode: boolean = false;
   @ViewChild('chatHistoryElement') chatHistoryElement!: ElementRef;
   private observer?: MutationObserver;
 
@@ -61,6 +62,9 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
         });
 
         this.chatHistory.set(history);
+        if (this.isReadOnlyMode) {
+          setTimeout(() => this.scrollToTop());
+        }
       },
       error: (err) => {
         console.error("Failed to load chat history:", err);
@@ -69,6 +73,11 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    if (this.isReadOnlyMode) {
+      setTimeout(() => this.scrollToTop());
+      return;
+    }
+
     // Only initialize MutationObserver on client-side (browser environment)
     if (typeof window !== 'undefined' && MutationObserver) {
       this.observer = new MutationObserver(() => this.scrollToBottom());
@@ -218,6 +227,8 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   sendChatMessage() {
+    if (this.isReadOnlyMode) return;
+
     if (this.chatMessage) {
       this.sendBtnDisabled.set(true);
       this.isThinking.set(true);
@@ -288,6 +299,11 @@ export class ChatboxComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollToBottom(): void {
     const el = this.chatHistoryElement.nativeElement;
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
+
+  private scrollToTop(): void {
+    const el = this.chatHistoryElement?.nativeElement;
+    el?.scrollTo({ top: 0, behavior: 'auto' });
   }
 
 }

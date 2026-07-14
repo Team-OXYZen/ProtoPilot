@@ -26,6 +26,29 @@
       padding-right: $space-md;
       margin-bottom: $space-md;
 
+      .chat-paused-notice {
+        display: flex;
+        flex-direction: column;
+        gap: $space-xs;
+        margin-bottom: $space-lg;
+        padding: $space-md;
+        border: 1px solid rgba(251, 191, 36, 0.36);
+        border-radius: $radius-md;
+        background: rgba(251, 191, 36, 0.12);
+        color: var(--color-text-primary);
+        font-size: $text-sm;
+        line-height: 1.45;
+
+        strong {
+          color: var(--color-secondary);
+          font-size: $text-base;
+        }
+
+        span {
+          color: var(--color-text-secondary);
+        }
+      }
+
       .system-msg {
         padding: $space-xs;
         font-size: $text-base;

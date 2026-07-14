@@ -379,6 +379,11 @@
   span {
     white-space: nowrap;
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .container {
@@ -408,6 +413,32 @@
       grid-template-columns: 1fr;
     }
   }
+
+  &.read-only-mode {
+    @include breakpoint('md') {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.read-only-review-banner {
+  position: fixed;
+  top: 82px;
+  left: 40%;
+  z-index: 500;
+  width: min(860px, calc(100vw - #{$space-2xl}));
+  padding: $space-sm $space-lg;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.78), rgba(12, 35, 75, 0.72));
+  color: rgba(255, 255, 255, 0.92);
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  text-align: center;
+  box-shadow: $shadow-md;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .preview-container {

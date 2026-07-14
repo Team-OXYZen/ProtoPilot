@@ -1,8 +1,15 @@
+import os
+
 from fastapi import APIRouter, HTTPException
 from orchestration.deploy_manager import deploy_manager
 from orchestration.store import get_project
 
 router = APIRouter()
+READ_ONLY_MESSAGE = "ProtoPilot is running in showcase mode. Existing projects are view-only."
+
+
+def is_read_only_mode() -> bool:
+    return os.getenv("READ_ONLY_MODE", "").lower() in {"1", "true", "yes", "on"}
 
 
 @router.post("/projects/{project_id}/deploy")
@@ -15,6 +22,9 @@ async def deploy_project(project_id: str):
     Returns:
         dict with deployment status and port number
     """
+    if is_read_only_mode():
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
+
     proj = get_project(project_id)
     if proj is None:
         raise HTTPException(status_code=404, detail="Sorry, I could not find this project.")
@@ -50,5 +60,8 @@ async def undeploy_project(project_id: str):
     Returns:
         dict with status: 'stopped'
     """
+    if is_read_only_mode():
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
+
     await deploy_manager.undeploy(project_id)
     return {"status": "stopped"}

@@ -45,7 +45,7 @@
         <textarea
           [(ngModel)]="answer"
           id="answer"
-          placeholder="Type your answer..."
+          [placeholder]="isReadOnlyMode ? 'Type any app idea to see the demo response...' : 'Type your answer...'"
           class="input-area"
           [disabled]="isLoading()">
         </textarea>

@@ -1,3 +1,5 @@
+import os
+
 from orchestration.tools import delete_angular_code_file, list_angular_code_files, load_angular_code_file, patch_angular_code_file, rename_angular_code_file
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -11,6 +13,18 @@ from api.routes.deploy import router as deploy_router
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
+
+
+def is_read_only_mode() -> bool:
+    return os.getenv("READ_ONLY_MODE", "").lower() in {"1", "true", "yes", "on"}
+
+
+def reject_read_only_mutation() -> None:
+    if is_read_only_mode():
+        raise HTTPException(
+            status_code=403,
+            detail="ProtoPilot is running in showcase mode. Existing projects are view-only.",
+        )
 
 app = FastAPI(title="ProtoPilot API")
 app.include_router(auth_router)
@@ -59,6 +73,7 @@ def create_project(req: CreateProjectRequest, current_user: dict[str, str] = Dep
     Returns:
         dict with project_id, stage, user_id, and metadata
     """
+    reject_read_only_mutation()
     from orchestration.store import get_or_create_project, persist_project
 
     user_id = authenticated_user_id(current_user, req.user_id)
@@ -159,6 +174,7 @@ def update_project(
     Returns:
         dict with ok, project_id, and updated fields
     """
+    reject_read_only_mutation()
     from orchestration.persistent_store import update_project_info
     from orchestration.store import evict_project
 
@@ -182,6 +198,7 @@ async def delete_project(
     Returns:
         dict with ok and project_id
     """
+    reject_read_only_mutation()
     from orchestration.persistent_store import delete_project as db_delete_project
     from orchestration.store import evict_project
     from orchestration.deploy_manager import deploy_manager
@@ -200,6 +217,7 @@ def update_project_stage(
     stage: str,
     current_user: dict[str, str] = Depends(get_current_user),
 ):
+    reject_read_only_mutation()
     from orchestration.persistent_store import Stage, set_project_stage
 
     proj = get_owned_project(project_id, authenticated_user_id(current_user))
@@ -216,6 +234,7 @@ def update_project_stage(
 
 @app.post("/test_tool")
 def test_tool(payload: dict, current_user: dict[str, str] = Depends(get_current_user)):
+    reject_read_only_mutation()
     from orchestration.tools import load_spec, save_nontech_artifacts, save_technical_artifacts
 
     tool_mapping = {

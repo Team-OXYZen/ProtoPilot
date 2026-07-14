@@ -1,6 +1,12 @@
 <div class="sidebar">
   <div class="chat-section">
     <div #chatHistoryElement class="chat-history">
+      @if(isReadOnlyMode) {
+        <div class="chat-paused-notice">
+          <strong>Chat refinements are paused.</strong>
+          <span>The sponsor-provided LLM keys have expired, so this preview is view-only. You can still review the earlier conversation and generated app.</span>
+        </div>
+      }
       @for(msg of chatHistory(); track msg.id){
         @if(msg.type === "activity"){
           <div class="activity-msg" [class]="'activity-' + (msg.status || 'info')">
@@ -33,14 +39,14 @@
       <div class="input-wrapper">
         <textarea
           [(ngModel)]="chatMessage"
-          placeholder="Describe the changes in natural language..."
+          [placeholder]="isReadOnlyMode ? 'Chat is paused in showcase mode' : 'Describe the changes in natural language...'"
           rows="3"
-          [disabled]="isThinking()">
+          [disabled]="isReadOnlyMode || isThinking()">
         </textarea>
         <button 
           class="send-btn"
           (click)="sendChatMessage()" 
-          [disabled]="sendBtnDisabled() || isThinking()"
+          [disabled]="isReadOnlyMode || sendBtnDisabled() || isThinking()"
           [title]="sendBtnText()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"></line>

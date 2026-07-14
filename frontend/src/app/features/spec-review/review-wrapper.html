@@ -17,7 +17,7 @@
           <span>View Spec</span>
         }
       </button>
-      <button class="approve-btn" title="Approve and Generate Code" (click)="approveSpec()">
+      <button class="approve-btn" title="Approve and Generate Code" (click)="approveSpec()" [disabled]="isReadOnlyMode">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -49,7 +49,7 @@
           <!-- Primary action -->
           @if (specService.needsRedeploy()) {
             @if (specService.deployStatus() === 'running') {
-              <button class="deploy-link deploy-link--stale" title="Preview is outdated — re-finalize to sync the backend" (click)="openStaleDeployLink()">
+              <button class="deploy-link deploy-link--stale" title="Preview is outdated — re-finalize to sync the backend" (click)="openStaleDeployLink()" [disabled]="isReadOnlyMode">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                   <polyline points="15 3 21 3 21 9"></polyline>
@@ -57,7 +57,7 @@
                 </svg>
               </button>
             }
-            <button class="finalize-btn" (click)="confirmRedeploy()">
+            <button class="finalize-btn" (click)="confirmRedeploy()" [disabled]="isReadOnlyMode">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="16 16 12 12 8 16"></polyline>
                 <line x1="12" y1="12" x2="12" y2="21"></line>
@@ -66,7 +66,7 @@
               <span>Re-finalize</span>
             </button>
           } @else if (specService.deployStatus() === 'idle' || specService.deployStatus() === 'failed') {
-            <button class="deploy-btn" title="Deploy locally with Docker" (click)="deployProject()">
+            <button class="deploy-btn" title="Deploy locally with Docker" (click)="deployProject()" [disabled]="isReadOnlyMode">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polygon points="10 8 16 12 10 16 10 8"></polygon>
@@ -91,7 +91,7 @@
             </a>
           }
         } @else {
-          <button class="finalize-btn" title="Prepare live demo" (click)="finalizeProject()">
+          <button class="finalize-btn" title="Prepare live demo" (click)="finalizeProject()" [disabled]="isReadOnlyMode">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="16 16 12 12 8 16"></polyline>
               <line x1="12" y1="12" x2="12" y2="21"></line>
@@ -100,7 +100,7 @@
             <span>Finalize</span>
           </button>
         }
-        <div class="export-menu" (click)="$event.stopPropagation()">
+        <div class="export-menu" [class.is-read-only]="isReadOnlyMode" (click)="$event.stopPropagation()">
           <button class="export-btn" type="button" title="Export integrations" (click)="toggleExportMenu($event)">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -114,8 +114,13 @@
           </button>
           @if (showExportMenu()) {
             <div class="export-dropdown">
+              @if (isReadOnlyMode) {
+                <div class="export-status">
+                  Exports are paused in showcase mode.
+                </div>
+              }
               @if (!githubConnected()) {
-                <button type="button" class="export-item" (click)="connectGitHub($event)" [disabled]="githubConnectLoading()">
+                <button type="button" class="export-item" (click)="connectGitHub($event)" [disabled]="isReadOnlyMode || githubConnectLoading()">
                   <span class="export-item__icon export-item__icon--github export-item__icon--brand" aria-hidden="true">
                     <svg [attr.viewBox]="exportIcons.github.viewBox">
                       @for (path of exportIcons.github.paths; track path) {
@@ -131,12 +136,12 @@
               } @else {
                 <div class="export-status">
                   GitHub connected as <strong>{{ githubUsername() || 'Connected' }}</strong>
-                  <button type="button" class="export-status__disconnect" (click)="disconnectGitHub($event)" [disabled]="githubDisconnectLoading()">
+                  <button type="button" class="export-status__disconnect" (click)="disconnectGitHub($event)" [disabled]="isReadOnlyMode || githubDisconnectLoading()">
                     {{ githubDisconnectLoading() ? 'Disconnecting...' : 'Disconnect' }}
                   </button>
                 </div>
               }
-              <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="!githubConnected() || githubExportLoading()">
+              <button type="button" class="export-item" (click)="exportToGitHub($event)" [disabled]="isReadOnlyMode || !githubConnected() || githubExportLoading()">
                 <span class="export-item__icon export-item__icon--github export-item__icon--brand" aria-hidden="true">
                   <svg [attr.viewBox]="exportIcons.github.viewBox">
                     @for (path of exportIcons.github.paths; track path) {
@@ -150,7 +155,7 @@
                 </span>
               </button>
               @if (!atlassianConnected()) {
-                <button type="button" class="export-item" (click)="connectAtlassian($event)" [disabled]="atlassianConnectLoading()">
+                <button type="button" class="export-item" (click)="connectAtlassian($event)" [disabled]="isReadOnlyMode || atlassianConnectLoading()">
                   <span class="export-item__icon export-item__icon--atlassian export-item__icon--brand" aria-hidden="true">
                     <svg [attr.viewBox]="exportIcons.atlassian.viewBox">
                       @for (path of exportIcons.atlassian.paths; track path) {
@@ -166,12 +171,12 @@
               } @else {
                 <div class="export-status">
                   Atlassian connected as <strong>{{ atlassianUsername() || 'Connected' }}</strong>
-                  <button type="button" class="export-status__disconnect" (click)="disconnectAtlassian($event)" [disabled]="atlassianDisconnectLoading()">
+                  <button type="button" class="export-status__disconnect" (click)="disconnectAtlassian($event)" [disabled]="isReadOnlyMode || atlassianDisconnectLoading()">
                     {{ atlassianDisconnectLoading() ? 'Disconnecting...' : 'Disconnect' }}
                   </button>
                 </div>
               }
-              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="!atlassianConnected() || jiraTasksLoading()">
+              <button type="button" class="export-item" (click)="createJiraTasks($event)" [disabled]="isReadOnlyMode || !atlassianConnected() || jiraTasksLoading()">
                 <span class="export-item__icon export-item__icon--jira export-item__icon--brand" aria-hidden="true">
                   <svg [attr.viewBox]="exportIcons.jira.viewBox">
                     @for (path of exportIcons.jira.paths; track path) {
@@ -184,7 +189,7 @@
                   <small>{{ atlassianConnected() ? 'Publish epics, stories, and subtasks' : 'Connect Atlassian first' }}</small>
                 </span>
               </button>
-              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="!atlassianConnected() || confluenceExportLoading()">
+              <button type="button" class="export-item" (click)="exportArtifactsToConfluence($event)" [disabled]="isReadOnlyMode || !atlassianConnected() || confluenceExportLoading()">
                 <span class="export-item__icon export-item__icon--confluence export-item__icon--brand" aria-hidden="true">
                   <svg [attr.viewBox]="exportIcons.confluence.viewBox">
                     @for (path of exportIcons.confluence.paths; track path) {
@@ -197,7 +202,7 @@
                   <small>{{ atlassianConnected() ? 'Publish generated artifacts as pages' : 'Connect Atlassian first' }}</small>
                 </span>
               </button>
-              <button type="button" class="export-item" (click)="downloadZip($event)">
+              <button type="button" class="export-item" (click)="downloadZip($event)" [disabled]="isReadOnlyMode">
                 <span class="export-item__icon export-item__icon--download" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path d="M12 3v10"></path>
@@ -218,6 +223,12 @@
   </div>
 </app-header>
 
+@if (isReadOnlyMode) {
+  <div class="read-only-review-banner">
+    Showcase mode: AI generation, chat refinements, deployment, and external exports are paused. Existing artifacts and generated app previews remain available.
+  </div>
+}
+
 @if (integrationError() || integrationMessage()) {
   <div class="integration-status" [class.error]="integrationError()">
     <span>{{ integrationError() || integrationMessage() }}</span>
@@ -227,7 +238,7 @@
   </div>
 }
 
-<div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive() }">
+<div class="container" [class]="{ 'stackblitz-mode': isStackblitzActive(), 'read-only-mode': isReadOnlyMode }">
   @if (!isStackblitzActive()) {
     @if (showSpecView() && !hasGeneratedCode()) {
       <app-left-panel [selectedSection]="selectedSection" (sectionSelected)="onSectionSelect($event)">
@@ -244,5 +255,5 @@
     <app-right-panel [selectedFile]="selectedFile" [mdText]="getMdText(selectedFile)" [isPreviewMode]="true">
     </app-right-panel>
   }
-  <app-chatbox [isStackblitzActive]="isStackblitzActive()"> </app-chatbox>
+  <app-chatbox [isStackblitzActive]="isStackblitzActive()" [isReadOnlyMode]="isReadOnlyMode"> </app-chatbox>
 </div>

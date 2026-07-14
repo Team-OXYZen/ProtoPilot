@@ -70,6 +70,12 @@
       </button>
     </form>
 
+    @if (!isSignUp) {
+      <button class="demo-login-btn" type="button" (click)="continueAsDemo()" [disabled]="isLoading()">
+        Continue as demo
+      </button>
+    }
+
     <div class="toggle-mode">
       @if (!isSignUp) {
         <span>Don't have an account? <button class="link-btn" (click)="toggleMode()" [disabled]="isLoading()">Sign Up</button></span>
@@ -78,8 +84,5 @@
       }
     </div>
 
-    <div class="demo-hint">
-      <small>Demo credentials: <strong>demo</strong> / <strong>demo123</strong></small>
-    </div>
   </div>
 </div>

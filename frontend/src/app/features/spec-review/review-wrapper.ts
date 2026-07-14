@@ -12,6 +12,7 @@ import { catchError, finalize, interval, of, Subscription, switchMap, takeWhile 
 import { ChatboxComponent } from './chatbox';
 import { LoaderService } from '../../shared/services/loader.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-review-wrapper',
@@ -42,6 +43,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   confluenceExportLoading = signal(false);
   integrationError = signal('');
   integrationMessage = signal('');
+  readonly isReadOnlyMode = environment.readOnlyMode;
   exportIcons = {
     github: this.toSvgIcon(faGithub),
     atlassian: this.toSvgIcon(faAtlassian),
@@ -138,7 +140,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
       this.selectedFile = 'code-preview';
     }
     const projectId = this.wizardService.project?.id;
-    if (projectId && this.hasJavaCode()) {
+    if (!this.isReadOnlyMode && projectId && this.hasJavaCode()) {
       this.wizardService.getDeployStatus(projectId).subscribe({
         next: (s) => {
           if (s.status === 'running') this.specService.setDeployStatus('running', s.url);
@@ -146,8 +148,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
-    this.loadGitHubConnectionStatus();
-    this.loadAtlassianConnectionStatus();
+    if (!this.isReadOnlyMode) {
+      this.loadGitHubConnectionStatus();
+      this.loadAtlassianConnectionStatus();
+    }
 
     this.route.queryParams.subscribe(params => {
       if (params['github_connected'] === '1') {
@@ -200,6 +204,10 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   private recordActivity(message: string, status: 'info' | 'running' | 'success' | 'error' = 'info'): void {
     this.chatbox?.addActivityMessage(message, status);
 
+    if (this.isReadOnlyMode) {
+      return;
+    }
+
     const projectId = this.wizardService.project?.id;
     if (!projectId) {
       console.warn('Could not save activity because project context is missing:', { message, status });
@@ -218,6 +226,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   connectGitHub(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     clearInterval(this.oauthPoll);
     if (this.oauthMessageHandler) window.removeEventListener('message', this.oauthMessageHandler);
     this.oauthPoll = undefined;
@@ -275,6 +284,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   disconnectGitHub(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     this.githubDisconnectLoading.set(true);
     this.integrationError.set('');
     this.integrationMessage.set('');
@@ -295,6 +305,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   exportToGitHub(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     const sessionId = this.wizardService.session?.id;
 
@@ -337,6 +348,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   createJiraTasks(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     const sessionId = this.wizardService.session?.id;
 
@@ -371,6 +383,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   exportArtifactsToConfluence(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     const sessionId = this.wizardService.session?.id;
 
@@ -415,6 +428,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   private loadGitHubConnectionStatus(): void {
+    if (this.isReadOnlyMode) return;
     this.wizardService.getGitHubConnectionStatus().subscribe({
       next: (result) => {
         this.githubConnected.set(!!result?.connected);
@@ -428,6 +442,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   private loadAtlassianConnectionStatus(): void {
+    if (this.isReadOnlyMode) return;
     this.wizardService.getAtlassianConnectionStatus().subscribe({
       next: (result) => {
         this.atlassianConnected.set(!!result?.connected);
@@ -442,6 +457,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   connectAtlassian(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     clearInterval(this.atlassianOauthPoll);
     if (this.atlassianOauthMessageHandler) window.removeEventListener('message', this.atlassianOauthMessageHandler);
     this.atlassianOauthPoll = undefined;
@@ -498,6 +514,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   disconnectAtlassian(event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     this.atlassianDisconnectLoading.set(true);
     this.integrationError.set('');
     this.integrationMessage.set('');
@@ -522,6 +539,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   approveSpec() {
+    if (this.isReadOnlyMode) return;
     this.loaderService.startWithMessages(['Reviewing your idea...', 'Organizing the plan...', 'Preparing the next documents...', 'Almost there...']);
     this.recordActivity('Preparing the implementation plan...', 'running');
     this.wizardService.sendMessage('approve', false).pipe(catchError(err => {
@@ -562,6 +580,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   generateCode() {
+    if (this.isReadOnlyMode) return;
     this.loaderService.startWithMessages(['Preparing your prototype...', 'Putting the screens together...', 'Adding the main interactions...', 'Almost there...']);
     this.recordActivity('Preparing the interactive prototype...', 'running');
     this.wizardService.sendMessage('generate-code', false).pipe(catchError(err => {
@@ -588,6 +607,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   confirmRedeploy() {
+    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     if (this.specService.deployStatus() === 'running') {
       const confirmed = confirm('Preparing a fresh live demo will replace the current preview link. Continue?');
@@ -601,6 +621,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   finalizeProject() {
+    if (this.isReadOnlyMode) return;
     this.loaderService.startWithMessages(['Preparing the live demo...', 'Connecting the experience...', 'Checking the preview...', 'Almost there...']);
     this.recordActivity('Preparing the live demo setup...', 'running');
     this.wizardService.sendMessage('finalize', false).pipe(catchError(err => {
@@ -679,6 +700,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   async downloadZip(event?: MouseEvent) {
     event?.stopPropagation();
+    if (this.isReadOnlyMode) return;
     this.showExportMenu.set(false);
 
     const stale = this.specService.needsRedeploy();
@@ -760,6 +782,7 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   deployProject() {
+    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     if (!projectId) return;
 

@@ -8,6 +8,7 @@ import { CONSTANTS } from '../../config/sample-questions';
 import { catchError, EMPTY, map } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { LoaderService } from '../../../../shared/services/loader.service';
+import { environment } from '../../../../../environments/environment';
 
 const FRIENDLY_WIZARD_ERROR = 'Sorry, something went wrong while preparing the next step. Please try again in a moment.';
 
@@ -24,6 +25,7 @@ export class WizardComponent implements OnInit {
   answer: string = '';
   sessionId: string = '';
   isLoading = signal(false);
+  readonly isReadOnlyMode = environment.readOnlyMode;
 
   wizardService = inject(WizardService);
   specService = inject(SpecService);
@@ -39,6 +41,17 @@ export class WizardComponent implements OnInit {
     this.wizardService.session$.subscribe((session) => {
       this.sessionId = session?.id || "";
     });
+
+    if (this.isReadOnlyMode) {
+      this.currentQuestion = {
+        summary: 'New AI generation is paused in this hosted demo.',
+        question: 'Type any app idea below to see what ProtoPilot would normally do next, or explore the previously built projects from the dashboard.',
+        suggestions: [
+          { label: 'Explore earlier projects', selected: false },
+          { label: 'Open demo dashboard', selected: false },
+        ],
+      };
+    }
   }
 
   private getErrorMessage(err: any): string {
@@ -153,6 +166,19 @@ export class WizardComponent implements OnInit {
     });
   }
 
+  private showShowcaseReply(): void {
+    this.currentQuestion = {
+      summary: 'Thanks, that is exactly the kind of idea ProtoPilot is built for.',
+      question: 'In the live product, ProtoPilot would turn this into requirements, design docs, code, and a preview link. New AI generation is paused because the sponsor-provided LLM keys have expired, but you can still explore earlier projects and preview the apps that were already generated.',
+      suggestions: [
+        { label: 'Explore earlier projects', selected: false },
+        { label: 'Preview generated apps', selected: false },
+        { label: 'Return to dashboard', selected: false },
+      ],
+    };
+    this.isLoading.set(false);
+  }
+
   handleSendMessage() {
     if (!this.answer) return;
 
@@ -163,6 +189,11 @@ export class WizardComponent implements OnInit {
 
     let tempAnswer = this.answer;
     this.answer = "";
+
+    if (this.isReadOnlyMode) {
+      this.showShowcaseReply();
+      return;
+    }
 
     this.wizardService.sendMessage(tempAnswer).pipe(catchError(err => {
       console.error('Requirements request failed:', err);
@@ -246,6 +277,11 @@ export class WizardComponent implements OnInit {
   }
 
   selectSuggestion(suggestion: { label: string, selected: boolean }) {
+    if (this.isReadOnlyMode) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
     this.answer = '';
     suggestion.selected = !suggestion.selected;
     this.currentQuestion?.suggestions?.map(suggestion => {

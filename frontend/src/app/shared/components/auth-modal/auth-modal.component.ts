@@ -89,4 +89,30 @@ export class AuthModalComponent {
       },
     });
   }
+
+  continueAsDemo(): void {
+    this._isSignUp.set(false);
+    this.username.set('demo');
+    this.password.set('demo123');
+    this.passwordConfirm.set('');
+    this.errorMessage.set('');
+    this.isLoading.set(true);
+
+    this.authService.login('demo', 'demo123').subscribe({
+      next: (success) => {
+        this.isLoading.set(false);
+
+        if (success) {
+          this.router.navigate(['/dashboard']);
+          return;
+        }
+
+        this.errorMessage.set('Demo account is unavailable. Please try again later.');
+      },
+      error: () => {
+        this.errorMessage.set('Demo account is unavailable. Please try again later.');
+        this.isLoading.set(false);
+      },
+    });
+  }
 }

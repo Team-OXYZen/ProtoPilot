@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,11 @@ from orchestration.persistent_store import save_chat_message, list_chat_messages
 router = APIRouter()
 orch = Orchestrator()
 CHAT_USER_ERROR_MESSAGE = "Sorry, something went wrong while working on your project. Please try again in a moment."
+READ_ONLY_MESSAGE = "ProtoPilot is running in showcase mode. Existing projects are view-only."
+
+
+def is_read_only_mode() -> bool:
+    return os.getenv("READ_ONLY_MODE", "").lower() in {"1", "true", "yes", "on"}
 
 
 class ChatRequest(BaseModel):
@@ -99,6 +105,9 @@ async def chat(req: ChatRequest, current_user: dict[str, str] = Depends(get_curr
     Returns:
         dict with orchestration result, stage, artifacts, and code files
     """
+    if is_read_only_mode():
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
+
     req.user_id = authenticated_user_id(current_user, req.user_id)
     ensure_owned_project_or_missing(req.project_id, req.user_id)
     log_event(
@@ -236,6 +245,9 @@ def log_project_activity(
     current_user: dict[str, str] = Depends(get_current_user),
 ):
     """Store a user-friendly activity event in chat history."""
+    if is_read_only_mode():
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
+
     project = get_owned_project(project_id, authenticated_user_id(current_user))
     allowed_statuses = {"info", "running", "success", "error"}
     status = req.status if req.status in allowed_statuses else "info"

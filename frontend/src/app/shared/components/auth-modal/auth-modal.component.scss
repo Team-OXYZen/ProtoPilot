@@ -194,6 +194,43 @@
   margin-bottom: $space-lg;
 }
 
+.demo-login-btn {
+  width: 100%;
+  min-height: 46px;
+  margin: -$space-sm 0 $space-lg;
+  padding: $space-md $space-lg;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: $radius-md;
+  background-color: rgba(251, 191, 36, 0.12);
+  color: var(--color-secondary);
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(251, 191, 36, 0.2);
+    border-color: var(--color-secondary);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+:host-context([data-theme="light"]) .demo-login-btn {
+  background-color: #003366;
+  border-color: #003366;
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#003366, $lightness: -8%);
+    border-color: color.adjust(#003366, $lightness: -8%);
+  }
+}
+
 .link-btn {
   background: none;
   border: none;
@@ -208,20 +245,5 @@
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-}
-
-.demo-hint {
-  text-align: center;
-  font-size: $text-xs;
-  color: var(--color-text-tertiary);
-  padding: $space-md;
-  background-color: var(--color-modal-hint);
-  border-radius: $radius-md;
-  border-left: 3px solid var(--color-secondary);
-
-  strong {
-    color: var(--color-secondary);
-    font-weight: $font-semibold;
   }
 }
