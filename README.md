@@ -71,39 +71,39 @@ Here are a few key moments in the ProtoPilot workflow:
 <div align="center">
   <table>
     <tr>
-      <td align="center">
-      <strong>Requirements Gathering</strong>
+      <td align="center" style="padding: 20px 0;">
+      <strong>1. Requirements Gathering</strong>
       <br />
-      <img src="docs/gifs/requirements.gif" alt="Requirements gathering flow" width="320" />
+      <img style="padding: 10px 0;" src="docs/gifs/requirements.gif" alt="Requirements gathering flow" />
       <br />
-      <em>An initial idea for a calories tracker app was entered, and clarifying questions were then asked.</em>
+      <em>When I enter an initial idea for building a calories tracker app, ProtoPilot starts asking clarifying questions.</em>
       </td>
    </tr>
    <tr>
-      <td align="center">
-      <strong>Generated Artifacts</strong>
+      <td align="center" style="padding: 20px 0;">
+      <strong>2. Artifacts Generation</strong>
       <br />
-      <img src="docs/gifs/artefacts.gif" alt="Generated technical and non-technical artifacts" width="320" />
+      <img style="padding: 10px 0;" src="docs/gifs/artefacts.gif" alt="Generated technical and non-technical artifacts" />
       <br />
-      <em>Design docs were then generated.</em>
+      <em>Next, Product Requirement Documents including system diagrams, API Docs, Jira plans, etc. get ready for review.</em>
       </td>
    </tr>
     <tr>
-      <td align="center">
-      <strong>Live Prototype Preview</strong>
+      <td align="center" style="padding: 20px 0;">
+      <strong>3. Live Prototype Preview</strong>
       <br />
-      <img src="docs/gifs/prototype.gif" alt="Live prototype preview and refinements" width="320" />
+      <img style="padding: 10px 0;" src="docs/gifs/prototype.gif" alt="Live prototype preview and refinements" />
       <br />
-      <em>Once approved, the code was written and an interactive prototype was presented, which could then be modified through the chat interface.</em>
+      <em>Once approved, the code gets generated and an interactive prototype is presented, which could then be modified through the chat interface.</em>
       </td>
     </tr>
     <tr>
-      <td align="center" colspan="2">
-      <strong>Integrations</strong>
+      <td align="center" style="padding: 20px 0;" colspan="2">
+      <strong>4. Hand Off & Integrations</strong>
       <br />
-      <img src="docs/gifs/export.gif" alt="Exporting to GitHub, Jira, and Confluence" width="320" />
+      <img style="padding: 10px 0;" src="docs/gifs/export.gif" alt="Exporting to GitHub, Jira, and Confluence" />
       <br />
-      <em>The generated code and docs could be downloaded, code could be exported to GitHub, docs to Confluence, and Jira stories could be created automatically.</em>
+      <em>The generated code and docs can now be downloaded, code exported to GitHub, docs to Confluence, and Jira stories can be created automatically.</em>
       </td>
     </tr>
   </table>
