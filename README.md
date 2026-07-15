@@ -208,6 +208,17 @@ ProtoPilot uses a multi-agent orchestration system to generate production-ready 
 
 ---
 
+## 🔮 Known Issues & Future Work
+Please refer our issues tracker here: \
+https://github.com/orgs/Team-OXYZen/projects/1
+
+### Future Enhancements
+- [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
+- [ ] **Design System Export** — Export generated designs to Figma/Sketch
+- [ ] **Custom LLM Keys Support** — Allow users to plug their own LLM keys
+
+---
+
 ## 👥 Team
 
 | Name | LinkedIn |
@@ -217,15 +228,22 @@ ProtoPilot uses a multi-agent orchestration system to generate production-ready 
 | Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
 | Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
----
-
-## 🔮 Known Issues & Future Work
-Please refer our issues tracker here: \
-https://github.com/orgs/Team-OXYZen/projects/1
-
-### Future Enhancements
-- [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
-- [ ] **Design System Export** — Export generated designs to Figma/Sketch
-- [ ] **Custom LLM Keys Support** — Allow users to plug their own LLM keys
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" colspan="2" style="padding: 10px;">
+        <img style="max-width: 100%; height: auto;" src="./docs/expo/team.jpeg" alt="Team group photo" />
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 10px;">
+        <img style="max-width: 100%; height: 450px;" src="./docs/expo/expo.jpeg" alt="Expo screenshot" />
+      </td>
+      <td align="center" style="padding: 10px;">
+        <img style="max-width: 100%; height: 450px;" src="./docs/expo/ids.jpeg" alt="IDS screenshot" />
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
