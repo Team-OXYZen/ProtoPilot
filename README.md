@@ -64,22 +64,47 @@ The demo shows the complete workflow: requirements gathering → specification p
 
 ---
 
-## 📸 Use Cases at a Glance
+## 📸 User FLow at a Glance
 
 Here are a few key moments in the ProtoPilot workflow:
 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="docs/screenshots/requirements-gathering.svg" alt="Requirements gathering flow" width="320" /><br /><strong>Requirements Gathering</strong></td>
-      <td align="center"><img src="docs/screenshots/artefacts.svg" alt="Generated technical and non-technical artifacts" width="320" /><br /><strong>Generated Artifacts</strong></td>
+      <td align="center">
+      <strong>Requirements Gathering</strong>
+      <br />
+      <img src="docs/gifs/requirements.gif" alt="Requirements gathering flow" width="320" />
+      <br />
+      <em>An initial idea for a calories tracker app was entered, and clarifying questions were then asked.</em>
+      </td>
+   </tr>
+   <tr>
+      <td align="center">
+      <strong>Generated Artifacts</strong>
+      <br />
+      <img src="docs/gifs/artefacts.gif" alt="Generated technical and non-technical artifacts" width="320" />
+      <br />
+      <em>Design docs were then generated.</em>
+      </td>
+   </tr>
+    <tr>
+      <td align="center">
+      <strong>Live Prototype Preview</strong>
+      <br />
+      <img src="docs/gifs/prototype.gif" alt="Live prototype preview and refinements" width="320" />
+      <br />
+      <em>Once approved, the code was written and an interactive prototype was presented, which could then be modified through the chat interface.</em>
+      </td>
     </tr>
     <tr>
-      <td align="center"><img src="docs/screenshots/prototype-preview.svg" alt="Live prototype preview and refinements" width="320" /><br /><strong>Live Prototype Preview</strong></td>
-      <td align="center"><img src="docs/screenshots/deployment.svg" alt="Deployment to a shareable URL" width="320" /><br /><strong>Shareable Deployment</strong></td>
-    </tr>
-    <tr>
-      <td align="center" colspan="2"><img src="docs/screenshots/integrations.svg" alt="Exporting to GitHub, Jira, and Confluence" width="320" /><br /><strong>Integrations</strong></td>
+      <td align="center" colspan="2">
+      <strong>Integrations</strong>
+      <br />
+      <img src="docs/gifs/export.gif" alt="Exporting to GitHub, Jira, and Confluence" width="320" />
+      <br />
+      <em>The generated code and docs could be downloaded, code could be exported to GitHub, docs to Confluence, and Jira stories could be created automatically.</em>
+      </td>
     </tr>
   </table>
 </div>
@@ -150,7 +175,7 @@ Navigate to `http://localhost:4200/`. The application automatically reloads when
 
 ProtoPilot uses a multi-agent orchestration system to generate production-ready prototypes:
 
-![Architecture Diagram](./frontend/src/assets/architecture-diagram.png)
+![Architecture Diagram](./docs/ArchitectureDiagram.png)
 
 **Key Components:**
 
