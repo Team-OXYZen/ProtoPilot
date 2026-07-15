@@ -223,11 +223,11 @@
   </div>
 </app-header>
 
-@if (isReadOnlyMode) {
+<!-- @if (isReadOnlyMode) {
   <div class="read-only-review-banner">
     Showcase mode: AI generation, chat refinements, deployment, and external exports are paused. Existing artifacts and generated app previews remain available.
   </div>
-}
+} -->
 
 @if (integrationError() || integrationMessage()) {
   <div class="integration-status" [class.error]="integrationError()">
