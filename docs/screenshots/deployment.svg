@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0f172a" rx="24"/>
+  <rect x="120" y="110" width="720" height="320" rx="24" fill="#111827" stroke="#22c55e" stroke-width="3"/>
+  <rect x="160" y="150" width="280" height="180" rx="18" fill="#14532d"/>
+  <rect x="470" y="150" width="300" height="180" rx="18" fill="#166534"/>
+  <rect x="200" y="220" width="180" height="16" rx="8" fill="#dcfce7"/>
+  <rect x="500" y="220" width="200" height="16" rx="8" fill="#dcfce7"/>
+  <circle cx="720" cy="360" r="40" fill="#4ade80"/>
+  <text x="480" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#f8fafc">Deploy to a Shareable URL</text>
+</svg>

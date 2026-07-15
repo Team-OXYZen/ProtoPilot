@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0f172a" rx="24"/>
+  <rect x="90" y="95" width="780" height="350" rx="20" fill="#111827" stroke="#f43f5e" stroke-width="3"/>
+  <rect x="140" y="145" width="180" height="100" rx="16" fill="#7f1d1d"/>
+  <rect x="360" y="145" width="180" height="100" rx="16" fill="#581c87"/>
+  <rect x="580" y="145" width="180" height="100" rx="16" fill="#1d4ed8"/>
+  <rect x="160" y="290" width="600" height="90" rx="16" fill="#1f2937" stroke="#fb7185"/>
+  <text x="480" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#f8fafc">Export to GitHub, Jira, and Confluence</text>
+</svg>

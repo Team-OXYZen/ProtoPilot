@@ -2,9 +2,11 @@
 
 **Turning Product Vision into Working Prototypes**
 
-An intelligent prototyping platform that uses LLM agents to transform product requirements into fully functional Angular applications. Simply describe your product idea, and ProtoPilot generates a complete specification, design artifacts, and working code—with an interactive chat interface for iterative refinement.
+An intelligent prototyping platform that uses AI agents to transform product requirements into fully functional Angular applications. Simply describe your product idea, and ProtoPilot generates a complete specification, design artifacts, and working code—with an interactive chat interface for iterative refinement.
 
 > **UCI MCS 2026 Capstone Project** | **Sponsored by [Cotality](https://cotality.com)**
+
+> **Try it now:** [Live App](https://protopilot.onrender.com/) | [Demo Video](https://drive.google.com/file/d/1YBcEzvtccvi5uLdjAVtt_jqFzcrAHjjQ/view?usp=sharing)
 
 ---
 
@@ -23,17 +25,6 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 - **Non-Technical Stakeholders** — Communicate requirements without technical jargon
 - **Startup Founders** — Validate product concepts with working prototypes
 - **Design Teams** — Generate initial design systems and documentation
-
----
-
-## 👥 Team
-
-| Name | LinkedIn |
-|------|----------|
-| Omkar Dabir | https://www.linkedin.com/in/rakmo33/ |
-| Xin Jiang | https://www.linkedin.com/in/xin-jiang12/ |
-| Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
-| Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
 ---
 
@@ -63,25 +54,35 @@ An intelligent prototyping platform that uses LLM agents to transform product re
 
 ---
 
-## 🏗️ Architecture
+## 🎬 Demo
 
-ProtoPilot uses a multi-agent orchestration system to generate production-ready prototypes:
+Watch ProtoPilot transform a product idea into a working prototype:
 
-![Architecture Diagram](./frontend/src/assets/architecture-diagram.png)
+📹 **Demo Video Link:** https://drive.google.com/file/d/1YBcEzvtccvi5uLdjAVtt_jqFzcrAHjjQ/view?usp=sharing
 
-**Key Components:**
+The demo shows the complete workflow: requirements gathering → specification preview → chat refinement → live prototype interaction → code download.
 
-- **Frontend (Angular 21)**: Handles user dashboard, requirements wizard, spec review with chat, live prototype preview, and code editor
-- **FastAPI Backend**: REST API for project management, authentication, and agent orchestration
-- **Orchestrator**: Coordinates multi-agent workflow, manages conversation state and project data
-- **4 Specialized Agents**: 
-  - **Requirements Agent** — Analyzes user input and generates detailed PRD
-  - **Code Generation Agent** — Creates Angular components and services
-  - **QA Agent** — Validates specifications and identifies gaps
-  - **Artifacts Agent** — Generates design docs, user flows, and export packages
-- **LLM Integration**: Google Gemini & Claude models via Cotality's private LLM service
-- **SQLite Database**: Stores projects, sessions, and user data
-- **Tools & Functions**: Markdown rendering, diagram generation, code export utilities
+---
+
+## 📸 Use Cases at a Glance
+
+Here are a few key moments in the ProtoPilot workflow:
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="docs/screenshots/requirements-gathering.svg" alt="Requirements gathering flow" width="320" /><br /><strong>Requirements Gathering</strong></td>
+      <td align="center"><img src="docs/screenshots/artefacts.svg" alt="Generated technical and non-technical artifacts" width="320" /><br /><strong>Generated Artifacts</strong></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="docs/screenshots/prototype-preview.svg" alt="Live prototype preview and refinements" width="320" /><br /><strong>Live Prototype Preview</strong></td>
+      <td align="center"><img src="docs/screenshots/deployment.svg" alt="Deployment to a shareable URL" width="320" /><br /><strong>Shareable Deployment</strong></td>
+    </tr>
+    <tr>
+      <td align="center" colspan="2"><img src="docs/screenshots/integrations.svg" alt="Exporting to GitHub, Jira, and Confluence" width="320" /><br /><strong>Integrations</strong></td>
+    </tr>
+  </table>
+</div>
 
 ---
 
@@ -145,9 +146,25 @@ Navigate to `http://localhost:4200/`. The application automatically reloads when
 
 ---
 
-## ✅ Testing & Verification
+## 🏗️ Architecture
 
-TBD
+ProtoPilot uses a multi-agent orchestration system to generate production-ready prototypes:
+
+![Architecture Diagram](./frontend/src/assets/architecture-diagram.png)
+
+**Key Components:**
+
+- **Frontend (Angular 21)**: Handles user dashboard, requirements wizard, spec review with chat, live prototype preview, and code editor
+- **FastAPI Backend**: REST API for project management, authentication, and agent orchestration
+- **Orchestrator**: Coordinates multi-agent workflow, manages conversation state and project data
+- **4 Specialized Agents**: 
+  - **Requirements Agent** — Analyzes user input and generates detailed PRD
+  - **Code Generation Agent** — Creates Angular components and services
+  - **QA Agent** — Validates specifications and identifies gaps
+  - **Artifacts Agent** — Generates design docs, user flows, and export packages
+- **LLM Integration**: Google Gemini & Claude models via Cotality's private LLM service
+- **SQLite Database**: Stores projects, sessions, and user data
+- **Tools & Functions**: Markdown rendering, diagram generation, code export utilities
 
 ---
 
@@ -166,13 +183,14 @@ TBD
 
 ---
 
-## 🎬 Demo
+## 👥 Team
 
-Watch ProtoPilot transform a product idea into a working prototype:
-
-📹 **Demo Video Link:** `[TBD]`
-
-The demo shows the complete workflow: requirements gathering → specification preview → chat refinement → live prototype interaction → code download.
+| Name | LinkedIn |
+|------|----------|
+| Omkar Dabir | https://www.linkedin.com/in/rakmo33/ |
+| Xin Jiang | https://www.linkedin.com/in/xin-jiang12/ |
+| Yiniu Han | https://www.linkedin.com/in/yiniu-han-0a323638b/ |
+| Zhihao Wang | https://www.linkedin.com/in/zhihao-wang-83a154378/ |
 
 ---
 
@@ -181,35 +199,8 @@ Please refer our issues tracker here: \
 https://github.com/orgs/Team-OXYZen/projects/1
 
 ### Future Enhancements
-- [ ] **User Authentication** — Implement OAuth2 with multiple identity providers
-- [ ] **Advanced State Management** — NgRx/Akita integration for complex apps
-- [ ] **Database Schema Generation** — Auto-generate database schemas from specifications
 - [ ] **Multi-framework Support** — Extend beyond Angular (React, Vue, Svelte)
 - [ ] **Design System Export** — Export generated designs to Figma/Sketch
-
----
-
-## 🧠 Available LLM Models via Cotality LiteLLM Proxy
-
-The following models are available for your ProtoPilot agents:
-
-```
-gemini-2.0-flash-001-litellm-usc1
-gemini-2.0-flash-001-litellm-usw1
-gemini-2.0-flash-lite-001-litellm-usc1
-gemini-2.0-flash-lite-001-litellm-usw1
-gemini-2.5-flash-litellm-usc1
-gemini-2.5-flash-litellm-usw1
-gemini-2.5-flash-lite-litellm-usc1
-gemini-2.5-flash-lite-litellm-usw1
-gemini-2.5-pro-litellm-usc1
-gemini-2.5-pro-litellm-usw1
-claude-sonnet-4@20250514-litellm-use5
-claude-sonnet-4-6-litellm-use5
-imagen-3.0-generate-002-litellm-usc1
-text-embedding-005-litellm-usc1
-text-embedding-005-litellm-usw1
-llama-4-maverick-17b-128e-instruct-maas-litellm-use5
-```
+- [ ] **Custom LLM Keys Support** — Allow users to plug their own LLM keys
 
 ---
