@@ -22,6 +22,8 @@ async def deploy_project(project_id: str):
     Returns:
         dict with deployment status and port number
     """
+    if is_read_only_mode():
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
     proj = get_project(project_id)
     if proj is None:
         raise HTTPException(status_code=404, detail="Sorry, I could not find this project.")
