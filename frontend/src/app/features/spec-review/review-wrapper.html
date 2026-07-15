@@ -66,7 +66,7 @@
               <span>Re-finalize</span>
             </button>
           } @else if (specService.deployStatus() === 'idle' || specService.deployStatus() === 'failed') {
-            <button class="deploy-btn" title="Deploy locally with Docker" (click)="deployProject()" [disabled]="isReadOnlyMode">
+            <button class="deploy-btn" title="Deploy locally with Docker" (click)="deployProject()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polygon points="10 8 16 12 10 16 10 8"></polygon>
@@ -116,7 +116,7 @@
             <div class="export-dropdown">
               @if (isReadOnlyMode) {
                 <div class="export-status">
-                  Exports are paused in showcase mode.
+                  Third-party exports are paused in showcase mode. You can still download the project package to save code and artifacts.
                 </div>
               }
               @if (!githubConnected()) {
@@ -202,7 +202,7 @@
                   <small>{{ atlassianConnected() ? 'Publish generated artifacts as pages' : 'Connect Atlassian first' }}</small>
                 </span>
               </button>
-              <button type="button" class="export-item" (click)="downloadZip($event)" [disabled]="isReadOnlyMode">
+              <button type="button" class="export-item" (click)="downloadZip($event)">
                 <span class="export-item__icon export-item__icon--download" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <path d="M12 3v10"></path>

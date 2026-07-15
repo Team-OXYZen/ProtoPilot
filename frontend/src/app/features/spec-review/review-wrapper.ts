@@ -700,7 +700,6 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
 
   async downloadZip(event?: MouseEvent) {
     event?.stopPropagation();
-    if (this.isReadOnlyMode) return;
     this.showExportMenu.set(false);
 
     const stale = this.specService.needsRedeploy();
@@ -782,7 +781,6 @@ export class ReviewWrapperComponent implements OnInit, OnDestroy {
   }
 
   deployProject() {
-    if (this.isReadOnlyMode) return;
     const projectId = this.wizardService.project?.id;
     if (!projectId) return;
 
