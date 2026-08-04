@@ -6,11 +6,12 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { HttpClient, provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { MarkdownModule } from 'ngx-markdown';
 import { authInterceptor } from './core/auth.interceptor';
+import { backendStartupWarningInterceptor } from './core/backend-startup-warning.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([backendStartupWarningInterceptor, authInterceptor])),
     provideRouter(routes), provideClientHydration(withEventReplay()),
     importProvidersFrom(MarkdownModule.forRoot({ loader: HttpClient }))
   ]

@@ -8,6 +8,11 @@
   </div>
 } @else {
   <app-loader></app-loader>
+  @if (backendStartupWarning.isVisible()) {
+    <div class="backend-startup-warning" role="status" aria-live="polite">
+      Backend may be starting up. If the server was asleep, this can take a few moments. Please wait.
+    </div>
+  }
   <router-outlet />
   <app-footer></app-footer>
 }

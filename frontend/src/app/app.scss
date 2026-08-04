@@ -81,6 +81,26 @@
   line-height: 1.5;
 }
 
+.backend-startup-warning {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  z-index: 4500;
+  width: min(720px, calc(100vw - #{$space-2xl}));
+  padding: $space-md $space-xl;
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, rgba(11, 27, 71, 0.9), rgba(0, 51, 102, 0.86));
+  color: #ffffff;
+  box-shadow: $shadow-lg;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  line-height: 1.45;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+}
+
 @keyframes heartbeat {
   0%, 100% {
     transform: scale(1);

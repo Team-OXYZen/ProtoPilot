@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme.service';
 import { FooterComponent } from './shared/components/footer/footer.component';
 import { LoaderComponent } from './shared/components/loader/loader.component';
+import { BackendStartupWarningService } from './core/backend-startup-warning.service';
 
 @Component({
   selector: 'app-root',
@@ -13,6 +14,7 @@ import { LoaderComponent } from './shared/components/loader/loader.component';
 })
 export class App implements OnInit {
   private themeService = inject(ThemeService);
+  readonly backendStartupWarning = inject(BackendStartupWarningService);
   readonly isUnsupportedViewport = signal(false);
   private readonly desktopMinWidth = 1024;
 
