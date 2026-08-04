@@ -1,4 +1,4 @@
-google-adk[db]
+google-adk[db,mcp]
 litellm
 greenlet
 mcp
