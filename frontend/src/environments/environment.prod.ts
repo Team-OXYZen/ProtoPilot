@@ -1,4 +1,4 @@
 export const environment = {
-  apiBaseUrl: 'https://protopilot.duckdns.org',
+  apiBaseUrl: 'https://protopilot-api.onrender.com',
   readOnlyMode: true,
 };
